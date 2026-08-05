@@ -1,0 +1,15 @@
+{
+  "generated_at_utc": "2026-08-05T00:20:57.695842Z",
+  "source": "yfinance_screener",
+  "target_size": 2000,
+  "pages_requested": 9,
+  "request_attempt_count": 9,
+  "raw_candidate_count": 2250,
+  "unique_candidate_count": 2093,
+  "invalid_record_count": 157,
+  "adr_excluded_count": 0,
+  "manual_excluded_count": 0,
+  "final_count": 2000,
+  "largest_market_cap": 5133398704128,
+  "smallest_market_cap": 585698496
+}
