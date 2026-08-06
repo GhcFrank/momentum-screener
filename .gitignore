@@ -8,3 +8,7 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Release-backed market data is mutable local state, not source-controlled data.
+data/processed/prices/
+data/raw/yahoo_daily/.staging/

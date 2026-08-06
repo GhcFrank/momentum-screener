@@ -1,0 +1,132 @@
+name: Update daily prices
+
+on:
+  schedule:
+    - cron: "17 18 * * 1-5"
+      timezone: "America/New_York"
+  workflow_dispatch:
+
+concurrency:
+  group: daily-price-update
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  update-daily-prices:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install project Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install locked dependencies
+        run: uv sync --locked
+
+      - name: Validate local Universe
+        run: uv run python -m momentum_screener.universe validate
+
+      - name: Verify local and remote dataset identity
+        run: >-
+          uv run python -m momentum_screener.release_storage check
+          --result-json "$RUNNER_TEMP/dataset-check-before.json"
+
+      - name: Restore update inputs from Release
+        run: uv run python -m momentum_screener.release_storage pull-update-inputs
+
+      - name: Plan daily refresh without Yahoo access
+        run: >-
+          uv run python -m momentum_screener.prices update --dry-run
+          --result-json "$RUNNER_TEMP/price-update-plan.json"
+
+      - name: Refresh daily prices
+        id: refresh
+        shell: bash
+        run: |
+          uv run python -m momentum_screener.prices update \
+            --result-json "$RUNNER_TEMP/price-update-result.json"
+          status="$(uv run python -c "import json, os; print(json.load(open(os.environ['RUNNER_TEMP'] + '/price-update-result.json'))['status'])")"
+          local_success="$(uv run python -c "import json, os; print(str(json.load(open(os.environ['RUNNER_TEMP'] + '/price-update-result.json'))['local_update_success']).lower())")"
+          echo "local_update_success=$local_success" >> "$GITHUB_OUTPUT"
+          if [[ "$status" == "updated" && "$local_success" == "true" ]]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate local data acceptance
+        if: steps.refresh.outputs.publish == 'true'
+        run: >-
+          uv run python -c
+          "from pathlib import Path; from momentum_screener.release_storage import
+          validate_local_dataset_acceptance;
+          root=Path('data/processed/prices');
+          validate_local_dataset_acceptance(prices_root=root)"
+
+      - name: Publish update to Release
+        if: steps.refresh.outputs.publish == 'true'
+        run: >-
+          uv run python -m momentum_screener.release_storage publish-update
+          --result-json "$RUNNER_TEMP/release-publish-result.json"
+
+      - name: Verify remote manifest after update
+        run: >-
+          uv run python -m momentum_screener.release_storage check
+          --result-json "$RUNNER_TEMP/dataset-check-after.json"
+
+      - name: Write job summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Daily price update"
+            echo "- Local update success: ${{ steps.refresh.outputs.local_update_success || 'unknown' }}"
+            echo "- Publish requested: ${{ steps.refresh.outputs.publish || 'unknown' }}"
+            echo "- Release tag: market-data"
+            if [[ -f "$RUNNER_TEMP/release-publish-result.json" ]]; then
+              uv run python -c "import json, os; p=json.load(open(os.environ['RUNNER_TEMP'] + '/release-publish-result.json')); print(f\"- Release publish success: {p['release_publish_success']}\")"
+            else
+              echo "- Release publish success: not_completed"
+            fi
+            if [[ -f "$RUNNER_TEMP/dataset-check-after.json" ]]; then
+              uv run python -c "import json, os; p=json.load(open(os.environ['RUNNER_TEMP'] + '/dataset-check-after.json')); print(f\"- Local Universe ticker count: {p['local_universe_ticker_count']}\"); print(f\"- Local Universe SHA-256: {p['local_universe_sha256']}\"); print(f\"- Expected requested start: {p['local_requested_start']}\"); print(f\"- Remote Universe SHA-256: {p['remote_universe_sha256']}\"); print(f\"- Remote requested start: {p['remote_requested_start']}\"); print(f\"- Remote latest session: {p['remote_latest_session']}\"); print(f\"- Dataset identity match: {p['dataset_identity_match']}\"); print(f\"- Workflow ready: {p['workflow_ready']}\")"
+            fi
+            echo "- Data is persisted as Release assets; the source checkout is read-only."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload bounded diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-price-update-diagnostics-${{ github.run_id }}
+          retention-days: 14
+          if-no-files-found: ignore
+          include-hidden-files: true
+          path: |
+            data/processed/prices/update_report.json
+            data/processed/prices/update_missing_tickers.csv
+            data/processed/prices/release_publish_plan.json
+            data/processed/prices/sync_report.json
+            data/processed/prices/manifest.json
+            data/processed/prices/.update_diagnostics/**
+            ${{ runner.temp }}/dataset-check-before.json
+            ${{ runner.temp }}/dataset-check-after.json
+            ${{ runner.temp }}/price-update-plan.json
+            ${{ runner.temp }}/price-update-result.json
+            ${{ runner.temp }}/release-publish-result.json

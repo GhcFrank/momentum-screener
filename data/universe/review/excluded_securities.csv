@@ -1,0 +1,623 @@
+ticker,company_name,security_name,yahoo_exchange,listing_exchange,market_cap,exclusion_reason
+AAPG,Ascentage Pharma Group Internat,Ascentage Pharma Group International - American Depository Shares,NGM,NASDAQ,1573198720,adr_or_ads
+ABEV,Ambev S.A.,Ambev S.A. American Depositary Shares (Each representing 1 Common Share),NYQ,NYSE,46821969920,adr_or_ads
+ABVX,ABIVAX Société Anonyme,Abivax SA - American Depositary Shares,NGM,NASDAQ,10929076224,adr_or_ads
+AERO,"Grupo Aeromexico, S.A.B. de C.V","Grupo Aeromexico, S.A.B. de C.V. American Depositary Shares (each representing ten (10) Common Shares)",NYQ,NYSE,2356339968,adr_or_ads
+AHG,Akso Health Group,Akso Health Group - American Depositary Shares,NCM,NASDAQ,1250788096,adr_or_ads
+AMX,"América Móvil, S.A.B. de C.V.","America Movil, S.A.B. de C.V. American Depositary Shares (each representing the right to receive twenty (20) Series B Shares",NYQ,NYSE,72061198336,adr_or_ads
+ARGX,argenx SE,argenx SE - American Depositary Shares,NMS,NASDAQ,53975252992,adr_or_ads
+ARM,Arm Holdings plc,Arm Holdings plc - American Depositary Shares,NMS,NASDAQ,293251022848,adr_or_ads
+ASX,"ASE Technology Holding Co., Ltd.","ASE Technology Holding Co., Ltd. American Depositary Shares (each representing Two Common Shares)",NYQ,NYSE,80872431616,adr_or_ads
+ATAT,Atour Lifestyle Holdings Limited,Atour Lifestyle Holdings Limited - American Depositary Shares,NMS,NASDAQ,4814398464,adr_or_ads
+ATHM,Autohome Inc.,"Autohome Inc. American Depositary Shares, each representing four class A ordinary shares.",NYQ,NYSE,2646627584,adr_or_ads
+AVAL,Grupo Aval Acciones y Valores S.A.,Grupo Aval Acciones y Valores S.A. ADR (Each representing 20 preferred shares),NYQ,NYSE,6292021248,adr_or_ads
+AXIA,AXIA Energia SA,AXIA Energia American Depositary Shares (Each representing one Common Share),NYQ,NYSE,23860400128,adr_or_ads
+AZUL,Azul S.A.,"Azul S.A. American Depositary Shares, each representing two (2) Common Shares",NYQ,NYSE,1594012928,adr_or_ads
+BABA,Alibaba Group Holding Limited,Alibaba Group Holding Limited American Depositary Shares each representing eight Ordinary share,NYQ,NYSE,308069990400,adr_or_ads
+BAK,Braskem S.A.,Braskem SA ADR,NYQ,NYSE,900574272,adr_or_ads
+BBAR,Banco BBVA Argentina S.A.,Banco BBVA Argentina S.A. ADS,NYQ,NYSE,3647667456,adr_or_ads
+BBD,Banco Bradesco S.A.,Banco Bradesco Sa American Depositary Shares,NYQ,NYSE,37836955648,adr_or_ads
+BBDO,Banco Bradesco S.A.,Banco Bradesco Sa American Depositary Shares (each representing one Common Share),NYQ,NYSE,34792603648,adr_or_ads
+BCH,Banco de Chile,Banco De Chile ADS,NYQ,NYSE,21031755776,adr_or_ads
+BEKE,KE Holdings Inc.,KE Holdings Inc American Depositary Shares (each representing three Class A Ordinary Shares),NYQ,NYSE,18653034496,adr_or_ads
+BHP,BHP Group Limited,BHP Group Limited American Depositary Shares (Each representing two Ordinary Shares),NYQ,NYSE,227056041984,adr_or_ads
+BIDU,"Baidu, Inc.","Baidu, Inc. - American Depositary Shares, each representing 8 ordinary share",NMS,NASDAQ,37687013376,adr_or_ads
+BILI,Bilibili Inc.,Bilibili Inc. - American Depositary Shares,NMS,NASDAQ,7775837184,adr_or_ads
+BLTE,"Belite Bio, Inc","Belite Bio, Inc - American Depositary Shares",NCM,NASDAQ,6353486848,adr_or_ads
+BMA,Banco Macro S.A.,Banco Macro S.A.  ADR (representing Ten Class B Common Shares),NYQ,NYSE,5727019008,adr_or_ads
+BNTX,BioNTech SE,BioNTech SE - American Depositary Shares,NMS,NASDAQ,23310870528,adr_or_ads
+BSAC,Banco Santander-Chile,Banco Santander - Chile ADS,NYQ,NYSE,16606815232,adr_or_ads
+BSBR,Banco Santander (Brasil) S.A.,"Banco Santander Brasil SA American Depositary Shares, each representing one unit",NYQ,NYSE,21676392448,adr_or_ads
+BTI,British American Tobacco p.l.c.,"British American Tobacco  Industries, p.l.c. Common Stock ADR",NYQ,NYSE,127840985088,adr_or_ads
+BUD,Anheuser-Busch InBev SA/NV,Anheuser-Busch Inbev SA Sponsored ADR (Belgium),NYQ,NYSE,167756529664,adr_or_ads
+BZ,Kanzhun Limited,KANZHUN LIMITED - American Depository Shares,NMS,NASDAQ,7234633728,adr_or_ads
+CDLR,Cadeler A/S,Cadeler A/S American Depositary Share (each representing four (4) Ordinary Shares),NYQ,NYSE,2192786176,adr_or_ads
+CEPU,Central Puerto S.A.,Central Puerto S.A. American Depositary Shares (each represents ten Common Shares),NYQ,NYSE,2143303424,adr_or_ads
+CHA,Chagee Holdings Limited,"Chagee Holdings Limited - American Depositary Shares, each representing 1 Class A ordinary share",NMS,NASDAQ,2092673792,adr_or_ads
+CIB,Grupo Cibest S.A.,Grupo Cibest S.A. American Depositary Shares each representing four Preferred Shares,NYQ,NYSE,21387087872,adr_or_ads
+CIG,Companhia Energética de Minas Gerais - CEMIG,Comp En De Mn Cemig ADS American Depositary Shares,NYQ,NYSE,6121859584,adr_or_ads
+CIG-C,Companhia Energética de Minas Gerais - CEMIG,Comp En De Mn Cemig ADS American Depositary Receipts,NYQ,NYSE,9125575680,adr_or_ads
+CMPS,COMPASS Pathways plc,COMPASS Pathways Plc - American Depository Shares,NMS,NASDAQ,1832611584,adr_or_ads
+CPAC,Cementos Pacasmayo S.A.A.,Cementos Pacasmayo S.A.A. American Depositary Shares (Each representing five Common Shares),NYQ,NYSE,1023175360,adr_or_ads
+CSAN,Cosan S.A.,Cosan S.A. ADS,NYQ,NYSE,2997718528,adr_or_ads
+CX,"CEMEX, S.A.B. de C.V.","Cemex, S.A.B. de C.V. Sponsored ADR",NYQ,NYSE,16666100736,adr_or_ads
+DAO,"Youdao, Inc.","Youdao, Inc. American Depositary Shares, each representing one Class A Ordinary Share",NYQ,NYSE,2079741056,adr_or_ads
+DDL,Dingdong (Cayman) Limited,Dingdong (Cayman) Limited American Depositary Shares (each two representing three Ordinary Shares),NYQ,NYSE,487605376,adr_or_ads
+DRD,DRDGOLD Limited,DRDGOLD Limited American Depositary Shares,NYQ,NYSE,1983738624,adr_or_ads
+DSC,DSC Holdings Ltd.,DSC Holdings Ltd. - American Depositary Shares,NGM,NASDAQ,300935680,adr_or_ads
+EC,Ecopetrol S.A.,Ecopetrol S.A. American Depositary Shares,NYQ,NYSE,33695129600,adr_or_ads
+EDN,Empresa Distribuidora y Comercializadora Norte Sociedad Anónima,Empresa Distribuidora Y Comercializadora Norte S.A. (Edenor) American Depositary Shares,NYQ,NYSE,1215996160,adr_or_ads
+EDU,New Oriental Education & Technology Group Inc.,"New Oriental Education & Technology Group, Inc. Sponsored ADR representing 10 Ordinary Share (Cayman Islands)",NYQ,NYSE,9490921472,adr_or_ads
+EH,EHang Holdings Limited,EHang Holdings Limited - ADS,NGM,NASDAQ,405772672,adr_or_ads
+ELPC,Companhia Paranaense de Energia,Companhia Paranaense de Energia (COPEL) American Depositary Shares (each representing four (4) Common Shares),NYQ,NYSE,8604446720,adr_or_ads
+ENIC,Enel Chile S.A.,Enel Chile S.A. American Depositary Shares (Each representing 50 shares of Common Stock),NYQ,NYSE,6211156992,adr_or_ads
+ENRD,Einride AB,Einride AB - American Depositary Shares,NGM,NASDAQ,728203072,adr_or_ads
+ERIC,Telefonaktiebolaget LM Ericsson (publ),Ericsson - American Depositary Shares each representing 1 underlying Class B share,NMS,NASDAQ,32998637568,adr_or_ads
+FINV,FinVolution Group,FinVolution Group American Depositary Shares,NYQ,NYSE,1154499584,adr_or_ads
+FMS,Fresenius Medical Care AG,Fresenius Medical Care AG American Depositary Shares (Each representing 1/2 of an Ordinary Share),NYQ,NYSE,12832018432,adr_or_ads
+FUTU,Futu Holdings Limited,Futu Holdings Limited - American Depositary Shares,NGM,NASDAQ,15452237824,adr_or_ads
+GDS,GDS Holdings Limited,GDS Holdings Limited - American Depositary Shares,NGM,NASDAQ,6546336256,adr_or_ads
+GFI,Gold Fields Limited,Gold Fields Limited American Depositary Shares,NYQ,NYSE,33352869888,adr_or_ads
+GGAL,Grupo Financiero Galicia S.A.,"Grupo Financiero Galicia S.A. - American Depositary Shares, Class B Shares underlying",NCM,NASDAQ,8194768384,adr_or_ads
+GMAB,Genmab A/S,Genmab A/S - American Depositary Shares,NMS,NASDAQ,17963763712,adr_or_ads
+GOTU,Gaotu Techedu Inc.,Gaotu Techedu Inc. American Depositary Shares,NYQ,NYSE,448293056,adr_or_ads
+GPCR,Structure Therapeutics Inc.,Structure Therapeutics Inc. - American Depositary Shares,NGM,NASDAQ,3591395072,adr_or_ads
+GRFS,"Grifols, S.A.","Grifols, S.A. - American Depositary Shares",NMS,NASDAQ,5397003264,adr_or_ads
+GRVY,"Gravity Co., Ltd.","GRAVITY Co., Ltd. - American depositary shares, each representing one common share.",NGM,NASDAQ,432221600,adr_or_ads
+GSK,GSK plc,GSK plc American Depositary Shares (Each representing two Ordinary Shares),NYQ,NYSE,103064379392,adr_or_ads
+HCM,HUTCHMED (China) Limited,HUTCHMED (China) Limited - American Depositary Shares,NMS,NASDAQ,2007553792,adr_or_ads
+HEPS,D-Market Elektronik Hizmetler ve Ticaret A.S.,D-Market Electronic Services & Trading - American Depositary Shares,NMS,NASDAQ,1018091840,adr_or_ads
+HIMX,"Himax Technologies, Inc.","Himax Technologies, Inc. - American depositary shares, each of which represents two ordinary shares.",NMS,NASDAQ,2328585984,adr_or_ads
+HLN,Haleon plc,Haleon plc American Depositary Shares (Each representing two Ordinary Shares),NYQ,NYSE,43818442752,adr_or_ads
+HSAI,Hesai Group,Hesai Group - American Depositary Share,NMS,NASDAQ,22515335168,adr_or_ads
+HTHT,H World Group Limited,H World Group Limited - American Depositary Shares,NMS,NASDAQ,13020558336,adr_or_ads
+HTT,High Templar Tech Limited,"High Templar Tech Limited American depositary shares, each representing one Class A ordinary share",NYQ,NYSE,397525760,adr_or_ads
+HUYA,HUYA Inc.,"HUYA Inc. American depositary shares, each  representing one Class A ordinary share",NYQ,NYSE,558392640,adr_or_ads
+IHG,InterContinental Hotels Group PLC,Intercontinental Hotels Group American Depositary Shares (Each representing one Ordinary Share),NYQ,NYSE,23715844096,adr_or_ads
+IMCR,Immunocore Holdings plc,Immunocore Holdings plc - American Depositary Shares,NMS,NASDAQ,1693315072,adr_or_ads
+IMOS,ChipMOS TECHNOLOGIES INC.,ChipMOS TECHNOLOGIES INC. - American Depositary Shares,NMS,NASDAQ,1774011520,adr_or_ads
+INFY,Infosys Limited,Infosys Limited American Depositary Shares,NYQ,NYSE,50545541120,adr_or_ads
+IQ,"iQIYI, Inc.","iQIYI, Inc. - American Depositary Shares",NMS,NASDAQ,1244881792,adr_or_ads
+IRS,IRSA Inversiones y Representaciones Sociedad Anónima,IRSA Inversiones Y Representaciones S.A. Global Depositary Shares (Each representing ten shares of Common Stock),NYQ,NYSE,1263251072,adr_or_ads
+ITUB,Itaú Unibanco Holding S.A.,Itau Unibanco Banco Holding SA American Depositary Shares (Each repstg 500 Preferred shares),NYQ,NYSE,90489569280,adr_or_ads
+IX,ORIX Corporation,ORIX Corporation American Depositary Shares,NYQ,NYSE,45120135168,adr_or_ads
+JD,"JD.com, Inc.","JD.com, Inc. - American Depositary Shares",NMS,NASDAQ,43945271296,adr_or_ads
+JKS,"JinkoSolar Holding Co., Ltd.",JinkoSolar Holding Company Limited American Depositary Shares (each representing 4 Common Shares),NYQ,NYSE,826401536,adr_or_ads
+JOYY,JOYY Inc.,JOYY Inc. - American Depositary Shares,NMS,NASDAQ,3768808960,adr_or_ads
+KC,Kingsoft Cloud Holdings Limited,Kingsoft Cloud Holdings Limited - American Depositary Shares,NMS,NASDAQ,3745114624,adr_or_ads
+KOF,"Coca-Cola FEMSA, S.A.B. de C.V.","Coca Cola Femsa S.A.B. de C.V.  American Depositary Shares, each representing 10 Units (each Unit consists of 3 Series B Shares and 5 Series L Shares)",NYQ,NYSE,22747811840,adr_or_ads
+KSPI,Joint Stock Company Kaspi.kz,Joint Stock Company Kaspi.kz - American Depository Shares,NMS,NASDAQ,17518614528,adr_or_ads
+LEGN,Legend Biotech Corporation,Legend Biotech Corporation - American Depositary Shares,NMS,NASDAQ,3685027840,adr_or_ads
+LFS,"Leifras Co., Ltd.","LEIFRAS Co., Ltd. - American Depositary Shares",NCM,NASDAQ,60692636,adr_or_ads
+LI,Li Auto Inc.,Li Auto Inc. - American Depositary Shares,NMS,NASDAQ,13321302016,adr_or_ads
+LKFT,Lakefront Biotherapeutics NV,Lakefront Biotherapeutics - American Depositary Shares,NMS,NASDAQ,1707840256,adr_or_ads
+LND,BrasilAgro - Companhia Brasileira de Propriedades Agrícolas,Brasilagro Brazilian Agric Real Estate Co Sponsored ADR (Brazil),NYQ,NYSE,359611776,adr_or_ads
+LOMA,Loma Negra Compañía Industrial Argentina Sociedad Anónima,Loma Negra Compania Industrial Argentina Sociedad Anonima ADS,NYQ,NYSE,1303501440,adr_or_ads
+LPL,"LG Display Co., Ltd.","LG Display Co, Ltd AMERICAN DEPOSITORY SHARES",NYQ,NYSE,3260000000,adr_or_ads
+LRE,"Lead Real Estate Co., Ltd","Lead Real Estate Co., Ltd - American Depositary Shares",NCM,NASDAQ,17352498,adr_or_ads
+LTM,LATAM Airlines Group S.A.,"LATAM Airlines Group S.A. American Depositary Shares (each representing two thousand (2,000) shares of Common Stock)",NYQ,NYSE,16891325440,adr_or_ads
+LU,Lufax Holding Ltd,"Lufax Holding Ltd American Depositary Shares, each representing two (2) Ordinary Shares",NYQ,NYSE,1300033280,adr_or_ads
+LX,LexinFintech Holdings Ltd.,LexinFintech Holdings Ltd. - American Depositary Shares,NMS,NASDAQ,243886640,adr_or_ads
+LYG,Lloyds Banking Group plc,Lloyds Banking Group Plc American Depositary Shares,NYQ,NYSE,90717577216,adr_or_ads
+MESO,Mesoblast Limited,Mesoblast Limited - American Depositary Shares,NMS,NASDAQ,1940253440,adr_or_ads
+MFG,"Mizuho Financial Group, Inc.","Mizuho Financial Group, Inc. Sponosred ADR (Japan)",NYQ,NYSE,130349465600,adr_or_ads
+MLCO,Melco Resorts & Entertainment Limited,Melco Resorts & Entertainment Limited - American Depositary Shares,NMS,NASDAQ,2193847296,adr_or_ads
+MNSO,MINISO Group Holding Limited,"MINISO Group Holding Limited American Depositary Shares, each representing four Ordinary Shares",NYQ,NYSE,3668572416,adr_or_ads
+MOMO,Hello Group Inc.,Hello Group Inc.  - American Depositary Shares,NMS,NASDAQ,855457472,adr_or_ads
+MWC,"Micware Co., Ltd.","Micware Co., Ltd. - American Depositary Shares",NGM,NASDAQ,87346544,adr_or_ads
+NGG,National Grid plc,"National Grid Transco, PLC National Grid PLC (NEW) American Depositary Shares",NYQ,NYSE,80690069504,adr_or_ads
+NICE,NICE Ltd.,NICE Ltd - American Depositary Shares each representing one Ordinary Share,NMS,NASDAQ,5821630464,adr_or_ads
+NIO,NIO Inc.,"NIO Inc. American depositary shares, each  representing one Class A ordinary share",NYQ,NYSE,11651352576,adr_or_ads
+NIU,Niu Technologies,Niu Technologies - American Depositary Shares,NGM,NASDAQ,192168416,adr_or_ads
+NMR,"Nomura Holdings, Inc.",Nomura Holdings Inc ADR American Depositary Shares,NYQ,NYSE,29021341696,adr_or_ads
+NOAH,Noah Holdings Limited,Noah Holdings Limited American Depositary Shares,NYQ,NYSE,567700480,adr_or_ads
+NOK,Nokia Oyj,Nokia Corporation Sponsored American Depositary Shares,NYQ,NYSE,53480677376,adr_or_ads
+NTES,"NetEase, Inc.","NetEase, Inc. - American Depositary Shares, each representing 5 ordinary shares",NMS,NASDAQ,82022449152,adr_or_ads
+NWG,NatWest Group plc,"NatWest Group plc American Depositary Shares, (each representing two (2) Ordinary Shares)",NYQ,NYSE,76523806720,adr_or_ads
+OMAB,"Grupo Aeroportuario del Centro Norte, S.A.B. de C.V.",Grupo Aeroportuario del Centro Norte S.A.B. de C.V. - American Depositary Shares each representing 8 Series B shares,NMS,NASDAQ,5291003392,adr_or_ads
+ONC,BeOne Medicines AG,BeOne Medicines Ltd. - American Depositary Shares,NMS,NASDAQ,33981636608,adr_or_ads
+OPRA,Opera Limited,Opera Limited - American Depositary Shares,NMS,NASDAQ,1782104064,adr_or_ads
+PAYP,PayPay Corporation,PayPay Corporation - American Depository Shares,NMS,NASDAQ,10610832384,adr_or_ads
+PBR,Petróleo Brasileiro S.A. - Petrobras,Petroleo Brasileiro S.A. Petrobras ADS,NYQ,NYSE,118318571520,adr_or_ads
+PBR-A,Petróleo Brasileiro S.A. - Petrobras,Petroleo Brasileiro S.A. Petrobras American Depositary Shares representing Preferred Shares,NYQ,NYSE,111461253120,adr_or_ads
+PCLA,PicoCELA Inc.,PicoCELA Inc. - American Depositary Shares,NCM,NASDAQ,52875928,adr_or_ads
+PDC,Perpetuals.com Ltd,Perpetuals.com Ltd - American Depositary Shares,NCM,NASDAQ,20391356,adr_or_ads
+PDD,PDD Holdings Inc.,PDD Holdings Inc. - American Depositary Shares,NMS,NASDAQ,129443676160,adr_or_ads
+PHI,PLDT Inc.,PLDT Inc. Sponsored ADR,NYQ,NYSE,4241174784,adr_or_ads
+PKX,POSCO Holdings Inc.,POSCO HOLDINGS INC. American Depositary Shares (Each representing 1/4th of a share of Common Stock),NYQ,NYSE,16573049856,adr_or_ads
+PONY,Pony AI Inc.,Pony AI Inc. - American Depositary Shares,NMS,NASDAQ,3392770304,adr_or_ads
+PSNY,Polestar Automotive Holding UK PLC,Polestar Automotive Holding UK Limited - Class A ADS,NGM,NASDAQ,2134434944,adr_or_ads
+PSNYW,Polestar Automotive Holding UK PLC,Polestar Automotive Holding UK Limited - Class C-1 ADS (ADW),NGM,NASDAQ,347769472,adr_or_ads
+QFIN,"Qfin Holdings, Inc.","Qfin Holdings, Inc.  - American Depositary Shares",NMS,NASDAQ,1599819904,adr_or_ads
+RELX,RELX PLC,RELX PLC PLC American Depositary Shares (Each representing One Ordinary Share),NYQ,NYSE,63864655872,adr_or_ads
+RERE,ATRenew Inc.,ATRenew Inc. American Depositary Shares (every three of which representing two Class A ordinary shares),NYQ,NYSE,965700224,adr_or_ads
+RLX,RLX Technology Inc.,"RLX Technology Inc. American Depositary Shares, each representing the right to receive one (1) Class A ordinary share",NYQ,NYSE,2371173888,adr_or_ads
+RTO,Rentokil Initial plc,Rentokil Initial plc American Depositary Shares (each representing five (5) Ordinary Shares),NYQ,NYSE,12455387136,adr_or_ads
+SAN,"Banco Santander, S.A.","Banco Santander, S.A. Sponsored ADR (Spain)",NYQ,NYSE,209119002624,adr_or_ads
+SAP,SAP SE,SAP  SE ADS,NYQ,NYSE,227759128576,adr_or_ads
+SBS,Companhia de Saneamento Básico do Estado de São Paulo - SABESP,Companhia de saneamento Basico Do Estado De Sao Paulo - Sabesp American Depositary Shares (Each repstg 250 Common Shares),NYQ,NYSE,19095711744,adr_or_ads
+SBSW,Sibanye Stillwater Limited,D/B/A Sibanye-Stillwater Limited ADS,NYQ,NYSE,7175833600,adr_or_ads
+SE,Sea Limited,"Sea Limited American Depositary Shares, each representing one Class A Ordinary Share",NYQ,NYSE,70380601344,adr_or_ads
+SHEL,Shell plc,Shell PLC American Depositary Shares (each representing two (2) Ordinary Shares),NYQ,NYSE,242679087104,adr_or_ads
+SHG,"Shinhan Financial Group Co., Ltd.",Shinhan Financial Group Co Ltd American Depositary Shares,NYQ,NYSE,34081161216,adr_or_ads
+SIFY,Sify Technologies Limited,Sify Technologies Limited - American Depository Shares,NCM,NASDAQ,1135050496,adr_or_ads
+SIM,"Grupo Simec, S.A.B. de C.V.","Grupo Simec, S.A.B. de C.V. American Depositary Shares",ASE,NYSE American,4607079936,adr_or_ads
+SIMO,Silicon Motion Technology Corporation,"Silicon Motion Technology Corporation - American Depositary Shares, each representing four ordinary shares",NMS,NASDAQ,8363367424,adr_or_ads
+SKHY,SK hynix Inc.,SK hynix Inc. - American Depositary Shares,NMS,NASDAQ,1072093790208,adr_or_ads
+SMFG,"Sumitomo Mitsui Financial Group, Inc.",Sumitomo Mitsui Financial Group Inc Unsponsored American Depositary Shares (Japan),NYQ,NYSE,161374699520,adr_or_ads
+SNY,Sanofi,Sanofi - American Depositary Shares,NMS,NASDAQ,102506758144,adr_or_ads
+SONY,Sony Group Corporation,Sony Group Corporation American Depositary Shares,NYQ,NYSE,131778043904,adr_or_ads
+SSL,Sasol Limited,Sasol Ltd. American Depositary Shares,NYQ,NYSE,7012952064,adr_or_ads
+SUPV,Grupo Supervielle S.A.,Grupo Supervielle S.A. American Depositary Shares each Representing five Class B shares,NYQ,NYSE,848683648,adr_or_ads
+SUZ,Suzano S.A.,Suzano S.A. American Depositary Shares (each representing One Ordinary Share),NYQ,NYSE,10307964928,adr_or_ads
+TAK,Takeda Pharmaceutical Company Limited,Takeda Pharmaceutical Company Limited American Depositary Shares (each representing 1/2 of a share of Common Stock),NYQ,NYSE,53395365888,adr_or_ads
+TAL,TAL Education Group,TAL Education Group American Depositary Shares,NYQ,NYSE,6706338304,adr_or_ads
+TCOM,Trip.com Group Limited,Trip.com Group Limited - American Depositary Shares,NMS,NASDAQ,28941250560,adr_or_ads
+TEVA,Teva Pharmaceutical Industries Limited,Teva Pharmaceutical Industries Limited American Depositary Shares,NYQ,NYSE,40459083776,adr_or_ads
+TIMB,TIM S.A.,TIM S.A. American Depositary Shares (Each representing 5 Common Shares),NYQ,NYSE,8728194048,adr_or_ads
+TLX,Telix Pharmaceuticals Limited,Telix Pharmaceuticals Limited - American Depositary Shares,NMS,NASDAQ,3530056960,adr_or_ads
+TME,Tencent Music Entertainment Group,"Tencent Music Entertainment Group American Depositary Shares, each representing two Class A Ordinary Shares",NYQ,NYSE,15603219456,adr_or_ads
+TS,Tenaris S.A.,Tenaris S.A. American Depositary Shares,NYQ,NYSE,28799973376,adr_or_ads
+TX,Ternium S.A.,"Ternium S.A. Ternium S.A. American Depositary Shares (each representing ten shares, USD1.00 par value)",NYQ,NYSE,10543685632,adr_or_ads
+UGP,Ultrapar Participações S.A.,Ultrapar Participacoes S.A. (New) American Depositary Shares (Each representing one Common Share),NYQ,NYSE,6690821120,adr_or_ads
+UL,Unilever PLC,Unilever PLC American Depositary Shares (each representing One Ordinary Share),NYQ,NYSE,138803314688,adr_or_ads
+UXIN,Uxin Limited,Uxin Limited - American Depositary Shares,NMS,NASDAQ,268375920,adr_or_ads
+VALE,Vale S.A.,VALE S.A.  American Depositary Shares Each Representing one common share,NYQ,NYSE,63581093888,adr_or_ads
+VCRE,Vicore Pharma Holding AB (publ),Vicore Pharma Holding AB - American Depositary Shares,NCM,NASDAQ,332904032,adr_or_ads
+VEON,VEON Ltd.,VEON Ltd. - American Depositary Shares,NMS,NASDAQ,3775039488,adr_or_ads
+VIPS,Vipshop Holdings Limited,"Vipshop Holdings Limited American Depositary Shares, each representing two ordinary shares",NYQ,NYSE,7463404032,adr_or_ads
+VIST,"Vista Energy, S.A.B. de C.V.","Vista Energy S.A.B. de C.V. American Depositary Shares, each representing one series A share, with no par value",NYQ,NYSE,7043315200,adr_or_ads
+VIV,Telefônica Brasil S.A.,Telefonica Brasil S.A. American Depositary Shares (Each representing One Common Share),NYQ,NYSE,19493197824,adr_or_ads
+VNET,"VNET Group, Inc.","VNET Group, Inc. - American Depositary Shares",NMS,NASDAQ,2058320640,adr_or_ads
+VOD,Vodafone Group Public Limited Company,Vodafone Group Plc - American Depositary Shares each representing ten Ordinary Shares,NMS,NASDAQ,35381452800,adr_or_ads
+VTMX,"Corporación Inmobiliaria Vesta, S.A.B. de C.V.","Corporacion Inmobiliaria Vesta, S.A.B de C.V. American Depositary Shares, each representing ten (10) Common Shares",NYQ,NYSE,3117679872,adr_or_ads
+WB,Weibo Corporation,Weibo Corporation - American Depositary Shares,NMS,NASDAQ,1953096960,adr_or_ads
+WDH,Waterdrop Inc.,Waterdrop Inc. American Depositary Shares (each representing the right to receive 10 Class A Ordinary Shares),NYQ,NYSE,359301952,adr_or_ads
+WDS,Woodside Energy Group Ltd,"Woodside Energy Group Limited American Depositary Shares, each representing one Ordinary Share",NYQ,NYSE,41862225920,adr_or_ads
+WF,Woori Financial Group Inc.,Woori Financial Group Inc. American Depositary Shares (each representing three (3) shares of Common Stock),NYQ,NYSE,16938964992,adr_or_ads
+WPP,WPP plc,WPP plc American Depositary Shares,NYQ,NYSE,4446823424,adr_or_ads
+WRD,WeRide Inc.,WeRide Inc. - American Depositary Shares,NGM,NASDAQ,1927682944,adr_or_ads
+WYHG,Wing Yip Food Holdings Group Limited,Wing Yip Food Holdings Group Limited - American Depositary Shares,NCM,NASDAQ,42033876,adr_or_ads
+XPEV,XPeng Inc.,"XPeng Inc. American depositary shares, each representing two Class A ordinary shares",NYQ,NYSE,11239974912,adr_or_ads
+YB,Yuanbao Inc.,Yuanbao Inc. - American Depositary Shares,NGM,NASDAQ,631068352,adr_or_ads
+YMM,Full Truck Alliance Co. Ltd.,Full Truck Alliance Co. Ltd. American Depositary Shares (each representing 20 Class A Ordinary Shares),NYQ,NYSE,9988289536,adr_or_ads
+YPF,YPF Sociedad Anónima,YPF Sociedad Anonima American Depositary Shares,NYQ,NYSE,19084814336,adr_or_ads
+YSG,Yatsen Holding Limited,"Yatsen Holding Limited American Depositary Shares, each representing twenty (20) Class A Ordinary Shares",NYQ,NYSE,300177504,adr_or_ads
+ZH,Zhihu Inc.,"Zhihu Inc. American Depositary Shares, each representing three (3) Class A Ordinary Shares",NYQ,NYSE,281893472,adr_or_ads
+ZKH,ZKH Group Limited,"ZKH Group Limited American Depositary Shares, each representing thirty-five (35) Class A Ordinary Shares",NYQ,NYSE,455530656,adr_or_ads
+ZLAB,Zai Lab Limited,Zai Lab Limited - American Depositary Shares,NGM,NASDAQ,2074387200,adr_or_ads
+ZTO,ZTO Express (Cayman) Inc.,"ZTO Express (Cayman) Inc. American Depositary Shares, each representing one Class A ordinary share.",NYQ,NYSE,18016641024,adr_or_ads
+AAP,"Advance Auto Parts, Inc.",Advance Auto Parts Inc.,NYQ,NYSE,3594414336,ambiguous_security_type
+AEG,Aegon Ltd.,Aegon Ltd. New York Registry Shares,NYQ,NYSE,14046851072,ambiguous_security_type
+AME,"AMETEK, Inc.","AMETEK, Inc.",NYQ,NYSE,58391756800,ambiguous_security_type
+ARCO,Arcos Dorados Holdings Inc.,Arcos Dorados Holdings Inc. Class A Shares,NYQ,NYSE,1784316160,ambiguous_security_type
+ASML,ASML Holding N.V.,ASML Holding N.V. - New York Registry Shares,NMS,NASDAQ,644604297216,ambiguous_security_type
+AZZ,AZZ Inc.,AZZ Inc.,NYQ,NYSE,4566626304,ambiguous_security_type
+BBWI,"Bath & Body Works, Inc.","Bath & Body Works, Inc.",NYQ,NYSE,4190470144,ambiguous_security_type
+BDJ,BlackRock Enhanced Equity Dividend Trust,Blackrock Enhanced Equity Dividend Trust,NYQ,NYSE,1735827456,ambiguous_security_type
+BIPC,Brookfield Infrastructure Corporation,Brookfield Infrastructure Corporation Brookfield Infrastructure Corporation,NYQ,NYSE,4936845312,ambiguous_security_type
+BRBI,BRBI BR Partners S.A.,BRBI BR Partners S.A. - ADSs,NCM,NASDAQ,300550208,ambiguous_security_type
+BTT,Blackrock Municipal 2030 Target Term Trust,BlackRock Municipal 2030 Target Term Trust,NYQ,NYSE,1429026688,ambiguous_security_type
+BVN,Compañía de Minas Buenaventura S.A.A.,Buenaventura Mining Company Inc.,NYQ,NYSE,8381566464,ambiguous_security_type
+CCK,"Crown Holdings, Inc.","Crown Holdings, Inc.",NYQ,NYSE,13284008960,ambiguous_security_type
+CHE,Chemed Corporation,Chemed Corp,NYQ,NYSE,7142864384,ambiguous_security_type
+CHT,"Chunghwa Telecom Co., Ltd.","Chunghwa Telecom Co., Ltd.",NYQ,NYSE,32596789248,ambiguous_security_type
+DBRG,"DigitalBridge Group, Inc.","DigitalBridge Group, Inc.",NYQ,NYSE,2943298560,ambiguous_security_type
+DHT,"DHT Holdings, Inc.","DHT Holdings, Inc.",NYQ,NYSE,2877814016,ambiguous_security_type
+EQNR,Equinor ASA,Equinor ASA,NYQ,NYSE,90598268928,ambiguous_security_type
+FNV,Franco-Nevada Corporation,Franco-Nevada Corporation,NYQ,NYSE,43691421696,ambiguous_security_type
+GPK,Graphic Packaging Holding Company,Graphic Packaging Holding Company,NYQ,NYSE,3521059840,ambiguous_security_type
+HESM,Hess Midstream LP,Hess Midstream LP Class A Representing Limited Partner Interests,NYQ,NYSE,8290162688,ambiguous_security_type
+HMY,Harmony Gold Mining Company Limited,Harmony Gold Mining Company Limited,NYQ,NYSE,11415443456,ambiguous_security_type
+HTH,Hilltop Holdings Inc.,Hilltop Holdings Inc.,NYQ,NYSE,2278853632,ambiguous_security_type
+HUBG,"Hub Group, Inc.","Hub Group, Inc. - Class A Common Stock",NMS,NASDAQ,2909684224,ambiguous_security_type
+KB,KB Financial Group Inc.,KB Financial Group Inc,NYQ,NYSE,42371485696,ambiguous_security_type
+KMPR,Kemper Corporation,Kemper Corporation,NYQ,NYSE,1723248768,ambiguous_security_type
+KMX,"CarMax, Inc.",CarMax Inc,NYQ,NYSE,8042101760,ambiguous_security_type
+KNX,Knight-Swift Transportation Holdings Inc.,Knight-Swift Transportation Holdings Inc.,NYQ,NYSE,11524752384,ambiguous_security_type
+KWM,K Wave Media Ltd.,"K Wave Media, Ltd. - Ordinary Shares",NCM,NASDAQ,154071760,ambiguous_security_type
+LB,LandBridge Company LLC,LandBridge Company LLC Class A Shares Representing Limited Liability Company Interests,NYQ,NYSE,5824796160,ambiguous_security_type
+LCII,LCI Industries,LCI Industries,NYQ,NYSE,2605464320,ambiguous_security_type
+LEN-B,Lennar Corporation,Lennar Corporation Class B,NYQ,NYSE,20822976512,ambiguous_security_type
+LOGI,Logitech International S.A.,Logitech International S.A. - Registered Shares,NMS,NASDAQ,15135006720,ambiguous_security_type
+MO,"Altria Group, Inc.","Altria Group, Inc.",NYQ,NYSE,114277277696,ambiguous_security_type
+MT,ArcelorMittal S.A.,Arcelor Mittal NY Registry Shares NEW,NYQ,NYSE,56817041408,ambiguous_security_type
+MTRN,Materion Corporation,Materion Corporation,NYQ,NYSE,6179704832,ambiguous_security_type
+NBTX,Nanobiotix S.A.,Nanobiotix S.A. - ADSs,NMS,NASDAQ,2015377280,ambiguous_security_type
+NEM,Newmont Corporation,Newmont Corporation,NYQ,NYSE,109889568768,ambiguous_security_type
+NG,NovaGold Resources Inc.,Novagold Resources Inc.,ASE,NYSE American,3023198208,ambiguous_security_type
+OVV,Ovintiv Inc.,Ovintiv Inc. (DE),NYQ,NYSE,16031735808,ambiguous_security_type
+PAC,"Grupo Aeroportuario del Pacífico, S.A.B. de C.V.","Grupo Aeroportuario Del Pacifico, S.A. B. de C.V. Grupo Aeroportuario Del Pacifico, S.A. de C.V. (each representing 10 Series B shares)",NYQ,NYSE,12942835712,ambiguous_security_type
+PAGP,"Plains GP Holdings, L.P.","Plains GP Holdings, L.P. - Class A Shares representing limited partner interests",NMS,NASDAQ,5843651072,ambiguous_security_type
+PAM,Pampa Energía S.A.,Pampa Energia S.A.,NYQ,NYSE,4505359872,ambiguous_security_type
+PHG,Koninklijke Philips N.V.,Koninklijke Philips N.V. NY Registry Shares,NYQ,NYSE,25989795840,ambiguous_security_type
+REX,REX American Resources Corporation,REX American Resources Corporation,NYQ,NYSE,1452882816,ambiguous_security_type
+RNW,ReNew Energy Global Plc,ReNew Energy Global plc - Class A Shares,NMS,NASDAQ,2226500352,ambiguous_security_type
+SFL,SFL Corporation Ltd.,SFL Corporation Ltd,NYQ,NYSE,1578624384,ambiguous_security_type
+STWD,"Starwood Property Trust, Inc.","STARWOOD PROPERTY TRUST, INC. Starwood Property Trust Inc.",NYQ,NYSE,6165450240,ambiguous_security_type
+T,AT&T Inc.,AT&T Inc.,NYQ,NYSE,158016012288,ambiguous_security_type
+TEO,Telecom Argentina S.A.,Telecom Argentina SA,NYQ,NYSE,5926949376,ambiguous_security_type
+THG,"The Hanover Insurance Group, Inc.",Hanover Insurance Group Inc,NYQ,NYSE,7978008576,ambiguous_security_type
+THH,TryHard Holdings Limited,TryHard Holdings Limited - Ordinary Shares,NCM,NASDAQ,12471525,ambiguous_security_type
+TLK,Perusahaan Perseroan (Persero) PT Telekomunikasi Indonesia Tbk,"PT Telekomunikasi Indonesia, Tbk",NYQ,NYSE,14589979648,ambiguous_security_type
+TNK,Teekay Tankers Ltd.,Teekay Tankers Ltd.,NYQ,NYSE,2578195712,ambiguous_security_type
+TSM,Taiwan Semiconductor Manufacturing Company Limited,Taiwan Semiconductor Manufacturing Company Ltd.,NYQ,NYSE,2147200270336,ambiguous_security_type
+TT,Trane Technologies plc,Trane Technologies plc,NYQ,NYSE,106398810112,ambiguous_security_type
+V,Visa Inc.,Visa Inc.,NYQ,NYSE,688081600512,ambiguous_security_type
+VET,Vermilion Energy Inc.,Vermilion Energy Inc. Common (Canada),NYQ,NYSE,1613568128,ambiguous_security_type
+WBI,WaterBridge Infrastructure LLC,WaterBridge Infrastructure LLC Class A Shares Representing Limited Liability Company Interests,NYQ,NYSE,1577388800,ambiguous_security_type
+YTRA,"Yatra Online, Inc.","Yatra Online, Inc. - Ordinary Shares",NCM,NASDAQ,52566472,ambiguous_security_type
+YUM,"Yum! Brands, Inc.","Yum! Brands, Inc.",NYQ,NYSE,41597009920,ambiguous_security_type
+CEF,Sprott Physical Gold and Silver Trust,Sprott Physical Gold and Silver Trust Units,ASE,NYSE Arca,7855718912,exchange_not_allowed
+CSQ,Calamos Strategic Total Return Fund,Calamos Strategic Total Return Fund - Closed End Fund,NGM,NASDAQ,3322858752,exchange_not_allowed
+CRESY,"Cresud Sociedad Anónima, Comercial, Inmobiliaria, Financiera y Agropecuaria",,NMS,,784432768,foreign_otc_suffix
+FORTY,Formula Systems (1985) Ltd.,,NMS,,1667645056,foreign_otc_suffix
+RYAAY,Ryanair Holdings plc,,NMS,,31758166016,foreign_otc_suffix
+AADX,"Applied Aerospace & Defense, Inc.",,NYQ,,,invalid_market_cap
+ACGLN,Arch Capital Group Ltd.,,NMS,,,invalid_market_cap
+ACGLO,Arch Capital Group Ltd.,,NMS,,,invalid_market_cap
+ADC-PA,Agree Realty Corporation,,NYQ,,,invalid_market_cap
+ADIG-WI,ADI Global Distribution Inc.,,NYQ,,,invalid_market_cap
+AFGD,"American Financial Group, Inc.",,NYQ,,,invalid_market_cap
+AGM-PD,Federal Agricultural Mortgage Corporation,,NYQ,,,invalid_market_cap
+AGM-PE,Federal Agricultural Mortgage Corporation,,NYQ,,,invalid_market_cap
+AGM-PF,Federal Agricultural Mortgage Corporation,,NYQ,,,invalid_market_cap
+AGM-PG,Federal Agricultural Mortgage Corporation,,NYQ,,,invalid_market_cap
+AGM-PH,Federal Agricultural Mortgage Corporation,,NYQ,,,invalid_market_cap
+AGNCL,AGNC Investment Corp.,,NMS,,,invalid_market_cap
+AGNCM,AGNC Investment Corp.,,NMS,,,invalid_market_cap
+AGNCN,AGNC Investment Corp.,,NMS,,,invalid_market_cap
+AGNCO,AGNC Investment Corp.,,NMS,,,invalid_market_cap
+AGNCP,AGNC Investment Corp.,,NMS,,,invalid_market_cap
+AGNCZ,AGNC Investment Corp.,,NMS,,,invalid_market_cap
+AHL-PD,Aspen Insurance Holdings Limited,,NYQ,,,invalid_market_cap
+AHL-PE,Aspen Insurance Holdings Limited,,NYQ,,,invalid_market_cap
+ALB-PA,Albemarle Corporation,,NYQ,,,invalid_market_cap
+ALL-PB,The Allstate Corporation,,NYQ,,,invalid_market_cap
+ALL-PI,The Allstate Corporation,,NYQ,,,invalid_market_cap
+ALL-PJ,The Allstate Corporation,,NYQ,,,invalid_market_cap
+ALVOW,Alvotech,,NGM,,,invalid_market_cap
+AMH-PG,American Homes 4 Rent,,NYQ,,,invalid_market_cap
+AMH-PH,American Homes 4 Rent,,NYQ,,,invalid_market_cap
+APO-PA,"Apollo Global Management, Inc.",,NYQ,,,invalid_market_cap
+ARR-PC,"ARMOUR Residential REIT, Inc.",,NYQ,,,invalid_market_cap
+ASB-PE,Associated Banc-Corp,,NYQ,,,invalid_market_cap
+ASB-PF,Associated Banc-Corp,,NYQ,,,invalid_market_cap
+ATLCP,Atlanticus Holdings Corporation,,NMS,,,invalid_market_cap
+AUB-PA,Atlantic Union Bankshares Corporation,,NYQ,,,invalid_market_cap
+AUROW,"Aurora Innovation, Inc.",,NMS,,,invalid_market_cap
+AXS-PE,AXIS Capital Holdings Limited,,NYQ,,,invalid_market_cap
+BAC-PB,Bank of America Corporation,,NYQ,,,invalid_market_cap
+BAC-PE,Bank of America Corporation,,NYQ,,,invalid_market_cap
+BAC-PK,Bank of America Corporation,,NYQ,,,invalid_market_cap
+BAC-PL,Bank of America Corporation,,NYQ,,,invalid_market_cap
+BAC-PM,Bank of America Corporation,,NYQ,,,invalid_market_cap
+BAC-PN,Bank of America Corporation,,NYQ,,,invalid_market_cap
+BAC-PO,Bank of America Corporation,,NYQ,,,invalid_market_cap
+BAC-PP,Bank of America Corporation,,NYQ,,,invalid_market_cap
+BAC-PQ,Bank of America Corporation,,NYQ,,,invalid_market_cap
+BAC-PS,Bank of America Corporation,,NYQ,,,invalid_market_cap
+BANC-PF,"Banc of California, Inc.",,NYQ,,,invalid_market_cap
+BFH-PB,"Bread Financial Holdings, Inc.",,NYQ,,,invalid_market_cap
+BHFAM,"Brighthouse Financial, Inc.",,NMS,,,invalid_market_cap
+BHFAN,"Brighthouse Financial, Inc.",,NMS,,,invalid_market_cap
+BHFAO,"Brighthouse Financial, Inc.",,NMS,,,invalid_market_cap
+BHFAP,"Brighthouse Financial, Inc.",,NMS,,,invalid_market_cap
+BIP-PA,Brookfield Infrastructure Partners L.P.,,NYQ,,,invalid_market_cap
+BIP-PB,Brookfield Infrastructure Partners L.P.,,NYQ,,,invalid_market_cap
+BML-PG,Bank of America Corporation,,NYQ,,,invalid_market_cap
+BML-PH,Bank of America Corporation,,NYQ,,,invalid_market_cap
+BML-PJ,Bank of America Corporation,,NYQ,,,invalid_market_cap
+BML-PL,Bank of America Corporation,,NYQ,,,invalid_market_cap
+BNY-PK,The Bank of New York Mellon Corporation,,NYQ,,,invalid_market_cap
+BOH-PA,Bank of Hawaii Corporation,,NYQ,,,invalid_market_cap
+BRKRP,Bruker Corporation,,NMS,,,invalid_market_cap
+BTSGU,"BrightSpring Health Services, Inc.",,NMS,,,invalid_market_cap
+BULLW,Webull Corporation,,NCM,,,invalid_market_cap
+BUSEP,First Busey Corporation,,NMS,,,invalid_market_cap
+BW-PA,"Babcock & Wilcox Enterprises, Inc.",,NYQ,,,invalid_market_cap
+C-PR,Citigroup Inc.,,NYQ,,,invalid_market_cap
+CFG-PE,"Citizens Financial Group, Inc.",,NYQ,,,invalid_market_cap
+CFG-PH,"Citizens Financial Group, Inc.",,NYQ,,,invalid_market_cap
+CFG-PI,"Citizens Financial Group, Inc.",,NYQ,,,invalid_market_cap
+CFR-PB,"Cullen/Frost Bankers, Inc.",,NYQ,,,invalid_market_cap
+CLSKW,"CleanSpark, Inc.",,NCM,,,invalid_market_cap
+CMRE-PB,Costamare Inc.,,NYQ,,,invalid_market_cap
+CMRE-PC,Costamare Inc.,,NYQ,,,invalid_market_cap
+CMRE-PD,Costamare Inc.,,NYQ,,,invalid_market_cap
+CMS-PC,CMS Energy Corporation,,NYQ,,,invalid_market_cap
+CNCKW,Coincheck Group N.V.,,NCM,,,invalid_market_cap
+CNOBP,"ConnectOne Bancorp, Inc.",,NMS,,,invalid_market_cap
+COF-PI,Capital One Financial Corporation,,NYQ,,,invalid_market_cap
+COF-PJ,Capital One Financial Corporation,,NYQ,,,invalid_market_cap
+COF-PK,Capital One Financial Corporation,,NYQ,,,invalid_market_cap
+COF-PL,Capital One Financial Corporation,,NYQ,,,invalid_market_cap
+COF-PN,Capital One Financial Corporation,,NYQ,,,invalid_market_cap
+CORZW,"Core Scientific, Inc.",,NMS,,,invalid_market_cap
+CORZZ,"Core Scientific, Inc.",,NMS,,,invalid_market_cap
+DAVEW,Dave Inc.,,NGM,,,invalid_market_cap
+DBRG-PH,"DigitalBridge Group, Inc.",,NYQ,,,invalid_market_cap
+DBRG-PI,"DigitalBridge Group, Inc.",,NYQ,,,invalid_market_cap
+DBRG-PJ,"DigitalBridge Group, Inc.",,NYQ,,,invalid_market_cap
+DCOM-P,"Dime Commercial Bancshares, Inc.",,NYQ,,,invalid_market_cap
+DHCNL,Diversified Healthcare Trust,,NMS,,,invalid_market_cap
+DLR-PJ,"Digital Realty Trust, Inc.",,NYQ,,,invalid_market_cap
+DLR-PK,"Digital Realty Trust, Inc.",,NYQ,,,invalid_market_cap
+DLR-PL,"Digital Realty Trust, Inc.",,NYQ,,,invalid_market_cap
+DUK-PA,Duke Energy Corporation,,NYQ,,,invalid_market_cap
+DX-PC,"Dynex Capital, Inc.",,NYQ,,,invalid_market_cap
+EFC-PB,Ellington Financial Inc.,,NYQ,,,invalid_market_cap
+EFC-PC,Ellington Financial Inc.,,NYQ,,,invalid_market_cap
+EFC-PD,Ellington Financial Inc.,,NYQ,,,invalid_market_cap
+EFSCP,Enterprise Financial Services Corp,,NMS,,,invalid_market_cap
+ENRDW,Einride AB,,NCM,,,invalid_market_cap
+EPR-PC,EPR Properties,,NYQ,,,invalid_market_cap
+EPR-PE,EPR Properties,,NYQ,,,invalid_market_cap
+EPR-PG,EPR Properties,,NYQ,,,invalid_market_cap
+EQH-PA,"Equitable Holdings, Inc.",,NYQ,,,invalid_market_cap
+EQH-PC,"Equitable Holdings, Inc.",,NYQ,,,invalid_market_cap
+ET-PI,Energy Transfer LP,,NYQ,,,invalid_market_cap
+FCNCO,"First Citizens BancShares, Inc.",,NMS,,,invalid_market_cap
+FCNCP,"First Citizens BancShares, Inc.",,NMS,,,invalid_market_cap
+FHN-PE,First Horizon Corporation,,NYQ,,,invalid_market_cap
+FHN-PF,First Horizon Corporation,,NYQ,,,invalid_market_cap
+FITB-PA,Fifth Third Bancorp,,NYQ,,,invalid_market_cap
+FITB-PK,Fifth Third Bancorp,,NYQ,,,invalid_market_cap
+FITB-PM,Fifth Third Bancorp,,NYQ,,,invalid_market_cap
+FLG-PA,"Flagstar Bank, National Association",,NYQ,,,invalid_market_cap
+FOUR-PA,"Shift4 Payments, Inc.",,NYQ,,,invalid_market_cap
+FRMEP,First Merchants Corporation,,NMS,,,invalid_market_cap
+FRT-PC,Federal Realty Investment Trust,,NYQ,,,invalid_market_cap
+FTAIM,FTAI Aviation Ltd.,,NMS,,,invalid_market_cap
+FULTP,Fulton Financial Corporation,,NMS,,,invalid_market_cap
+GAB-PG,The Gabelli Equity Trust Inc. PFD-G,,NYQ,,,invalid_market_cap
+GAB-PH,The Gabelli Equity Trust Inc.,,NYQ,,,invalid_market_cap
+GAB-PK,The Gabelli Equity Trust Inc.,,NYQ,,,invalid_market_cap
+GAM-PB,"General American Investors Company, Inc.",,NYQ,,,invalid_market_cap
+GDV-PH,The Gabelli Dividend & Income Trust,,NYQ,,,invalid_market_cap
+GDV-PK,The Gabelli Dividend & Income Trust,,NYQ,,,invalid_market_cap
+GENVR,Gen Digital Inc.,,NGM,,,invalid_market_cap
+GLP-PB,Global Partners LP,,NYQ,,,invalid_market_cap
+GNL-PA,"Global Net Lease, Inc.",,NYQ,,,invalid_market_cap
+GNL-PB,"Global Net Lease, Inc.",,NYQ,,,invalid_market_cap
+GNL-PD,"Global Net Lease, Inc.",,NYQ,,,invalid_market_cap
+GNL-PE,"Global Net Lease, Inc.",,NYQ,,,invalid_market_cap
+GRABW,Grab Holdings Limited,,NMS,,,invalid_market_cap
+GRBK-PA,"Green Brick Partners, Inc.",,NYQ,,,invalid_market_cap
+GS-PA,"The Goldman Sachs Group, Inc.",,NYQ,,,invalid_market_cap
+GS-PC,"The Goldman Sachs Group, Inc. PFD 1/1000 C",,NYQ,,,invalid_market_cap
+GS-PD,"The Goldman Sachs Group, Inc.",,NYQ,,,invalid_market_cap
+GSL-PB,"Global Ship Lease, Inc.",,NYQ,,,invalid_market_cap
+HBANL,Huntington Bancshares Incorporated,,NMS,,,invalid_market_cap
+HBANM,Huntington Bancshares Incorporated,,NMS,,,invalid_market_cap
+HBANP,Huntington Bancshares Incorporated,,NMS,,,invalid_market_cap
+HBANZ,Huntington Bancshares Incorporated,,NMS,,,invalid_market_cap
+HIG-PG,"The Hartford Insurance Group, Inc.",,NYQ,,,invalid_market_cap
+HL-PB,Hecla Mining Company,,NYQ,,,invalid_market_cap
+IIPR-PA,"Innovative Industrial Properties, Inc.",,NYQ,,,invalid_market_cap
+JPM-PC,JPMorgan Chase & Co.,,NYQ,,,invalid_market_cap
+JPM-PD,JPMorgan Chase & Co.,,NYQ,,,invalid_market_cap
+JPM-PJ,JPMorgan Chase & Co.,,NYQ,,,invalid_market_cap
+JPM-PK,JPMorgan Chase & Co.,,NYQ,,,invalid_market_cap
+JPM-PL,JPMorgan Chase & Co.,,NYQ,,,invalid_market_cap
+JPM-PM,JPMorgan Chase & Co.,,NYQ,,,invalid_market_cap
+JSM,Navient Corporation SR NT 6% 121543,,NMS,,,invalid_market_cap
+JXN-PA,Jackson Financial Inc.,,NYQ,,,invalid_market_cap
+KEY-PI,KeyCorp,,NYQ,,,invalid_market_cap
+KEY-PJ,KeyCorp,,NYQ,,,invalid_market_cap
+KEY-PL,KeyCorp,,NYQ,,,invalid_market_cap
+KIM-PL,Kimco Realty Corporation,,NYQ,,,invalid_market_cap
+KIM-PM,Kimco Realty Corporation,,NYQ,,,invalid_market_cap
+KIM-PN,Kimco Realty Corporation,,NYQ,,,invalid_market_cap
+KKR-PD,KKR & Co. Inc.,,NYQ,,,invalid_market_cap
+KWMWW,K Wave Media Ltd.,,NCM,,,invalid_market_cap
+KYIVW,Kyivstar Group Ltd.,,NCM,,,invalid_market_cap
+LBRDP,Liberty Broadband Corporation,,NMS,,,invalid_market_cap
+LILAP,Liberty Latin America Ltd.,,NMS,,,invalid_market_cap
+LNC-PD,Lincoln National Corporation,,NYQ,,,invalid_market_cap
+LOB-PA,"Live Oak Bancshares, Inc.",,NYQ,,,invalid_market_cap
+LXP-PC,LXP Industrial Trust,,NYQ,,,invalid_market_cap
+MAA-PI,"Mid-America Apartment Communities, Inc.",,NYQ,,,invalid_market_cap
+MBINL,Merchants Bancorp,,NCM,,,invalid_market_cap
+MBINM,Merchants Bancorp,,NCM,,,invalid_market_cap
+MBINN,Merchants Bancorp,,NCM,,,invalid_market_cap
+MCHPP,Microchip Technology Incorporated,,NMS,,,invalid_market_cap
+MET-PA,"MetLife, Inc.",,NYQ,,,invalid_market_cap
+MET-PE,"MetLife, Inc.",,NYQ,,,invalid_market_cap
+MET-PF,"MetLife, Inc.",,NYQ,,,invalid_market_cap
+MS-PA,Morgan Stanley,,NYQ,,,invalid_market_cap
+MS-PE,Morgan Stanley,,NYQ,,,invalid_market_cap
+MS-PF,Morgan Stanley,,NYQ,,,invalid_market_cap
+MS-PI,Morgan Stanley,,NYQ,,,invalid_market_cap
+MS-PK,Morgan Stanley,,NYQ,,,invalid_market_cap
+MS-PL,Morgan Stanley,,NYQ,,,invalid_market_cap
+MS-PO,Morgan Stanley,,NYQ,,,invalid_market_cap
+MS-PP,Morgan Stanley,,NYQ,,,invalid_market_cap
+MS-PQ,Morgan Stanley,,NYQ,,,invalid_market_cap
+MTB-PH,M&T Bank Corporation,,NYQ,,,invalid_market_cap
+MTB-PJ,M&T Bank Corporation,,NYQ,,,invalid_market_cap
+MTB-PK,M&T Bank Corporation,,NYQ,,,invalid_market_cap
+NAMSW,NewAmsterdam Pharma Company N.V.,,NGM,,,invalid_market_cap
+NEE-PS,"NextEra Energy, Inc.",,NYQ,,,invalid_market_cap
+NEE-PT,"NextEra Energy, Inc.",,NYQ,,,invalid_market_cap
+NEE-PV,"NextEra Energy, Inc.",,NYQ,,,invalid_market_cap
+NGL-PB,NGL Energy Partners LP,,NYQ,,,invalid_market_cap
+NGL-PC,NGL Energy Partners LP,,NYQ,,,invalid_market_cap
+NLY-PF,"Annaly Capital Management, Inc.",,NYQ,,,invalid_market_cap
+NLY-PG,"Annaly Capital Management, Inc.",,NYQ,,,invalid_market_cap
+NLY-PI,"Annaly Capital Management, Inc.",,NYQ,,,invalid_market_cap
+NLY-PJ,"Annaly Capital Management, Inc.",,NYQ,,,invalid_market_cap
+NOVTU,Novanta Inc.,,NMS,,,invalid_market_cap
+NTRSO,Northern Trust Corporation,,NMS,,,invalid_market_cap
+OAK-PB,"Oaktree Capital Group, LLC",,NYQ,,,invalid_market_cap
+ONBPO,Old National Bancorp,,NMS,,,invalid_market_cap
+ONBPP,Old National Bancorp,,NMS,,,invalid_market_cap
+OPENL,Opendoor Technologies Inc.,,NMS,,,invalid_market_cap
+OPENW,Opendoor Technologies Inc.,,NMS,,,invalid_market_cap
+OPENZ,Opendoor Technologies Inc.,,NMS,,,invalid_market_cap
+ORCL-PD,Oracle Corporation,,NYQ,,,invalid_market_cap
+OZKAP,Bank OZK,,NMS,,,invalid_market_cap
+PBI-PB,Pitney Bowes Inc. NT 43,,NYQ,,,invalid_market_cap
+PEB-PE,Pebblebrook Hotel Trust,,NYQ,,,invalid_market_cap
+PEB-PF,Pebblebrook Hotel Trust,,NYQ,,,invalid_market_cap
+PEB-PG,Pebblebrook Hotel Trust,,NYQ,,,invalid_market_cap
+PEB-PH,Pebblebrook Hotel Trust,,NYQ,,,invalid_market_cap
+PGYWW,Pagaya Technologies Ltd.,,NCM,,,invalid_market_cap
+PNFP-PA,"Pinnacle Financial Partners, Inc.",,NYQ,,,invalid_market_cap
+PNFP-PB,"Pinnacle Financial Partners, Inc.",,NYQ,,,invalid_market_cap
+PNFP-PC,"Pinnacle Financial Partners, Inc.",,NYQ,,,invalid_market_cap
+PPLC,PPL Corporation,,NYQ,,,invalid_market_cap
+PSA-PF,Public Storage,,NYQ,,,invalid_market_cap
+PSA-PG,Public Storage,,NYQ,,,invalid_market_cap
+PSA-PH,Public Storage,,NYQ,,,invalid_market_cap
+PSA-PI,Public Storage,,NYQ,,,invalid_market_cap
+PSA-PJ,Public Storage,,NYQ,,,invalid_market_cap
+PSA-PK,Public Storage,,NYQ,,,invalid_market_cap
+PSA-PL,Public Storage,,NYQ,,,invalid_market_cap
+PSA-PM,Public Storage,,NYQ,,,invalid_market_cap
+PSA-PN,Public Storage,,NYQ,,,invalid_market_cap
+PSA-PO,Public Storage,,NYQ,,,invalid_market_cap
+PSA-PP,Public Storage,,NYQ,,,invalid_market_cap
+PSA-PQ,Public Storage,,NYQ,,,invalid_market_cap
+PSA-PR,Public Storage,,NYQ,,,invalid_market_cap
+PSA-PS,Public Storage,,NYQ,,,invalid_market_cap
+REGCO,Regency Centers Corporation,,NMS,,,invalid_market_cap
+REGCP,Regency Centers Corporation,,NMS,,,invalid_market_cap
+REXR-PB,"Rexford Industrial Realty, Inc.",,NYQ,,,invalid_market_cap
+REXR-PC,"Rexford Industrial Realty, Inc.",,NYQ,,,invalid_market_cap
+RF-PC,Regions Financial Corporation,,NYQ,,,invalid_market_cap
+RF-PE,Regions Financial Corporation,,NYQ,,,invalid_market_cap
+RF-PF,Regions Financial Corporation,,NYQ,,,invalid_market_cap
+RGTIW,"Rigetti Computing, Inc.",,NCM,,,invalid_market_cap
+RITM-PA,Rithm Capital Corp.,,NYQ,,,invalid_market_cap
+RITM-PB,Rithm Capital Corp.,,NYQ,,,invalid_market_cap
+RITM-PC,Rithm Capital Corp.,,NYQ,,,invalid_market_cap
+RITM-PD,Rithm Capital Corp.,,NYQ,,,invalid_market_cap
+RITM-PE,Rithm Capital Corp.,,NYQ,,,invalid_market_cap
+RLJ-PA,RLJ Lodging Trust,,NYQ,,,invalid_market_cap
+RNR-PF,RenaissanceRe Holdings Ltd.,,NYQ,,,invalid_market_cap
+RNR-PG,RenaissanceRe Holdings Ltd.,,NYQ,,,invalid_market_cap
+RNWWW,ReNew Energy Global Plc,,NMS,,,invalid_market_cap
+RUMBW,RUM Group Inc.,,NGM,,,invalid_market_cap
+RVMDW,"Revolution Medicines, Inc.",,NMS,,,invalid_market_cap
+SCHW-PD,The Charles Schwab Corporation,,NYQ,,,invalid_market_cap
+SCHW-PJ,The Charles Schwab Corporation,,NYQ,,,invalid_market_cap
+SF-PB,Stifel Financial Corp.,,NYQ,,,invalid_market_cap
+SF-PC,Stifel Financial Corp.,,NYQ,,,invalid_market_cap
+SF-PD,Stifel Financial Corp.,,NYQ,,,invalid_market_cap
+SHO-PH,"Sunstone Hotel Investors, Inc.",,NYQ,,,invalid_market_cap
+SHO-PI,"Sunstone Hotel Investors, Inc.",,NYQ,,,invalid_market_cap
+SIGIP,"Selective Insurance Group, Inc.",,NMS,,,invalid_market_cap
+SLG-PI,SL Green Realty Corp.,,NYQ,,,invalid_market_cap
+SLMBP,SLM Corporation,,NMS,,,invalid_market_cap
+SMCIP,"Super Micro Computer, Inc.",,NMS,,,invalid_market_cap
+SOMN,The Southern Company,,NYQ,,,invalid_market_cap
+SOUNW,"SoundHound AI, Inc.",,NGM,,,invalid_market_cap
+SPG-PJ,"Simon Property Group, Inc.",,NYQ,,,invalid_market_cap
+STRC,Strategy Inc,,NMS,,,invalid_market_cap
+STRD,Strategy Inc,,NMS,,,invalid_market_cap
+STRF,Strategy Inc,,NMS,,,invalid_market_cap
+STRK,Strategy Inc,,NMS,,,invalid_market_cap
+STT-PG,State Street Corporation,,NYQ,,,invalid_market_cap
+SYF-PA,Synchrony Financial,,NYQ,,,invalid_market_cap
+SYF-PB,Synchrony Financial,,NYQ,,,invalid_market_cap
+T-PA,AT&T Inc.,,NYQ,,,invalid_market_cap
+T-PC,AT&T Inc.,,NYQ,,,invalid_market_cap
+TCBIO,"Texas Capital Bancshares, Inc.",,NMS,,,invalid_market_cap
+TDS-PU,"Telephone and Data Systems, Inc.",,NYQ,,,invalid_market_cap
+TDS-PV,"Telephone and Data Systems, Inc.",,NYQ,,,invalid_market_cap
+TFC-PI,Truist Financial Corporation,,NYQ,,,invalid_market_cap
+TFC-PO,Truist Financial Corporation,,NYQ,,,invalid_market_cap
+TFC-PR,Truist Financial Corporation,,NYQ,,,invalid_market_cap
+TFIN-P,"Triumph Financial, Inc.",,NYQ,,,invalid_market_cap
+TMCWW,TMC the metals company Inc.,,NMS,,,invalid_market_cap
+UMBFO,UMB Financial Corporation,,NMS,,,invalid_market_cap
+USB-PH,U.S. Bancorp,,NYQ,,,invalid_market_cap
+USB-PP,U.S. Bancorp,,NYQ,,,invalid_market_cap
+USB-PQ,U.S. Bancorp,,NYQ,,,invalid_market_cap
+USB-PR,U.S. Bancorp,,NYQ,,,invalid_market_cap
+VFSWW,VinFast Auto Ltd.,,NCM,,,invalid_market_cap
+VLYPN,Valley National Bancorp,,NMS,,,invalid_market_cap
+VLYPO,Valley National Bancorp,,NMS,,,invalid_market_cap
+VLYPP,Valley National Bancorp,,NMS,,,invalid_market_cap
+VNO-PL,Vornado Realty Trust,,NYQ,,,invalid_market_cap
+VNO-PM,Vornado Realty Trust,,NYQ,,,invalid_market_cap
+VNO-PN,Vornado Realty Trust,,NYQ,,,invalid_market_cap
+VNO-PO,Vornado Realty Trust,,NYQ,,,invalid_market_cap
+VOYA-PB,"Voya Financial, Inc.",,NYQ,,,invalid_market_cap
+VSECU,VSE Corporation,,NMS,,,invalid_market_cap
+WAFDP,"WaFd, Inc.",,NMS,,,invalid_market_cap
+WAL-PA,Western Alliance Bancorporation,,NYQ,,,invalid_market_cap
+WBS-PF,Webster Financial Corporation,,NYQ,,,invalid_market_cap
+WBS-PG,Webster Financial Corporation,,NYQ,,,invalid_market_cap
+WFC-PA,Wells Fargo & Company,,NYQ,,,invalid_market_cap
+WFC-PD,Wells Fargo & Company,,NYQ,,,invalid_market_cap
+WFC-PL,Wells Fargo & Company,,NYQ,,,invalid_market_cap
+WFC-PY,Wells Fargo & Company,,NYQ,,,invalid_market_cap
+WFC-PZ,Wells Fargo & Company,,NYQ,,,invalid_market_cap
+WSBCO,"WesBanco, Inc.",,NMS,,,invalid_market_cap
+WTFCN,Wintrust Financial Corporation,,NMS,,,invalid_market_cap
+XELLL,Xcel Energy Inc.,,NGM,,,invalid_market_cap
+ZIONP,"Zions Bancorporation, National Association",,NGM,,,invalid_market_cap
+AB,AllianceBernstein Holding L.P.,AllianceBernstein Holding L.P.  Units,NYQ,NYSE,3465282816,non_common_security
+ADX,"Adams Diversified Equity Fund, Inc.",Adams Diversified Equity Fund Inc.,NYQ,NYSE,3169693184,non_common_security
+ARCC,Ares Capital Corporation,Ares Capital Corporation - Closed End Fund,NMS,NASDAQ,13872200704,non_common_security
+ARLP,"Alliance Resource Partners, L.P.","Alliance Resource Partners, L.P. - Common Units Representing Limited Partnership Interests",NMS,NASDAQ,3267933440,non_common_security
+BIP,Brookfield Infrastructure Partners L.P.,Brookfield Infrastructure Partners LP Limited Partnership Units,NYQ,NYSE,31273951232,non_common_security
+BNS,The Bank of Nova Scotia,Bank Nova Scotia Halifax Pfd 3 Ordinary Shares,NYQ,NYSE,107950735360,non_common_security
+BSM,"Black Stone Minerals, L.P.","Black Stone Minerals, L.P. Common units representing limited partner interests",NYQ,NYSE,3091865344,non_common_security
+BXSL,Blackstone Secured Lending Fund,Blackstone Secured Lending Fund Common Shares of Beneficial Interest,NYQ,NYSE,5430097920,non_common_security
+CLM,"Cornerstone Strategic Investment Fund, Inc.","Cornerstone Strategic Investment Fund, Inc. Common Shares",ASE,NYSE American,2225477120,non_common_security
+CQP,"Cheniere Energy Partners, L.P.","Cheniere Energy Partners, LP Common Units",NYQ,NYSE,31042387968,non_common_security
+DFP,Flaherty & Crumrine Dynamic Preferred and Income Fund Inc.,Flaherty & Crumrine Dynamic Preferred and Income Fund Inc. Common Stock,NYQ,NYSE,425960928,non_common_security
+DJTWW,Trump Media & Technology Group Corp.,Trump Media & Technology Group Corp. - Warrants,NGM,NASDAQ,1242211968,non_common_security
+DKL,"Delek Logistics Partners, LP","Delek Logistics Partners, L.P. Common Units representing Limited Partner Interests",NYQ,NYSE,3036436224,non_common_security
+DMLP,"Dorchester Minerals, L.P.","Dorchester Minerals, L.P. - Common Units Representing Limited Partnership Interests",NMS,NASDAQ,1230996480,non_common_security
+DNP,DNP Select Income Fund Inc.,"DNP Select Income Fund, Inc. Common Stock",NYQ,NYSE,4028218624,non_common_security
+ET,Energy Transfer LP,Energy Transfer LP Common Units,NYQ,NYSE,69993177088,non_common_security
+ETG,Eaton Vance Tax-Advantaged Global Dividend Income Fund,Eaton Vance Tax-Advantaged Global Dividend Income Fund Common Shares of Beneficial Interest,NYQ,NYSE,1841647488,non_common_security
+ETV,Eaton Vance Tax-Managed Buy-Write Opportunities Fund,Eaton Vance Corporation Eaton Vance Tax-Managed Buy-Write Opportunities Fund Common Shares of Beneficial Interest,NYQ,NYSE,1744313216,non_common_security
+ETY,Eaton Vance Tax-Managed Diversified Equity Income Fund,"Eaton Vance Tax-Managed Diversified Equity Income Fund Common Shares of Beneficial Interest,",NYQ,NYSE,2314347264,non_common_security
+EVT,Eaton Vance Tax-Advantaged Dividend Income Fund,Eaton Vance Tax Advantaged Dividend Income Fund Common Shares of Beneficial Interest,NYQ,NYSE,2137141632,non_common_security
+GBDC,"Golub Capital BDC, Inc.","Golub Capital BDC, Inc. - Closed End Fund",NMS,NASDAQ,3336943360,non_common_security
+GEL,"Genesis Energy, L.P.","Genesis Energy, L.P. Common Units",NYQ,NYSE,1819819776,non_common_security
+GLP,Global Partners LP,Global Partners LP Common Units representing Limited Partner Interests,NYQ,NYSE,1652708992,non_common_security
+HYT,"BlackRock Corporate High Yield Fund, Inc.","Blackrock Corporate High Yield Fund, Inc. Common Stock",NYQ,NYSE,1372864000,non_common_security
+IEP,Icahn Enterprises L.P.,Icahn Enterprises L.P. - Depositary Units representing Limited Partner Interests,NMS,NASDAQ,5013497344,non_common_security
+JPC,Nuveen Preferred & Income Opportunities Fund,Nuveen Preferred & Income Opportunities Fund,NYQ,NYSE,2904252928,non_common_security
+KRP,"Kimbell Royalty Partners, LP",Kimbell Royalty Partners Common Units Representing Limited Partner Interests,NYQ,NYSE,1556265088,non_common_security
+KYN,"Kayne Anderson Energy Infrastructure Fund, Inc.","Kayne Anderson Energy Infrastructure Fund, Inc.",NYQ,NYSE,2382985728,non_common_security
+MNR,Mach Natural Resources LP,Mach Natural Resources LP Common Units representing Limited Partner Interests,NYQ,NYSE,2205118976,non_common_security
+MPLX,MPLX LP,MPLX LP Common Units Representing Limited Partner Interests,NYQ,NYSE,60163563520,non_common_security
+MQY,"BlackRock MuniYield Quality Fund, Inc.","Blackrock MuniYield Quality Fund, Inc. Common Stock",NYQ,NYSE,811001536,non_common_security
+MUC,"BlackRock MuniHoldings California Quality Fund, Inc.","Blackrock MuniHoldings California Quality Fund, Inc.  Common Stock",NYQ,NYSE,1003058688,non_common_security
+NAC,Nuveen California Quality Municipal Income Fund,Nuveen California Quality Municipal Income Fund,NYQ,NYSE,1852471552,non_common_security
+NAD,Nuveen Quality Municipal Income Fund,Nuveen Quality Municipal Income Fund Common Stock,NYQ,NYSE,2738535680,non_common_security
+NEA,Nuveen AMT-Free Quality Municipal Income Fund,Nuveen AMT-Free Quality Municipal Income Fund Common Shares of Beneficial Interest Par Value $.01,NYQ,NYSE,3385154560,non_common_security
+NFJ,"Virtus Dividend, Interest & Premium Strategy Fund","Virtus Dividend, Interest & Premium Strategy Fund Common Shares of Beneficial Interest",NYQ,NYSE,1456695168,non_common_security
+NGL,NGL Energy Partners LP,NGL ENERGY PARTNERS LP Common Units representing Limited Partner Interests,NYQ,NYSE,2121842944,non_common_security
+NMM,Navios Maritime Partners L.P.,Navios Maritime Partners LP Common Units Representing Limited Partner Interests,NYQ,NYSE,2226784512,non_common_security
+NMZ,Nuveen Municipal High Income Opportunity Fund,"Nuveen Municipal High Income Opportunity Fund Common Stock, $0.01 par value, per share",NYQ,NYSE,2188135936,non_common_security
+NUV,"Nuveen Municipal Value Fund, Inc.","Nuveen Municipal Value Fund, Inc. Common Stock",NYQ,NYSE,1878251520,non_common_security
+NVG,Nuveen AMT-Free Municipal Credit Income Fund,Nuveen AMT-Free Municipal Credit Income Fund,NYQ,NYSE,2663236608,non_common_security
+NZF,Nuveen Municipal Credit Income Fund,Nuveen Municipal Credit Income Fund,NYQ,NYSE,2417523968,non_common_security
+PAA,"Plains All American Pipeline, L.P.","Plains All American Pipeline, L.P. - Common Units representing Limited Partner Interests",NMS,NASDAQ,16347169792,non_common_security
+PTY,PIMCO Corporate & Income Opportunity Fund,Pimco Corporate & Income Opportunity Fund,NYQ,NYSE,2495027200,non_common_security
+RQI,"Cohen & Steers Quality Income Realty Fund, Inc.",Cohen & Steers Quality Income Realty Fund Inc Common Shares,NYQ,NYSE,1699231872,non_common_security
+SPXX,Nuveen S&P 500 Dynamic Overwrite Fund,Nuveen S&P 500 Dynamic Overwrite Fund,NYQ,NYSE,339397120,non_common_security
+STEW,"SRH Total Return Fund, Inc.","SRH Total Return Fund, Inc. Common Stock",NYQ,NYSE,1804420480,non_common_security
+SUN,Sunoco LP,Sunoco LP Common Units representing limited partner interests,NYQ,NYSE,13821900800,non_common_security
+SUNC,SunocoCorp LLC,"SunocoCorp LLC Common Units, representing limited liability company interests",NYQ,NYSE,3753027840,non_common_security
+UAN,"CVR Partners, LP","CVR Partners, LP Common Units representing Limited Partner Interests",NYQ,NYSE,1338116096,non_common_security
+USA,Liberty All-Star Equity Fund,Liberty All-Star Equity Fund Common Stock,NYQ,NYSE,1843151744,non_common_security
+USAC,"USA Compression Partners, LP","USA Compression Partners, LP Common Units Representing Limited Partner Interests",NYQ,NYSE,3727238912,non_common_security
+UTF,"Cohen & Steers Infrastructure Fund, Inc","Cohen & Steers Infrastructure Fund, Inc Common Stock",NYQ,NYSE,3052415488,non_common_security
+UTG,Reaves Utility Income Fund,Reaves Utility Income Fund Common Shares of Beneficial Interest,ASE,NYSE American,3553812224,non_common_security
+WES,"Western Midstream Partners, LP","Western Midstream Partners, LP Common Units Representing Limited Partner Interests",NYQ,NYSE,19067906048,non_common_security
+ALL-PH,The Allstate Corporation,,NYQ,,29064689664,not_in_symbol_directory
+AXIA-PC,AXIA Energia SA,,NYQ,,23586928640,not_in_symbol_directory
+EA,Electronic Arts Inc.,,NMS,,52924891136,not_in_symbol_directory
+KEY-PK,KeyCorp,,NYQ,,18060984320,not_in_symbol_directory
+ORLA,Orla Mining Ltd.,,ASE,,3542952192,not_in_symbol_directory
+SKYT,"SkyWater Technology, Inc.",,NCM,,1597181312,not_in_symbol_directory
+WFC-PC,Wells Fargo & Company,,NYQ,,113902575616,not_in_symbol_directory

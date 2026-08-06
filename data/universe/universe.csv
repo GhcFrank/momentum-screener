@@ -1,2001 +1,2001 @@
 ticker,company_name,market_cap,market_cap_rank
-NVDA,NVIDIA Corporation,5133398704128,1
-GOOGL,Alphabet Inc.,4618634919936,2
-GOOG,Alphabet Inc.,4590506344448,3
-AAPL,Apple Inc.,4515147284480,4
-MSFT,Microsoft Corporation,3659383177216,5
-AMZN,"Amazon.com, Inc.",2992339156992,6
-TSM,Taiwan Semiconductor Manufacturing Company Limited,2163641417728,7
-AVGO,Broadcom Inc.,1989429821440,8
-SPCX,Space Exploration Technologies Corp.,1651120930816,9
-META,"Meta Platforms, Inc.",1497780846592,10
-TSLA,"Tesla, Inc.",1292884377600,11
-BRK-B,Berkshire Hathaway Inc.,1115567816704,12
-BRK-A,Berkshire Hathaway Inc.,1113368297472,13
-SKHY,SK hynix Inc.,1095873986560,14
-MU,"Micron Technology, Inc.",1008175349760,15
-LLY,Eli Lilly and Company,994898083840,16
-JPM,JPMorgan Chase & Co.,950359687168,17
-WMT,Walmart Inc.,887723720704,18
-AMD,"Advanced Micro Devices, Inc.",845596852224,19
-V,Visa Inc.,690041978880,20
-ASMLF,ASML Holding N.V.,657871142912,21
-ASML,ASML Holding N.V.,657536974848,22
-XOM,ExxonMobil Holdings Corporation,638156079104,23
-JNJ,Johnson & Johnson,614355435520,24
-TCEHY,Tencent Holdings Limited,565122236416,25
-TCTZF,Tencent Holdings Limited,562601787392,26
-INTC,Intel Corporation,508737814528,27
-MA,Mastercard Incorporated,500289241088,28
-CSCO,"Cisco Systems, Inc.",479830245376,29
-DOGEF,Ørsted A/S,446732271616,30
-BAC,Bank of America Corporation,439843880960,31
-IDCBF,Industrial and Commercial Bank of China Limited,438367092736,32
-AMAT,"Applied Materials, Inc.",433994104832,33
-ABBV,AbbVie Inc.,430823211008,34
-IDCBY,Industrial and Commercial Bank of China Limited,429538639872,35
-SSNLF,"Samsung Electronics Co., Ltd.",428205604864,36
-COST,Costco Wholesale Corporation,420351377408,37
-ORCL,Oracle Corporation,419799859200,38
-CAT,Caterpillar Inc.,403727286272,39
-LRCX,Lam Research Corporation,397581058048,40
-GE,GE Aerospace,391451574272,41
-PLTR,Palantir Technologies Inc.,389946769408,42
-CYATY,CONTEMPORARY AMPEREX TECHNOLOGY,384012353536,43
-CVX,Chevron Corporation,379200176128,44
-KO,The Coca-Cola Company,372428636160,45
-UNH,UnitedHealth Group Incorporated,370114232320,46
-HBCYF,HSBC Holdings plc,366971682816,47
-HSBC,HSBC Holdings plc,363679252480,48
-RHHBY,Roche Holding AG,353254113280,49
-RHHVF,Roche Holding AG,351373754368,50
-HD,"The Home Depot, Inc.",347235909632,51
-PG,The Procter & Gamble Company,344655921152,52
-MS,Morgan Stanley,341186871296,53
-RHHBF,Roche Holding AG,339286818816,54
-PCCYF,PetroChina Company Limited,317812637696,55
-MRK,"Merck & Co., Inc.",316137537536,56
-GS,"The Goldman Sachs Group, Inc.",310636904448,57
-BABA,Alibaba Group Holding Limited,309172568064,58
-BABAF,Alibaba Group Holding Limited,308717158400,59
-NFLX,"Netflix, Inc.",306341019648,60
-CGXYY,"China Galaxy Securities Co., Ltd.",302554906624,61
-DELL,Dell Technologies Inc.,301922942976,62
-CICHF,China Construction Bank Corporation,300840419328,63
-ARM,Arm Holdings plc,299637669888,64
-PANW,"Palo Alto Networks, Inc.",298567106560,65
-CICHY,China Construction Bank Corporation,296131624960,66
-RTX,RTX Corporation,293716918272,67
-NVS,Novartis AG,291322593280,68
-PM,Philip Morris International Inc.,291320430592,69
-RY,Royal Bank of Canada,289800159232,70
-NVSEF,Novartis AG,288756596736,71
-LVMUY,"LVMH Moët Hennessy - Louis Vuitton, Société Européenne",275667124224,72
-LVMHF,"LVMH Moët Hennessy - Louis Vuitton, Société Européenne",275228262400,73
-GEV,GE Vernova Inc.,271268757504,74
-ACGBF,Agricultural Bank of China Limited,269486931968,75
-WFC,Wells Fargo & Company,267291295744,76
-ACGBY,Agricultural Bank of China Limited,266687053824,77
-TXN,Texas Instruments Incorporated,259024437248,78
-NSRGY,Nestlé S.A.,257170554880,79
-SIEGY,Siemens Aktiengesellschaft,256936968192,80
-NSRGF,Nestlé S.A.,255935873024,81
-KLAC,KLA Corporation,255311478784,82
-MBFJF,"Mitsubishi UFJ Financial Group, Inc.",252601942016,83
-SMAWF,Siemens Aktiengesellschaft,251705311232,84
-RYDAF,Shell plc,250450591744,85
-SHEL,Shell plc,248569167872,86
-MUFG,"Mitsubishi UFJ Financial Group, Inc.",246174138368,87
-AZN,AstraZeneca PLC,241348853760,88
-ANET,"Arista Networks, Inc.",239884353536,89
-LRLCY,L'Oréal S.A.,238568095744,90
-LRLCF,L'Oréal S.A.,237343555584,91
-AXP,American Express Company,234136666112,92
-C,Citigroup Inc.,229585731584,93
-SAP,SAP SE,225635401728,94
-BACHF,Bank of China Limited,225548681216,95
-SAPGF,SAP SE,225069842432,96
-TOYOF,Toyota Motor Corporation,224743178240,97
-TM,Toyota Motor Corporation,223997181952,98
-LIN,Linde plc,223409438720,99
-BHP,BHP Group Limited,222178574336,100
-IBM,International Business Machines Corporation,221542891520,101
-BHPLF,BHP Group Limited,220501966848,102
-BACHY,Bank of China Limited,218717765632,103
-CMWAY,Commonwealth Bank of Australia,215101997056,104
-CRWD,"CrowdStrike Holdings, Inc.",215076716544,105
-SNDK,Sandisk Corporation,211415908352,106
-APH,Amphenol Corporation,211247054848,107
-AMGN,Amgen Inc.,210497028096,108
-IDEXY,"Industria de Diseño Textil, S.A.",209093722112,109
-TMO,Thermo Fisher Scientific Inc.,208814784512,110
-CBAUF,Commonwealth Bank of Australia,208179412992,111
-SAN,"Banco Santander, S.A.",206690697216,112
-IDEXF,"Industria de Diseño Textil, S.A.",205669007360,113
-SFTBY,SoftBank Group Corp.,202311778304,114
-BCDRF,"Banco Santander, S.A.",199691485184,115
-TD,The Toronto-Dominion Bank,197238358016,116
-MRVL,"Marvell Technology, Inc.",196194238464,117
-NVO,Novo Nordisk A/S,195801530368,118
-SBGSY,Schneider Electric S.E.,195742826496,119
-EADSY,Airbus SE,195653976064,120
-EADSF,Airbus SE,195495690240,121
-VZ,Verizon Communications Inc.,194775875584,122
-SBGSF,Schneider Electric S.E.,194756378624,123
-NONOF,Novo Nordisk A/S,194563407872,124
-KXIAY,KIOXIA HLDGS CORP,193614397440,125
-STX,Seagate Technology Holdings plc,191894437888,126
-SFTBF,SoftBank Group Corp.,191768788992,127
-MCD,McDonald's Corporation,190657134592,128
-ALIZY,Allianz SE,190136205312,129
-TMUS,"T-Mobile US, Inc.",190088151040,130
-PEP,"PepsiCo, Inc.",190010605568,131
-HESAF,Hermès International Société en commandite par actions,189530521600,132
-WDC,Western Digital Corporation,189078831104,133
-TTE,TotalEnergies SE,189022601216,134
-HESAY,Hermès International Société en commandite par actions,188629729280,135
-BA,The Boeing Company,187444166656,136
-ALIZF,Allianz SE,185391333376,137
-ADI,"Analog Devices, Inc.",185234341888,138
-SCHW,The Charles Schwab Corporation,184957059072,139
-ABBNY,ABB Ltd,183991877632,140
-BLK,"BlackRock, Inc.",183924359168,141
-ABT,Abbott Laboratories,182486220800,142
-NEE,"NextEra Energy, Inc.",181897297920,143
-RTNTF,Rio Tinto Group,177765859328,144
-ABLZF,ABB Ltd,176265084928,145
-UNP,Union Pacific Corporation,176054288384,146
-UBS,UBS Group AG,175231451136,147
-TJX,"The TJX Companies, Inc.",174046183424,148
-ETN,Eaton Corporation plc,172704186368,149
-TOELY,Tokyo Electron Limited,171185258496,150
-QCOM,QUALCOMM Incorporated,170803494912,151
-BX,Blackstone Inc.,170760126464,152
-RYCEY,Rolls-Royce Holdings plc,170653859840,153
-SAFRY,Safran SA,170572873728,154
-DIS,The Walt Disney Company,170490691584,155
-SAFRF,Safran SA,169652879360,156
-RYCEF,Rolls-Royce Holdings plc,168174632960,157
-GILD,"Gilead Sciences, Inc.",167922335744,158
-WELL,Welltower Inc.,166862864384,159
-DE,Deere & Company,166651281408,160
-BUD,Anheuser-Busch InBev SA/NV,166594560000,161
-BUDFF,Anheuser-Busch InBev SA/NV,165432590336,162
-DBSDY,DBS Group Holdings Ltd,164881006592,163
-SMFNF,"Sumitomo Mitsui Financial Group, Inc.",164259119104,164
-SCCO,Southern Copper Corporation,162828173312,165
-RIO,Rio Tinto Group,161015234560,166
-T,AT&T Inc.,160208781312,167
-IBDSF,"Iberdrola, S.A.",160155402240,168
-SHOP,Shopify Inc.,160000819200,169
-RTPPF,Rio Tinto Group,159470288896,170
-TOELF,Tokyo Electron Limited,158973345792,171
-IBDRY,"Iberdrola, S.A.",158453760000,172
-CIHKY,"China Merchants Bank Co., Ltd.",158380621824,173
-HTHIY,"Hitachi, Ltd.",158254956544,174
-DBSDF,DBS Group Holdings Ltd,158226743296,175
-SMFG,"Sumitomo Mitsui Financial Group, Inc.",157943906304,176
-DTEGY,Deutsche Telekom AG,157416308736,177
-DTEGF,Deutsche Telekom AG,157138976768,178
-CRM,"Salesforce, Inc.",156420816896,179
-BBVA,"Banco Bilbao Vizcaya Argentaria, S.A.",155371028480,180
-FRCOY,"Fast Retailing Co., Ltd.",154867712000,181
-FRCOF,"Fast Retailing Co., Ltd.",154760314880,182
-BBVXF,"Banco Bilbao Vizcaya Argentaria, S.A.",154376470528,183
-CIHHF,"China Merchants Bank Co., Ltd.",153841057792,184
-BKNG,Booking Holdings Inc.,150535634944,185
-SMERY,Siemens Energy AG,150472556544,186
-HTHIF,"Hitachi, Ltd.",150362374144,187
-SMEGF,Siemens Energy AG,149323923456,188
-ATEYY,Advantest Corporation,148427603968,189
-UNCRY,UniCredit S.p.A.,147580321792,190
-ADTTF,Advantest Corporation,146965184512,191
-UBER,"Uber Technologies, Inc.",146542772224,192
-UNCFF,UniCredit S.p.A.,145587617792,193
-PFE,Pfizer Inc.,144822878208,194
-COP,ConocoPhillips,143685599232,195
-CFRUY,Compagnie Financière Richemont SA,142575517696,196
-APP,AppLovin Corporation,140993822720,197
-CFRHF,Compagnie Financière Richemont SA,138307076096,198
-UL,Unilever PLC,138049290240,199
-UNLYF,Unilever PLC,137876946944,200
-ISNPY,Intesa Sanpaolo S.p.A.,137496674304,201
-GLW,Corning Incorporated,137447489536,202
-CUAEF,China Shenhua Energy Company Limited,137077227520,203
-DHR,Danaher Corporation,136927625216,204
-COF,Capital One Financial Corporation,136138432512,205
-LMT,Lockheed Martin Corporation,136011915264,206
-IVSBF,Investor AB (publ),134795321344,207
-BMY,Bristol-Myers Squibb Company,134594461696,208
-CB,Chubb Limited,134374088704,209
-PNGAY,"Ping An Insurance (Group) Company of China, Ltd.",133906014208,210
-CVS,CVS Health Corporation,133232328704,211
-SNEJF,Sony Group Corporation,133187436544,212
-PLD,"Prologis, Inc.",132769669120,213
-IITSF,Intesa Sanpaolo S.p.A.,132003831808,214
-ISRG,"Intuitive Surgical, Inc.",131941269504,215
-IVSXF,Investor AB (publ),131517341696,216
-PIAIF,"Ping An Insurance (Group) Company of China, Ltd.",131461480448,217
-SONY,Sony Group Corporation,131249520640,218
-KYCCF,Keyence Corporation,130963570688,219
-PDD,PDD Holdings Inc.,129571782656,220
-SYK,Stryker Corporation,128865198080,221
-BTAFF,British American Tobacco p.l.c.,128790028288,222
-BTI,British American Tobacco p.l.c.,127517442048,223
-AIQUY,L'Air Liquide S.A.,126188175360,224
-MFG,"Mizuho Financial Group, Inc.",125963878400,225
-BMO,Bank of Montreal,125927899136,226
-PH,Parker-Hannifin Corporation,125159661568,227
-AIQUF,L'Air Liquide S.A.,124630310912,228
-FTNT,"Fortinet, Inc.",123476664320,229
-HDB,HDFC Bank Limited,122675322880,230
-PGR,The Progressive Corporation,122524098560,231
-LOW,"Lowe's Companies, Inc.",122279002112,232
-NOW,"ServiceNow, Inc.",122140459008,233
-SPGI,S&P Global Inc.,121613844480,234
-VRTX,Vertex Pharmaceuticals Incorporated,121497919488,235
-PBR,Petróleo Brasileiro S.A. - Petrobras,120638529536,236
-MZHOF,"Mizuho Financial Group, Inc.",120335695872,237
-SBUX,Starbucks Corporation,119665803264,238
-ZIJMF,Zijin Mining Group Company Limited,119658209280,239
-DLEGF,Delta Electronics (Thailand) Public Company Limited,118654771200,240
-ESOCF,Enel SpA,118086828032,241
-NEMCL,NEWMONT CORPORATION CDI 1:1,118013534208,242
-ENB,Enbridge Inc.,116652007424,243
-CSUAY,China Shenhua Energy Company Limited,116309598208,244
-HWM,Howmet Aerospace Inc.,115310985216,245
-WFC-PC,Wells Fargo & Company,114308890624,246
-ENLAY,Enel SpA,114018295808,247
-MO,"Altria Group, Inc.",113659461632,248
-ZIJMY,Zijin Mining Group Company Limited,113209966592,249
-PBR-A,Petróleo Brasileiro S.A. - Petrobras,113172881408,250
-BPAQF,BP p.l.c.,113109032960,251
-HNHPF,"Hon Hai Precision Industry Co., Ltd.",113065500672,252
-ZURVY,Zurich Insurance Group AG,112564682752,253
-ZFSVF,Zurich Insurance Group AG,112252493824,254
-MTSUY,Mitsubishi Corporation,110613872640,255
-RCRUY,"Recruit Holdings Co., Ltd.",110399193088,256
-MDT,Medtronic plc,110339891200,257
-CMTDF,"Sumitomo Mitsui Trust Group, Inc.",110134149120,258
-MSBHF,Mitsubishi Corporation,109844955136,259
-SNOW,Snowflake Inc.,109792477184,260
-BP,BP p.l.c.,109297524736,261
-BYDDF,BYD Company Limited,109224017920,262
-BYDDY,BYD Company Limited,108859334656,263
-IBN,ICICI Bank Limited,108782747648,264
-RCRRF,"Recruit Holdings Co., Ltd.",108589367296,265
-ADP,"Automatic Data Processing, Inc.",107652636672,266
-ATLKY,Atlas Copco AB (publ),107622367232,267
-SO,The Southern Company,107271348224,268
-NET,"Cloudflare, Inc.",106953932800,269
-BNY,The Bank of New York Mellon Cor,106403020800,270
-BNS,The Bank of Nova Scotia,106219610112,271
-AXAHY,AXA SA,105279496192,272
-AXAHF,AXA SA,104770904064,273
-SBKFF,State Bank of India,104730583040,274
-GD,General Dynamics Corporation,104370143232,275
-CILJF,China Life Insurance Company Limited,104296759296,276
-ACN,Accenture plc,104293285888,277
-PWR,"Quanta Services, Inc.",104187969536,278
-VRT,Vertiv Holdings Co,103919853568,279
-TT,Trane Technologies plc,103903748096,280
-EQIX,"Equinix, Inc.",103756242944,281
-PROSY,Prosus N.V.,103555268608,282
-GSK,GSK plc,103204569088,283
-GLAXF,GSK plc,103024320512,284
-NEM,Newmont Corporation,102977347584,285
-AAGIY,AIA Group Limited,102639443968,286
-DDOG,"Datadog, Inc.",102569926656,287
-ATLPF,Atlas Copco AB (publ),102451036160,288
-ADBE,Adobe Inc.,102352273408,289
-SNY,Sanofi,102267150336,290
-AAIGF,AIA Group Limited,101608923136,291
-PNC,"The PNC Financial Services Group, Inc.",101401862144,292
-OVCHY,Oversea-Chinese Banking Corporation Limited,101202567168,293
-CAIXY,"CaixaBank, S.A.",101051424768,294
-ING,ING Groep N.V.,101012652032,295
-KKR,KKR & Co. Inc.,100899495936,296
-USB,U.S. Bancorp,100053114880,297
-INGVF,ING Groep N.V.,99726409728,298
-BN,Brookfield Corporation,99663036416,299
-SNYNF,Sanofi,99547529216,300
-GMBXF,"Grupo México, S.A.B. de C.V.",98869493760,301
-SPOT,Spotify Technology S.A.,98321350656,302
-OVCHF,Oversea-Chinese Banking Corporation Limited,97779007488,303
-GPMXY,Grupo Mexico S.A.B. de C.V.,97312497664,304
-MCK,McKesson Corporation,97224867840,305
-DUK,Duke Energy Corporation,96880418816,306
-FCX,Freeport-McMoRan Inc.,96747782144,307
-CNQ,Canadian Natural Resources Limited,96318087168,308
-IFNNY,Infineon Technologies AG,96110993408,309
-CIXPF,"CaixaBank, S.A.",95944572928,310
-MELI,"MercadoLibre, Inc.",95741632512,311
-CEG,Constellation Energy Corporation,95435513856,312
-MGCLY,Midea Group Co Ltd.,94580850688,313
-CSX,CSX Corporation,94531788800,314
-BCS,Barclays PLC,94474420224,315
-STOHF,Equinor ASA,94447443968,316
-CME,CME Group Inc.,94436302848,317
-ATLCY,Atlas Copco AB (publ),94108598272,318
-CDNS,"Cadence Design Systems, Inc.",93804355584,319
-TKOMY,"Tokio Marine Holdings, Inc.",93639606272,320
-MMM,3M Company,93577830400,321
-PROSF,Prosus N.V.,93540671488,322
-EQNR,Equinor ASA,93069336576,323
-JCI,Johnson Controls International plc,93053992960,324
-LLDTF,Lloyds Banking Group plc,92894806016,325
-TKOMF,"Tokio Marine Holdings, Inc.",92746711040,326
-UPS,"United Parcel Service, Inc.",92744187904,327
-NABZY,National Australia Bank Limited,92574769152,328
-MNST,Monster Beverage Corporation,92108808192,329
-IFNNF,Infineon Technologies AG,92030566400,330
-XIACY,Xiaomi Corporation,91726094336,331
-XIACF,Xiaomi Corporation,91469160448,332
-BCLYF,Barclays PLC,91439906816,333
-MRSH,"Marsh & McLennan Companies, Inc.",91362091008,334
-MPC,Marathon Petroleum Corporation,91262312448,335
-ESLOF,EssilorLuxottica Société anonyme,91228930048,336
-ESLOY,EssilorLuxottica Société anonyme,90916413440,337
-WBKCY,Westpac Banking Corp. Ltd.,90734092288,338
-WEBNF,Westpac Banking Corporation,90665787392,339
-LYG,Lloyds Banking Group plc,90282131456,340
-ITUB,Itaú Unibanco Holding S.A.,90269130752,341
-CHDRY,Christian Dior SE,90205290496,342
-WM,"Waste Management, Inc.",90035847168,343
-MAR,"Marriott International, Inc.",90016522240,344
-ABNB,"Airbnb, Inc.",88978251776,345
-EMR,Emerson Electric Co.,88966275072,346
-VLO,Valero Energy Corporation,88891842560,347
-INTU,Intuit Inc.,88516575232,348
-ITOCF,ITOCHU Corporation,88492294144,349
-CMCSA,Comcast Corporation,88467513344,350
-CHDRF,Christian Dior SE,88401182720,351
-ITOCY,ITOCHU Corporation,88212692992,352
-DASH,"DoorDash, Inc.",88176394240,353
-MHVIY,Mitsubishi Heavy Industries Ltd,88104689664,354
-PSBKF,"Postal Savings Bank of China Co., Ltd.",88100069376,355
-MHVYF,"Mitsubishi Heavy Industries, Ltd.",88037490688,356
-SHW,The Sherwin-Williams Company,87774060544,357
-CMI,Cummins Inc.,87755530240,358
-WMB,"The Williams Companies, Inc.",87456612352,359
-GLCNF,Glencore plc,87299284992,360
-MITSY,"Mitsui & Co., Ltd.",87292993536,361
-RCL,Royal Caribbean Cruises Ltd.,87119839232,362
-GLNCY,Glencore plc,87006339072,363
-HCA,"HCA Healthcare, Inc.",86758653952,364
-BAESY,BAE Systems plc,86744006656,365
-MITSF,"Mitsui & Co., Ltd.",86740328448,366
-MRAAY,"Murata Manufacturing Co., Ltd.",85917655040,367
-SPG,"Simon Property Group, Inc.",85837389824,368
-BAESF,BAE Systems plc,85571796992,369
-MRAAF,"Murata Manufacturing Co., Ltd.",85553594368,370
-ASX,"ASE Technology Holding Co., Ltd.",85094162432,371
-ITW,Illinois Tool Works Inc.,84888764416,372
-HOOD,"Robinhood Markets, Inc.",84073185280,373
-MCO,Moody's Corporation,83762454528,374
-ICE,"Intercontinental Exchange, Inc.",83760054272,375
-NTES,"NetEase, Inc.",83616677888,376
-BAM,Brookfield Asset Management Ltd.,82937085952,377
-ATLFF,Atlas Copco AB (publ),82838978560,378
-PSX,Phillips 66,82548506624,379
-PSTVY,"Postal Savings Bank of China Co., Ltd.",82496372736,380
-EPD,Enterprise Products Partners L.P.,82473312256,381
-NAUBF,National Australia Bank Limited,82380521472,382
-ELV,"Elevance Health, Inc.",81976590336,383
-AMT,American Tower Corporation,81659502592,384
-CTAS,Cintas Corporation,81494532096,385
-ANZGY,ANZ Group Holdings Limited,81207484416,386
-VCISY,Vinci SA,81117102080,387
-NGG,National Grid plc,80850927616,388
-ROST,"Ross Stores, Inc.",80535298048,389
-NGGTF,National Grid plc,80428679168,390
-LOBLY,Loblaw Companies Limited,79973089280,391
-EIPAF,Eni S.p.A.,79913410560,392
-GM,General Motors Company,79872114688,393
-ECL,Ecolab Inc.,79686221824,394
-CP,Canadian Pacific Kansas City Limited,79670951936,395
-VCISF,Vinci SA,79635013632,396
-VLVLY,AB Volvo (publ),79629983744,397
-VOLVF,AB Volvo (publ),79304630272,398
-MDLZ,"Mondelez International, Inc.",79233212416,399
-ENGIY,Engie SA,78921154560,400
-HON,Honeywell International Inc.,78851497984,401
-TRV,"The Travelers Companies, Inc.",78664065024,402
-NOC,Northrop Grumman Corporation,78354857984,403
-REGN,"Regeneron Pharmaceuticals, Inc.",78313742336,404
-NPPXF,"NTT, Inc.",78166679552,405
-NETTF,"NetEase, Inc.",77662355456,406
-NTTYY,"NTT, Inc.",77482721280,407
-E,Eni S.p.A.,77479501824,408
-ANZGF,ANZ Group Holdings Limited,77383483392,409
-SNPS,"Synopsys, Inc.",77330841600,410
-CNI,Canadian National Railway Company,77003767808,411
-ARZGY,Assicurazioni Generali S.p.A.,76970139648,412
-AMXOF,"América Móvil, S.A.B. de C.V.",76826238976,413
-APO,"Apollo Global Management, Inc.",76792127488,414
-NSC,Norfolk Southern Corporation,76652093440,415
-MURGF,Münchener Rückversicherungs-Gesellschaft Aktiengesellschaft in München,76643393536,416
-JAPAY,Japan Tobacco Inc.,76624429056,417
-ENGQF,Engie SA,76619071488,418
-EOG,"EOG Resources, Inc.",76442853376,419
-AEM,Agnico Eagle Mines Limited,76263612416,420
-MURGY,Münchener Rückversicherungs-Gesellschaft Aktiengesellschaft in München,76137316352,421
-NWG,NatWest Group plc,76125667328,422
-SU,Suncor Energy Inc.,76099026944,423
-RBSPF,NatWest Group plc,76046032896,424
-AON,Aon plc,75654537216,425
-KDDIF,KDDI Corporation,75499528192,426
-SLB,SLB N.V.,75409317888,427
-ORLY,"O'Reilly Automotive, Inc.",74948509696,428
-MIELF,Mitsubishi Electric Corporation,74940481536,429
-JAPAF,Japan Tobacco Inc.,74795819008,430
-MIELY,Mitsubishi Electric Corporation,74674446336,431
-AMX,"América Móvil, S.A.B. de C.V.",74665500672,432
-MFC,Manulife Financial Corporation,74572251136,433
-CMCLY,CMOC Group Limited,74387275776,434
-MKGAF,Merck KGaA,74173112320,435
-FDX,FedEx Corporation,74130350080,436
-CL,Colgate-Palmolive Company,73762398208,437
-MKKGY,Merck KGaA,73694846976,438
-MSI,"Motorola Solutions, Inc.",73511141376,439
-MPNGY,Meituan,73290612736,440
-DLR,"Digital Realty Trust, Inc.",72966463488,441
-MPNGF,Meituan,72827723776,442
-BCMXY,"Bank of Communications Co., Ltd.",72811757568,443
-WFAFY,Wesfarmers Limited,72703500288,444
-CI,The Cigna Group,72415100928,445
-SHECY,"Shin-Etsu Chemical Co., Ltd.",71635443712,446
-URI,"United Rentals, Inc.",71586955264,447
-PCAR,PACCAR Inc,71564582912,448
-TDG,TransDigm Group Incorporated,71318118400,449
-BSX,Boston Scientific Corporation,71142678528,450
-SUTNY,"Sumitomo Mitsui Trust Group, Inc.",70898868224,451
-RACE,Ferrari N.V.,70796320768,452
-MQBKY,Macquarie Group Limited,70769778688,453
-JPPTY,"JAPAN POST BANK Co., Ltd.",70490923008,454
-HLT,Hilton Worldwide Holdings Inc.,70236012544,455
-ET,Energy Transfer LP,69958762496,456
-CHGCY,"Chugai Pharmaceutical Co., Ltd.",69912010752,457
-KMI,"Kinder Morgan, Inc.",69877047296,458
-AEP,"American Electric Power Company, Inc.",69873410048,459
-BHKLY,BOC Hong Kong (Holdings) Limited,69637611520,460
-CHGCF,"Chugai Pharmaceutical Co., Ltd.",69604253696,461
-HPE,Hewlett Packard Enterprise Company,69375025152,462
-WFAFF,Wesfarmers Limited,69263597568,463
-KDDIY,KDDI Corporation,69255495680,464
-NU,Nu Holdings Ltd.,69220843520,465
-NRDBY,Nordea Bank Abp,68961075200,466
-HONA,Honeywell Aerospace Inc.,68611112960,467
-MCQEF,Macquarie Group Limited,68597395456,468
-SE,Sea Limited,68255277056,469
-WUXAY,"WuXi AppTec Co., Ltd.",68238524416,470
-HKXCF,Hong Kong Exchanges and Clearing Limited,68168839168,471
-TRP,TC Energy Corporation,68100304896,472
-SOBKY,SoftBank Corp.,67684708352,473
-JPSTF,"JAPAN POST BANK Co., Ltd.",67676987392,474
-ALL,The Allstate Corporation,67588440064,475
-CRARY,Crédit Agricole S.A.,67347296256,476
-TGT,Target Corporation,67270246400,477
-BE,Bloom Energy Corporation,67184635904,478
-AVIKF,Advanced Info Service Public Company Limited,66824024064,479
-HKXCY,Hong Kong Exchanges and Clearing Limited,66184671232,480
-LITE,Lumentum Holdings Inc.,66088763392,481
-SCBFY,Standard Chartered PLC,66036576256,482
-CRH,CRH plc,65756717056,483
-SHECF,"Shin-Etsu Chemical Co., Ltd.",65703018496,484
-APD,"Air Products and Chemicals, Inc.",65627652096,485
-MPWR,"Monolithic Power Systems, Inc.",65590026240,486
-CRARF,Crédit Agricole S.A.,65229455360,487
-BNKHF,BOC Hong Kong (Holdings) Limited,64916869120,488
-RNMBY,Rheinmetall AG,64842117120,489
-WBD,"Warner Bros. Discovery, Inc.",64659058688,490
-SCBFF,Standard Chartered PLC,64580767744,491
-RNMBF,Rheinmetall AG,64384892928,492
-TFC,Truist Financial Corporation,64330838016,493
-B,Barrick Mining Corporation,64175161344,494
-SNPMF,China Petroleum & Chemical Corporation,64002265088,495
-NBNKF,Nordea Bank Abp,63972257792,496
-RSG,"Republic Services, Inc.",63889526784,497
-PCRHY,Panasonic Holdings Corporation,63813500928,498
-AFL,Aflac Incorporated,63699460096,499
-AJG,Arthur J. Gallagher & Co.,63587946496,500
-IMO,Imperial Oil Limited,63358062592,501
-COHR,Coherent Corp.,63334322176,502
-VALE,Vale S.A.,63112962048,503
-TER,"Teradyne, Inc.",63092875264,504
-PCRFF,Panasonic Holdings Corporation,63042977792,505
-TEL,TE Connectivity plc,62864936960,506
-NTIOF,National Bank of Canada,62716616704,507
-NNFSF,"Nongfu Spring Co., Ltd.",62642819072,508
-FIX,"Comfort Systems USA, Inc.",62500200448,509
-NUE,Nucor Corporation,62410129408,510
-WUXIF,"WuXi AppTec Co., Ltd.",62002475008,511
-ALAB,"Astera Labs, Inc.",61993111552,512
-MET,"MetLife, Inc.",61853577216,513
-NKE,"NIKE, Inc.",61609701376,514
-MPLX,MPLX LP,61401534464,515
-GWW,"W.W. Grainger, Inc.",61398298624,516
-BKR,Baker Hughes Company,61277769728,517
-DAL,"Delta Air Lines, Inc.",61007687680,518
-PSA,Public Storage,60970614784,519
-D,"Dominion Energy, Inc.",60880789504,520
-ANCTF,Alimentation Couche-Tard Inc.,60640608256,521
-SFBQF,SoftBank Corp.,60270485504,522
-NXPI,NXP Semiconductors N.V.,59914211328,523
-CIIHY,CITIC Securities Company Limited,59606904832,524
-COR,"Cencora, Inc.",59590160384,525
-GRMN,Garmin Ltd.,59275153408,526
-GWLIF,Great-West Lifeco Inc.,59172720640,527
-O,Realty Income Corporation,58653782016,528
-KEYS,"Keysight Technologies, Inc.",58316328960,529
-AME,"AMETEK, Inc.",58229026816,530
-CIEN,Ciena Corporation,58196656128,531
-SNGNF,Singapore Telecommunications Limited,57454927872,532
-UOVEF,United Overseas Bank Limited,57394802688,533
-NGLOY,Anglo American plc,57367465984,534
-TKPHF,Takeda Pharmaceutical Company Limited,57307410432,535
-CHCJY,China CITIC Bank Corporation Limited,57091940352,536
-FAST,Fastenal Company,57042104320,537
-F,Ford Motor Company,56783364096,538
-MT,ArcelorMittal S.A.,56711479296,539
-SGAPY,Singapore Telecommunications Limited,56669216768,540
-SRE,Sempra,56643747840,541
-TRGP,Targa Resources Corp.,56447057920,542
-LTOUF,Larsen & Toubro Limited,56286683136,543
-HOCPY,HOYA Corporation,55904731136,544
-UOVEY,United Overseas Bank Limited,55891804160,545
-NTDOY,"Nintendo Co., Ltd.",55660716032,546
-NTDOF,"Nintendo Co., Ltd.",55476256768,547
-CMPGY,Compass Group PLC,55413207040,548
-OKE,"ONEOK, Inc.",55222378496,549
-OXY,Occidental Petroleum Corporation,54794424320,550
-CAH,"Cardinal Health, Inc.",54698778624,551
-LBLCF,Loblaw Companies Limited,54667833344,552
-FANG,"Diamondback Energy, Inc.",53975584768,553
-LNG,"Cheniere Energy, Inc.",53915602944,554
-AAUKF,Anglo American plc,53799407616,555
-ARGNF,argenx SE,53792423936,556
-LHX,"L3Harris Technologies, Inc.",53127028736,557
-CMPGF,Compass Group PLC,53083779072,558
-CVE,Cenovus Energy Inc.,52985159680,559
-EA,Electronic Arts Inc.,52924891136,560
-TAK,Takeda Pharmaceutical Company Limited,52884406272,561
-MARUF,Marubeni Corporation,52831535104,562
-ARGX,argenx SE,52517572608,563
-NDAQ,"Nasdaq, Inc.",52331458560,564
-CTVA,"Corteva, Inc.",52248121344,565
-UMC,United Microelectronics Corporation,51738152960,566
-MARUY,Marubeni Corporation,51587801088,567
-HOCPF,HOYA Corporation,51572715520,568
-FJIKY,Fujikura  Ltd.,51558514688,569
-WMMVF,"Wal-Mart de México, S.A.B. de C.V.",50809401344,570
-DVN,Devon Energy Corporation,50807406592,571
-AMSYF,ArcelorMittal S.A.,50106068992,572
-WMMVY,"Wal-Mart de México, S.A.B. de C.V.",50078240768,573
-DSDVY,DSV A/S,50061131776,574
-DSDVF,DSV A/S,49958457344,575
-ROK,"Rockwell Automation, Inc.",49542504448,576
-CMCLF,CMOC Group Limited,49362599936,577
-SDVKF,Sandvik AB (publ),49286156288,578
-SDVKY,Sandvik AB (publ),48783069184,579
-FMXUF,"Fomento Económico Mexicano, S.A.B. de C.V.",48350294016,580
-ITCTY,ITC Limited,47737274368,581
-DNBBF,DNB Bank ASA,47475838976,582
-CHBJF,China CITIC Bank Corporation Limited,47390203904,583
-DNKEY,Danske Bank A/S,47215730688,584
-ABEV,Ambev S.A.,46976495616,585
-RNECY,Renesas Electronics Corporation,46337089536,586
-RNECF,Renesas Electronics Corporation,46083088384,587
-DNBBY,DNB Bank ASA,46057795584,588
-SWDBY,Swedbank AB (publ),45971169280,589
-PPCCY,PICC Property and Casualty Company Limited,45820096512,590
-SWRAY,Swire Pacific Limited,45784354816,591
-SUHJY,Sun Hung Kai Properties Limited,45755949056,592
-SLF,Sun Life Financial Inc.,45602242560,593
-HNHAF,"Hon Hai Precision Industry Co., Ltd.",45591932928,594
-PSKOF,Orlen S.A.,45369618432,595
-JHPCY,Jiangsu Hengrui Medicine,45132959744,596
-SWDBF,Swedbank AB (publ),44948586496,597
-JDCMF,"JD.com, Inc.",44894523392,598
-TYHOF,Toyota Tsusho Corporation,44733235200,599
-SMTOY,"Sumitomo Electric Industries, Ltd.",44673810432,600
-JD,"JD.com, Inc.",44525985792,601
-TYHOY,Toyota Tsusho Corporation,44342595584,602
-PBCRY,PT Bank Central Asia Tbk,44124753920,603
-IX,ORIX Corporation,43951443968,604
-SMTOF,"Sumitomo Electric Industries, Ltd.",43925086208,605
-ORXCF,ORIX Corporation,43689308160,606
-DNSKF,Danske Bank A/S,43664461824,607
-MSADY,"MS&AD Insurance Group Holdings, Inc.",43411042304,608
-DSCSY,Disco Corporation,43387088896,609
-PBCRF,PT Bank Central Asia Tbk,43363135488,610
-DLICY,"Daiichi Life Group, Inc.",43130281984,611
-SUHJF,Sun Hung Kai Properties Limited,43061014528,612
-FMX,"Fomento Económico Mexicano, S.A.B. de C.V.",43021254656,613
-PWCDF,Power Corporation of Canada,42883993600,614
-ASAZY,ASSA ABLOY AB (publ),42542731264,615
-KB,KB Financial Group Inc.,42125713408,616
-MSADF,"MS&AD Insurance Group Holdings, Inc.",41883295744,617
-NIPNF,NEC Corporation,41846153216,618
-PSZKY,Powszechna Kasa Oszczednosci Bank Polski Spólka Akcyjna,41812500480,619
-MAHMF,Mahindra & Mahindra Limited,41726488576,620
-DISPF,Disco Corporation,41552900096,621
-GMGSF,Goodman Group,41355939840,622
-SVKEF,Skandinaviska Enskilda Banken AB (publ),41187811328,623
-FKURF,Fujikura Ltd.,40879247360,624
-ASAZF,ASSA ABLOY AB (publ),40821030912,625
-CCJ,Cameco Corporation,40543764480,626
-SWRAF,Swire Pacific Limited,40088522752,627
-TLGPY,Telstra Group Limited,40011776000,628
-OTSKY,"Otsuka Holdings Co., Ltd.",39940403200,629
-WEGZY,WEG S.A.,39650590720,630
-PSZKF,Powszechna Kasa Oszczednosci Bank Polski Spólka Akcyjna,39624998912,631
-KMTUY,Komatsu Ltd.,39600672768,632
-DKILF,"Daikin Industries,Ltd.",39490330624,633
-TTRAF,Telstra Group Limited,39321153536,634
-CTPCF,CITIC Limited,39271854080,635
-HMC,"Honda Motor Co., Ltd.",39081508864,636
-DKILY,"Daikin Industries,Ltd.",39078391808,637
-FJTSF,Fujitsu Limited,38895955968,638
-FANUF,Fanuc Corporation,38828703744,639
-DCNSF,"Daiichi Life Group, Inc.",38826258432,640
-CTPCY,CITIC Limited,38748229632,641
-HNDAF,"Honda Motor Co., Ltd.",38692245504,642
-SMPNY,"Sompo Holdings, Inc.",38653988864,643
-NHOLF,"Sompo Holdings, Inc.",38514155520,644
-FANUY,Fanuc Corporation,38408781824,645
-BIDU,"Baidu, Inc.",38185619456,646
-FJTSY,Fujitsu Limited,38062841856,647
-BBD,Banco Bradesco S.A.,37945683968,648
-TTDKY,TDK Corporation,37925117952,649
-WEICF,"Weichai Power Co., Ltd.",37671362560,650
-AVIFY,Advanced Info Service Public Company Limited,37453770752,651
-IBIDY,"Ibiden Co.,Ltd.",37448773632,652
-KMTUF,Komatsu Ltd.,36917243904,653
-DLMAF,Dollarama Inc.,36869287936,654
-JPPHY,"Japan Post Holdings Co., Ltd.",36678561792,655
-TTDKF,TDK Corporation,36611596288,656
-TYIDY,Toyota Industries Corporation,36542992384,657
-BAIDF,"Baidu, Inc.",36387930112,658
-PINXY,The People's Insurance Company (Group) of China Limited,36070383616,659
-OTPBF,OTP Bank Nyrt.,36054466560,660
-CKHUY,CK Hutchison Holdings Limited,36040716288,661
-CKHUF,CK Hutchison Holdings Limited,36002414592,662
-DLMAY,"Dollarama, Inc.",35499143168,663
-BBDO,Banco Bradesco S.A.,35336237056,664
-GUOSF,"Guotai Haitong Securities Co., Ltd.",35257688064,665
-SAABY,Saab AB (publ),35098402816,666
-OTSKF,"Otsuka Holdings Co., Ltd.",34938662912,667
-BLMIF,Bank Leumi le-Israel B.M.,34582560768,668
-MLYNF,Malayan Banking Berhad,34472398848,669
-CKHGY,Capitec Bank Holdings Limited,34452549632,670
-SAABF,Saab AB (publ),34220400640,671
-SHG,"Shinhan Financial Group Co., Ltd.",33746847744,672
-ERIC,Telefonaktiebolaget LM Ericsson (publ),33687476224,673
-FANDY,FirstRand Limited,33634809856,674
-DNZOF,DENSO Corporation,33569234944,675
-EC,Ecopetrol S.A.,33530662912,676
-SGBLY,Standard Bank Group Limited,33447704576,677
-MLYBY,Malayan Banking Berhad,32658063360,678
-OTPGF,OTP Bank Nyrt.,32637388800,679
-CHT,"Chunghwa Telecom Co., Ltd.",32495941632,680
-JPHLF,"Japan Post Holdings Co., Ltd.",32267034624,681
-RSNHF,"Resona Holdings, Inc.",32252041216,682
-OLCLF,"Oriental Land Co., Ltd.",32220430336,683
-EPOAY,Epiroc Aktiebolag,32148090880,684
-GBOOF,"Grupo Financiero Banorte, S.A.B. de C.V.",32130566144,685
-EPIAF,Epiroc AB (publ),32063395840,686
-BKHYY,Bank Hapoalim B.M.,31881158656,687
-GBOOY,"Grupo Financiero Banorte, S.A.B. de C.V.",31747661824,688
-CKHGF,Capitec Bank Holdings Limited,31700445184,689
-BRDCF,Bridgestone Corporation,31614015488,690
-ERIXF,Telefonaktiebolaget LM Ericsson (publ),31489753088,691
-RSHGY,"Resona Holdings, Inc.",31489474560,692
-DSKYF,"Daiichi Sankyo Company, Limited",31407214592,693
-FANDF,FirstRand Limited,31314204672,694
-KYOAY,Kyocera Corp.,31263817728,695
-BAP,Credicorp Ltd.,31153274880,696
-OLCLY,"Oriental Land Co., Ltd.",30925056000,697
-BRDCY,Bridgestone Corporation,30742763520,698
-SVNLY,Svenska Handelsbanken AB (publ),30676543488,699
-SVNLF,Svenska Handelsbanken AB (publ),30619684864,700
-AJNMY,"Ajinomoto Co., Inc.",30374154240,701
-AVIVF,Advanced Info Service Public Company Limited,30336940032,702
-CICOF,"COSCO SHIPPING Holdings Co., Ltd.",30230233088,703
-CHHQF,China Hongqiao Group Limited,30170099712,704
-DNZOY,DENSO Corporation,30159663104,705
-BKHPF,Bank Hapoalim B.M.,30081501184,706
-SMCAY,SMC Corporation,30076424192,707
-AJINF,"Ajinomoto Co., Inc.",30020966400,708
-CICOY,"COSCO SHIPPING Holdings Co., Ltd.",29808347136,709
-KYOCF,Kyocera Corporation,29731784704,710
-HNNMY,H & M Hennes & Mauritz AB (publ),29692538880,711
-SVNDY,"Seven & i Holdings Co., Ltd.",29682776064,712
-TCOM,Trip.com Group Limited,29495392256,713
-PUTRY,PTT Public Company Limited,29287364608,714
-ALL-PH,The Allstate Corporation,29260361728,715
-DSNKY,"Daiichi Sankyo Company, Limited",29114451968,716
-CRBJY,China Resources Land Limited,29046884352,717
-DNNGY,Ørsted A/S,29010812928,718
-NRSCF,"Nomura Holdings, Inc.",28787533824,719
-MITEY,"Mitsubishi Estate Co., Ltd.",28706658304,720
-AIPUY,Airports of Thailand Public Company Limited,28571400192,721
-SVNDF,"Seven & i Holdings Co., Ltd.",28550023168,722
-KBGGY,Kongsberg Gruppen ASA,28516929536,723
-NMR,"Nomura Holdings, Inc.",28466046976,724
-FUJIY,FUJIFILM Holdings Corporation,28440580096,725
-TRPCF,Trip.com Group Limited,28435914752,726
-MITEF,"Mitsubishi Estate Co., Ltd.",28369780736,727
-HMRZF,H & M Hennes & Mauritz AB (publ),28351584256,728
-MTNOF,MTN Group Limited,28339640320,729
-PINXF,The People's Insurance Company (Group) of China Limited,27861114880,730
-NSKFF,Kongsberg Gruppen ASA,27505381376,731
-IBIDF,"Ibiden Co.,Ltd.",27499696128,732
-ANPDF,ANTA Sports Products Limited,27427944448,733
-SMECF,SMC Corporation,27159310336,734
-CRBJF,China Resources Land Limited,27097569280,735
-PMRTY,Pop Mart International Group Limited,26701721600,736
-ANPDY,ANTA Sports Products Limited,26661072896,737
-MTSFF,"Mitsui Fudosan Co., Ltd.",26616817664,738
-GELYF,Geely Automobile Holdings Limited,26531416064,739
-CHHQY,China Hongqiao Group Limited,26522193920,740
-MTCPY,MTR Corporation Limited,26410266624,741
-IPXHF,Inpex Corporation,26381709312,742
-FUJIF,FUJIFILM Holdings Corporation,26311720960,743
-GELHY,Geely Automobile Holdings Limited,26100013056,744
-CTOWY,China Tower Corporation Limited,26099431424,745
-FIGIF,FUYAO GLASS INDUSTRY GROUP CO.,26097436672,746
-LSRCY,Lasertec Corporation,25930153984,747
-HRSHF,"Haier Smart Home Co., Ltd.",25694703616,748
-MTRJF,MTR Corporation Limited,25478137856,749
-MTSFY,"Mitsui Fudosan Co., Ltd.",25333970944,750
-IPXHY,Inpex Corporation,25277628416,751
-HSHCY,"Haier Smart Home Co., Ltd.",25202378752,752
-BKRKY,PT Bank Rakyat Indonesia (Persero) Tbk,25146013696,753
-CLPHY,CLP Holdings Limited,25037125632,754
-CLPHF,CLP Holdings Limited,24936067072,755
-ALFVY,Alfa Laval AB (publ),24927709184,756
-HNSPF,Hansoh Pharmaceutical Group Company Limited,24918747136,757
-ALPMY,Astellas Pharma Inc.,24686761984,758
-ALPMF,Astellas Pharma Inc.,24668848128,759
-ALFVF,Alfa Laval AB (publ),24592914432,760
-KSHTY,Kuaishou Technology,24445743104,761
-EJPRY,East Japan Railway Company,24252391424,762
-ORLNY,Orlen,24031502336,763
-CAJPY,Canon Inc.,24010807296,764
-AXIA,AXIA Energia SA,23928766464,765
-LSRCF,Lasertec Corporation,23923322880,766
-BDORY,Banco do Brasil S.A.,23863089152,767
-CAJFF,Canon Inc.,23526684672,768
-SZKMY,Suzuki Motor Corporation,23503378432,769
-AXIA-PC,AXIA Energia SA,23495770112,770
-AONNY,"Aeon Co., Ltd.",23405645824,771
-JXHLY,"ENEOS Holdings, Inc.",23344121856,772
-SZKMF,Suzuki Motor Corporation,23324921856,773
-AONNF,"Aeon Co., Ltd.",23211982848,774
-EPIPF,Epiroc AB (publ),23170340864,775
-COCSF,"Coca-Cola FEMSA, S.A.B. de C.V.",23119659008,776
-MTNOY,MTN Group Limited,23077122048,777
-CJPRY,Central Japan Railway Company,23015854080,778
-KOF,"Coca-Cola FEMSA, S.A.B. de C.V.",22789830656,779
-BKRKF,PT Bank Rakyat Indonesia (Persero) Tbk,22586238976,780
-AIPUF,Airports of Thailand Public Company Limited,22571407360,781
-KUASF,Kuaishou Technology,22514311168,782
-NISTF,Nippon Steel Corporation,22473064448,783
-SFHOY,S F HLDG CO LTD,22259089408,784
-PPERY,PT Bank Mandiri (Persero) Tbk,22166665216,785
-CGMBF,"China Minsheng Banking Corp., Ltd.",21763033088,786
-TRUMY,Terumo Corporation,21742723072,787
-NPSCY,Nippon Steel Corporation,21741381632,788
-ANGPY,Valterra Platinum Limited,21722716160,789
-PPERF,PT Bank Mandiri (Persero) Tbk,21709332480,790
-CMAKY,"China Minsheng Banking Corp., Ltd.",21620056064,791
-CRCCY,CRRC Corporation Limited,21567197184,792
-CHWRF,China Tower Corporation Limited,21501876224,793
-CHKGF,CK Asset Holdings Limited,21488637952,794
-JXHGF,"ENEOS Holdings, Inc.",21408790528,795
-CJPRF,Central Japan Railway Company,21399035904,796
-CIB,Grupo Cibest S.A.,21356244992,797
-CEBCF,China Everbright Bank Company Limited,21335791616,798
-BSBR,Banco Santander (Brasil) S.A.,21264576512,799
-ASCCF,ASICS Corporation,21224822784,800
-SURDF,"Sumitomo Realty & Development Co., Ltd.",21220085760,801
-CNGKY,CK Asset Holdings Limited,21191157760,802
-ASCCY,ASICS Corporation,21061773312,803
-TNABF,Tenaga Nasional Berhad,21049126912,804
-CKISY,CK Infrastructure Holdings Limited,20984326144,805
-WXXWY,WuXi Biologics (Cayman) Inc.,20962400256,806
-BCH,Banco de Chile,20900433920,807
-YAHOF,LY Corporation,20758532096,808
-TRUMF,Terumo Corporation,20518404096,809
-NWWCF,New China Life Insurance Company Ltd.,20504780800,810
-TCMEF,Tencent Music Entertainment,20433176576,811
-CIMDF,CIMB Group Holdings Berhad,20429432832,812
-WIT,Wipro Limited,20279318528,813
-KUBTF,Kubota Corporation,20047056896,814
-MZTFF,Mizrahi Tefahot Bank Ltd.,20027025408,815
-GXYEF,Galaxy Entertainment Group Limited,20013131776,816
-YAHOY,LY Corporation,19900741632,817
-TISCF,Taisei Corporation,19821907968,818
-YAGOY,Yageo,19763814400,819
-LAAOF,Li Auto Inc.,19737571328,820
-IHICF,IHI Corporation,19719012352,821
-CABHF,Carlsberg A/S,19706857472,822
-VIV,Telefônica Brasil S.A.,19684933632,823
-IHICY,IHI Corporation,19676604416,824
-ETTYF,Essity AB (publ),19513761792,825
-AGPPF,Valterra Platinum Limited,19475576832,826
-YPF,YPF Sociedad Anónima,19465177088,827
-KUBTY,Kubota Corporation,19326267392,828
-EMBVF,"Arca Continental, S.A.B. de C.V.",19299952640,829
-KPCPF,Kasikornbank Public Company Limited,19262406656,830
-IVBIY,Innovent Biologics Inc.,19228471296,831
-JIAXF,Jiangxi Copper Company Limited,19207395328,832
-TELNY,Telenor ASA,19203921920,833
-CABGY,Carlsberg A/S,19191386112,834
-SIELF,"Shanghai Electric Group Co., Ltd.",19182405632,835
-TNABY,Tenaga Nasional Berhad,19163303936,836
-SBS,Companhia de Saneamento Básico do Estado de São Paulo - SABESP,19095711744,837
-CAOVY,China Overseas Land & Investment Limited,19087876096,838
-VDMCY,Vodacom Group Limited,19085815808,839
-HUATF,"Huatai Securities Co., Ltd.",18956412928,840
-EBCOF,Ebara Corporation,18929541120,841
-BEKE,KE Holdings Inc.,18929129472,842
-GPOVF,"Grupo Carso, S.A.B. de C.V.",18924490752,843
-FYGGY,"Fuyao Glass Industry Group Co., Ltd.",18894542848,844
-WXIBF,WuXi Biologics (Cayman) Inc.,18888742912,845
-TELNF,Telenor ASA,18883629056,846
-KAOCF,Kao Corporation,18861780992,847
-SURYY,"Sumitomo Realty & Development Co., Ltd.",18823299072,848
-BKZHY,Erste Bank Polska S.A.,18751739904,849
-YZOFF,Yangtze Optical Fibre And Cable Joint Stock Limited Company,18706558976,850
-KGTFF,Krung Thai Bank Public Company Limited,18690961408,851
-NHYDY,Norsk Hydro ASA,18666829824,852
-JDHIF,JD Health International Inc.,18658756608,853
-IVBXF,"Innovent Biologics, Inc.",18593034240,854
-GXYYY,Galaxy Entertainment Group Limited,18585497600,855
-PZAKY,Powszechny Zaklad Ubezpieczen SA,18482526208,856
-PBLOF,Public Bank Berhad,18440157184,857
-KAOOY,Kao Corporation,18373457920,858
-ZTO,ZTO Express (Cayman) Inc.,18237190144,859
-NCBDY,BANDAI NAMCO Holdings Inc.,18137829376,860
-NHYKF,Norsk Hydro ASA,18116071424,861
-IDTVF,AB Industrivärden (publ),18096572416,862
-TLSNF,Telia Company AB (publ),18087702528,863
-CAOVF,China Overseas Land & Investment Limited,18059057152,864
-CCOZF,China Coal Energy Company Limited,18031781888,865
-TLSNY,Telia Company AB (publ),17969739776,866
-CGNWF,"CGN Power Co., Ltd.",17927006208,867
-DWAHY,"Daiwa House Industry Co., Ltd.",17886742528,868
-NPPHY,"Nippon Paint Holdings Co., Ltd.",17883025408,869
-KAJMF,Kajima Corporation,17783099392,870
-HLDCY,Henderson Land Development Company Limited,17767890944,871
-ALMMF,Aluminum Corporation of China Limited,17669619712,872
-KPCPY,Kasikornbank Public Company Limited,17651490816,873
-CABJF,Carlsberg A/S,17612722176,874
-NURAF,"Nomura Research Institute, Ltd.",17490544640,875
-KSPI,Joint Stock Company Kaspi.kz,17482508288,876
-NCBDF,BANDAI NAMCO Holdings Inc.,17387431936,877
-VODAF,Vodacom Group Limited,17347227648,878
-ASUUY,ASUSTeK Computer Inc.,17154724864,879
-FUWAY,"Furukawa Electric Co., Ltd.",17123142656,880
-KPCUF,Kasikornbank Public Company Limited,17082852352,881
-EBCOY,Ebara Corporation,17068515328,882
-BKZHF,Erste Bank Polska S.A.,17057644544,883
-ZTCOF,ZTE Corporation,17049479168,884
-KONMY,Konami Group Corporation,17042160640,885
-KGTFY,Krung Thai Bank Public Company Limited,16980914176,886
-WF,Woori Financial Group Inc.,16972940288,887
-KAEPY,"The Kansai Electric Power Company, Incorporated",16955942912,888
-SOMLY,"SECOM CO., LTD.",16903624704,889
-KNAMF,Konami Group Corporation,16878137344,890
-BIOVF,Swedish Orphan Biovitrum AB (publ),16809026560,891
-BKPKF,Bank Polska Kasa Opieki S.A.,16787582976,892
-CJEWY,Chow Tai Fook Jewellery Group Limited,16723431424,893
-DAIUF,"Daifuku Co., Ltd.",16660933632,894
-NATKY,National Atomic Company Kazatomprom JSC,16646563840,895
-NRILY,"Nomura Research Institute, Ltd.",16567043072,896
-PKX,POSCO Holdings Inc.,16539776000,897
-BSAC,Banco Santander-Chile,16361835520,898
-IVTBF,Investment AB Latour (publ),16277042176,899
-KAEPF,"The Kansai Electric Power Company, Incorporated",16265228288,900
-KGBLY,Kingboard Laminates Holdings Limited,16261482496,901
-SWOBY,Swedish Orphan Biovitrum AB (publ),16251246592,902
-TYNPF,Nippon Sanso Holdings Corporation,16248446976,903
-SWPFF,Swire Properties Limited,16108852224,904
-DWAHF,"Daiwa House Industry Co., Ltd.",16103023616,905
-SOMLF,"SECOM CO., LTD.",16057641984,906
-PWZYF,Powszechny Zaklad Ubezpieczen SA,16028971008,907
-KWHIY,"Kawasaki Heavy Industries, Ltd.",15979525120,908
-NPXYY,Nippon Sanso Holdings Corp.,15972287488,909
-HGKGY,Power Assets Holdings Limited,15919354880,910
-KEP,Korea Electric Power Corporation,15843674112,911
-PETFF,PTT Public Company Limited,15829835776,912
-DIDIY,DiDi Global Inc.,15821382656,913
-TLKMF,Perusahaan Perseroan (Persero) PT Telekomunikasi Indonesia Tbk,15793672192,914
-JDHIY,JD Health International Inc.,15788178432,915
-TME,Tencent Music Entertainment Group,15750574080,916
-HLDVF,Henderson Land Development Company Limited,15734507520,917
-BBSEY,BB Seguridade Participações S.A.,15724113920,918
-KWHIF,"Kawasaki Heavy Industries, Ltd.",15708832768,919
-DSEEY,Daiwa Securities Group Inc.,15704712192,920
-GFSEF,GF Securities,15649690624,921
-TDHOY,"T&D Holdings, Inc.",15611273216,922
-HUNGF,"Huaneng Power International, Inc.",15601482752,923
-HOKCY,The Hong Kong and China Gas Company Limited,15577260032,924
-NPCPF,"Nippon Paint Holdings Co., Ltd.",15527615488,925
-HOKCF,The Hong Kong and China Gas Company Limited,15494222848,926
-NPNYY,Nippon Yusen Kabushiki Kaisha,15476378624,927
-DINRF,"SCREEN Holdings Co., Ltd.",15408765952,928
-BMBOY,"Grupo Bimbo, S.A.B. de C.V.",15380697088,929
-LBGUF,L E Lundbergföretagen AB (publ),15376000000,930
-KAJMY,Kajima Corporation,15375116288,931
-SKCBY,Shinkin Central Bank,15370011648,932
-SCRNY,"SCREEN Holdings Co., Ltd.",15287751680,933
-FUTU,Futu Holdings Limited,15281200128,934
-KGHPF,KGHM Polska Miedz S.A.,15244000256,935
-CLPBF,Coloplast A/S,15241559040,936
-BOLSY,"B3 S.A. - Brasil, Bolsa, Balcão",15228149760,937
-LFCBY,Lifco AB (publ),15225330688,938
-AHKSF,Asahi Kasei Corporation,15212483584,939
-CLPBY,Coloplast A/S,15212258304,940
-RYKKY,"Ryohin Keikaku Co., Ltd.",15163279360,941
-IHHHF,IHH Healthcare Berhad,15109822464,942
-TLK,Perusahaan Perseroan (Persero) PT Telekomunikasi Indonesia Tbk,15073086464,943
-GRBMF,"Grupo Bimbo, S.A.B. de C.V.",15036994560,944
-BDNNY,Boliden AB (publ),14953463808,945
-SGIOY,"Shionogi & Co., Ltd.",14926109696,946
-TGVSY,Tryg A/S,14897446912,947
-SGIOF,"Shionogi & Co., Ltd.",14849521664,948
-LFABF,Lifco AB (publ),14839244800,949
-GPFOF,"Grupo Financiero Inbursa, S.A.B. de C.V.",14815148032,950
-KNBWF,"Kirin Holdings Company, Limited",14814748672,951
-GJNSY,Gjensidige Forsikring ASA,14813936640,952
-IDDTF,AB Industrivärden (publ),14792544256,953
-ASBRF,"Asahi Group Holdings, Ltd.",14789583872,954
-YZCAY,Yankuang Energy Group Company Limited,14784282624,955
-SHWDF,Resonac Holdings Corporation,14724818944,956
-ASBHY,Asahi,14628669440,957
-SKHSF,"Sekisui House, Ltd.",14597027840,958
-NYUKF,Nippon Yusen Kabushiki Kaisha,14560306176,959
-KNBWY,"Kirin Holdings Company, Limited",14481842176,960
-DFKCY,"Daifuku Co., Ltd.",14480414720,961
-NDEKY,Nitto Denko Corporation,14433538048,962
-SHWDY,Resonac Holdings Corporation,14360137728,963
-TDHOF,"T&D Holdings, Inc.",14315518976,964
-OSGSF,"Osaka Gas Co., Ltd.",14293557248,965
-TGVSF,Tryg A/S,14152573952,966
-FUWAF,"Furukawa Electric Co., Ltd.",14126240768,967
-SMMYY,"Sumitomo Metal Mining Co., Ltd.",14079253504,968
-BLIDF,Boliden AB (publ),13942556672,969
-SIELY,"Shanghai Electric Group Co., Ltd.",13932381184,970
-CJEWF,Chow Tai Fook Jewellery Group Limited,13812862976,971
-OBYCF,Obayashi Corporation,13799987200,972
-SKHSY,"Sekisui House, Ltd.",13794509824,973
-LNTCY,LENS TECHNOLOGY CO LTD.,13728685056,974
-AHKSY,Asahi Kasei Corporation,13596998656,975
-OSGSY,"Osaka Gas Co., Ltd.",13521189888,976
-TKGSY,"Tokyo Gas Co.,Ltd.",13424110592,977
-FELTY,"Fuji Electric Co., Ltd.",13384494080,978
-LI,Li Auto Inc.,13373296640,979
-SKM,"SK Telecom Co., Ltd.",13359306752,980
-TKGBF,Turkiye Garanti Bankasi A.S.,13194719232,981
-MSLOY,"Mitsui O.S.K. Lines, Ltd.",13160492032,982
-PAC,"Grupo Aeroportuario del Pacífico, S.A.B. de C.V.",13132051456,983
-LKREF,Link Real Estate Investment Trust,13094092800,984
-CRDIY,"Yokohama Financial Group, Inc.",13059859456,985
-ZLIOY,"Zoomlion Heavy Industry Science and Technology Co., Ltd.",13058205696,986
-SNLAF,Sino Land Company Limited,13037152256,987
-NIOIF,NIO Inc.,13029468160,988
-HTHT,H World Group Limited,13011333120,989
-ZTOEF,ZTO Express (Cayman),12928783360,990
-GPAEF,"Grupo Aeroportuario del Pacífico, S.A.B. de C.V.",12865779712,991
-CCRDF,"Yokohama Financial Group, Inc.",12859794432,992
-RYKKF,"Ryohin Keikaku Co., Ltd.",12835428352,993
-SKFRY,AB SKF (publ),12818132992,994
-TKGSF,"Tokyo Gas Co.,Ltd.",12748278784,995
-CHUEF,"Chubu Electric Power Company, Incorporated",12728381440,996
-TISCY,Taisei Corporation,12714711040,997
-HKTTF,HKT Trust and HKT Limited,12596854784,998
-EMBJ,Embraer S.A.,12549614592,999
-SNLAY,Sino Land Company Limited,12500328448,1000
-MIUFY,Mitsubishi HC Capital Inc.,12492519424,1001
-CVPBF,CP ALL Public Company Limited,12485705728,1002
-SWRBY,Swire Pacific Limited,12433377280,1003
-HKTTY,HKT Trust and HKT Limited,12432353280,1004
-FELTF,"Fuji Electric Co., Ltd.",12347955200,1005
-SVTMF,SM Investments Corporation,12337895424,1006
-OCPNF,Olympus Corporation,12328708096,1007
-AHCHY,Anhui Conch Cement Company Limited,12294382592,1008
-CSPCY,CSPC Pharmaceutical Group Limited,12289373184,1009
-OLYMY,Olympus Corporation,12243683328,1010
-CRPJY,China Resources Power Holdings Company Limited,12214405120,1011
-CHJTF,CSPC Pharmaceutical Group Limited,12203833344,1012
-XPNGF,XPeng Inc.,12177435648,1013
-BKKPF,Bangkok Bank Public Company Limited,12068335616,1014
-ROHCF,"ROHM Co., Ltd.",12059736064,1015
-CRMLY,China Resources Mixc Lifestyle Services,12000244736,1016
-TLTZY,Tele2 AB (publ),11998984192,1017
-TKGBY,Turkiye Garanti Bankasi A.S.,11988966400,1018
-OBICY,Obic Co. Ltd.,11980062720,1019
-SBHGF,"SBI Holdings, Inc.",11958246400,1020
-NIO,NIO Inc.,11926975488,1021
-NEXOY,"NEXON Co., Ltd.",11887304704,1022
-SKBSY,Skanska AB (publ),11873755136,1023
-NGKSF,"Niterra Co., Ltd.",11855639552,1024
-MMSMY,"Mitsui Kinzoku Company, Limited",11782873088,1025
-NDEKF,Nitto Denko Corporation,11770009600,1026
-CHBAY,"The Chiba Bank, Ltd.",11751499776,1027
-STMNF,"Sumitomo Metal Mining Co., Ltd.",11746270208,1028
-MGYOY,MOL Magyar Olaj- és Gázipari Nyilvánosan Muködo Részvénytársaság,11739380736,1029
-CPPCY,CP ALL Public Company Limited,11727009792,1030
-MSLOF,"Mitsui O.S.K. Lines, Ltd.",11706996736,1031
-FUJHY,Subaru Corporation,11681864704,1032
-RKUNF,"Rakuten Group, Inc.",11650978816,1033
-RKUNY,"Rakuten Group, Inc.",11650978816,1034
-NGKSY,"Niterra Co., Ltd.",11645046784,1035
-SKSBF,Skanska AB (publ),11614955520,1036
-CLPXY,China Longyuan Power Group Corporation Limited,11567405056,1037
-SBHMY,Sino Biopharmaceutical Limited,11561972736,1038
-PBNNF,PT Bank Negara Indonesia (Persero) Tbk,11542689792,1039
-XPEV,XPeng Inc.,11526952960,1040
-SLLDY,Sanlam Limited,11524993024,1041
-CISXF,China Steel Corporation,11383604224,1042
-CPCAF,Cathay Pacific Airways Limited,11371709440,1043
-YSHLF,Yangzijiang Shipbuilding (Holdings) Ltd.,11350053888,1044
-SBMFF,Sino Biopharmaceutical Limited,11322023936,1045
-ROHCY,"ROHM Co., Ltd.",11318548480,1046
-BDOUF,"BDO Unibank, Inc.",11310970880,1047
-AGRPY,Absa Group Limited,11308690432,1048
-PAYP,PayPay Corporation,11301518336,1049
-EKIVY,Enka Insaat ve Sanayi A.S.,11300438016,1050
-FUJHF,Subaru Corporation,11273210880,1051
-BKKLY,Bangkok Bank Public Company Limited,11269808128,1052
-PTAIY,PT Astra International Tbk,11237497856,1053
-CPCAY,Cathay Pacific Airways Limited,11225762816,1054
-JPNPY,"Japan Post Insurance Co., Ltd.",11107026944,1055
-JPPIF,"Japan Post Insurance Co., Ltd.",10998665216,1056
-CGXYF,China Galaxy Securities,10934402048,1057
-NEXOF,"NEXON Co., Ltd.",10918913024,1058
-OBIIF,"OBIC Co.,Ltd.",10911337472,1059
-HGMCF,Harmony Gold Mining Company Limited,10903371776,1060
-MAEOY,Manila Electric Company,10859536384,1061
-KAIKY,"Kawasaki Kisen Kaisha, Ltd.",10847620096,1062
-SSAAY,SSAB AB (publ),10843200512,1063
-CRWOF,China Railway Group Limited,10842839040,1064
-BDOUY,"BDO Unibank, Inc.",10841459712,1065
-TCPFF,True Corporation Public Company Limited,10792768512,1066
-MIUFF,Mitsubishi HC Capital Inc.,10769413120,1067
-UNICY,Unicharm Corporation,10703377408,1068
-ORKLY,Orkla ASA,10675215360,1069
-KOKSF,Kokusai Electric,10673563648,1070
-TRYIY,"Toray Industries, Inc.",10667703296,1071
-HMY,Harmony Gold Mining Company Limited,10657780736,1072
-AICAF,Air China Limited,10656131072,1073
-AIRYY,Air China Limited,10656131072,1074
-BPHLF,Bank of the Philippine Islands,10592726016,1075
-LKNCY,Luckin Coffee Inc.,10589818880,1076
-IMPUY,Impala Platinum Holdings Limited,10571325440,1077
-SSABF,SSAB AB (publ),10564147200,1078
-SHMUY,Shimizu Corporation,10536110080,1079
-AKESF,"Akeso, Inc.",10454975488,1080
-SMNNY,Shimano Inc.,10419884032,1081
-DCYHF,Discovery Limited,10390393856,1082
-IESFY,Interconexión Eléctrica S.A. E.S.P.,10362661888,1083
-KHOLY,Koç Holding A.S.,10332690432,1084
-KTHAF,Krung Thai Bank Public Company Limited,10318526464,1085
-SUZ,Suzano S.A.,10307964928,1086
-ZLIOF,"Zoomlion Heavy Industry Science and Technology Co., Ltd.",10299200512,1087
-ORKLF,Orkla ASA,10290522112,1088
-SCTBF,Securitas AB (publ),10286792704,1089
-CCOEY,"Capcom Co., Ltd.",10282031104,1090
-SHMUF,Shimizu Corporation,10262730752,1091
-AKAAF,Aker ASA,10254818304,1092
-BDUUF,Bangkok Dusit Medical Services Public Company Limited,10170881024,1093
-UNCHF,Unicharm Corporation,10169929728,1094
-GAILF,GAIL (India) Limited,10131102720,1095
-GWLLY,Great Wall Motor Company Limited,10109944832,1096
-CINSF,China Taiping Insurance Holdings Company Limited,10099191808,1097
-YMM,Full Truck Alliance Co. Ltd.,10092878848,1098
-RDY,Dr. Reddy's Laboratories Limited,10079300608,1099
-ADDHY,Addtech AB (publ.),10045552640,1100
-CCOEF,"Capcom Co., Ltd.",10039411712,1101
-ASEKY,Aisin Corporation,10010640384,1102
-DNGFF,Dongfang Electric Corporation Limited,9960078336,1103
-CTIHY,China Taiping Insurance Holdings Company Limited,9913740288,1104
-GNENF,"Ganfeng Lithium Group Co., Ltd.",9854462976,1105
-SFGIF,"Shizuoka Financial Group,Inc.",9850525696,1106
-MTLHY,Mitsubishi Chemical Group Corporation,9849467904,1107
-HKTGF,"Hikari Tsushin, Inc.",9844076544,1108
-SHKLF,Sinotruk (Hong Kong) Limited,9750380544,1109
-TBABY,Trelleborg AB (publ),9749524480,1110
-TRYIF,"Toray Industries, Inc.",9705860096,1111
-SNROF,"Sanrio Company, Ltd.",9699441664,1112
-ISUZY,Isuzu Motors Limited,9662554112,1113
-BDULF,Bangkok Dusit Medical Services Public Company Limited,9652723712,1114
-CRHKY,China Resources Beer (Holdings) Company Limited,9650899968,1115
-SRGHY,Shoprite Holdings Ltd,9605923840,1116
-CRHKF,China Resources Beer (Holdings) Company Limited,9602240512,1117
-SCVPY,The Siam Cement Public Company Limited,9600000000,1118
-CSDXF,"COSCO SHIPPING Energy Transportation Co., Ltd.",9564136448,1119
-PNDRY,Pandora A/S,9556529152,1120
-MINBY,MINEBEA MITSUMI Inc.,9545925632,1121
-IDKOY,"Idemitsu Kosan Co.,Ltd.",9497722880,1122
-GWLLF,Great Wall Motor Company Limited,9486085120,1123
-NCLTY,"Nitori Holdings Co., Ltd.",9481660416,1124
-KIKOF,Kikkoman Corporation,9450684416,1125
-GNENY,"Ganfeng Lithium Group Co., Ltd.",9393190912,1126
-SHMDF,Shimano Inc.,9377895424,1127
-TBVPY,Thai Beverage Public Company Limited,9358226432,1128
-WILLF,Demant A/S,9353353216,1129
-JDLGF,"JD Logistics, Inc.",9341769728,1130
-WILYY,Demant A/S,9304846336,1131
-MERVF,Manila Electric,9298512896,1132
-SSAAF,SSAB AB (publ),9298442240,1133
-NGKIF,NGK Corporation,9278252032,1134
-BDUUY,Bangkok Dusit Medical Services Public Company Limited,9257090048,1135
-ISUZF,Isuzu Motors Limited,9229594624,1136
-TSGTY,Tsingtao Brewery Company Limited,9206235136,1137
-PTAIF,PT Astra International Tbk,9205566464,1138
-IMPUF,Impala Platinum Holdings Limited,9201633280,1139
-IDKOF,"Idemitsu Kosan Co.,Ltd.",9168148480,1140
-YOKEY,Yokogawa Electric Corporation,9163248640,1141
-IDDWF,Indutrade AB (publ),9156493312,1142
-CIADY,China Mengniu Dairy Company Limited,9150478336,1143
-WARFF,The Wharf (Holdings) Limited,9137521664,1144
-ASEKF,Aisin Corporation,9126729728,1145
-SCTBY,Securitas AB (publ),9125306368,1146
-KIKOY,Kikkoman Corporation,9103233024,1147
-WJRYF,West Japan Railway Company,9092574208,1148
-YMHAY,"Yamaha Motor Co., Ltd.",9082738688,1149
-TSGTF,Tsingtao Brewery Company Limited,9069938688,1150
-ZSHOF,"Zensho Holdings Co., Ltd.",9021615104,1151
-HDALF,Haidilao International Holding Ltd.,9009673216,1152
-IDTRY,Indutrade AB,8982165504,1153
-TYOYY,"Taiyo Yuden Co., Ltd.",8904827904,1154
-CRCBY,"Chongqing Rural Commercial Bank Co., Ltd.",8858460160,1155
-ASMVF,ASMPT Limited,8807169024,1156
-CHEAF,China Eastern Airlines Corporation Limited,8795336704,1157
-MNBEF,MINEBEA MITSUMI Inc.,8794941440,1158
-KT,KT Corporation,8791825408,1159
-STBFY,Suntory Beverage & Food Limited,8787950592,1160
-GJNSF,Gjensidige Forsikring ASA,8761170944,1161
-CIBEY,Commercial International Bank Egypt (CIB) S.A.E.,8743087104,1162
-YASKF,YASKAWA Electric Corporation,8735512576,1163
-MKTAY,Makita Corporation,8734532608,1164
-SNROY,Sanrio Company,8699187200,1165
-SAGXF,AB Sagax (publ),8696389632,1166
-ASRMF,"Grupo Aeroportuario del Sureste, S. A. B. de C. V.",8655000576,1167
-YASKY,YASKAWA Electric Corporation,8651218944,1168
-BPHLY,Bank of the Philippine Islands,8650285056,1169
-KYKOY,"Kyowa Kirin Co., Ltd.",8637533184,1170
-MAAS,Maase Inc.,8626845696,1171
-TBVPF,Thai Beverage Public Company Limited,8625152000,1172
-ASMVY,ASMPT Limited,8615649280,1173
-SCVUF,The Siam Cement Public Company Limited,8594400256,1174
-ALNPY,ANA Holdings Inc.,8580482560,1175
-BPPPF,Bid Corporation Limited,8574332416,1176
-TYOYF,"Taiyo Yuden Co., Ltd.",8562550784,1177
-STBFF,Suntory Beverage & Food Limited,8543840256,1178
-MTLHF,Mitsubishi Chemical Group Corporation,8504507392,1179
-WJRYY,West Japan Railway Company,8496414720,1180
-SPHXF,"SM Prime Holdings, Inc.",8485766144,1181
-TYCMY,Tingyi (Cayman Islands) Holding Corp.,8418137600,1182
-TONPF,TOPPAN Holdings Inc.,8414422016,1183
-SSDOY,"Shiseido Company, Limited",8380001792,1184
-YOKEF,Yokogawa Electric Corporation,8371455488,1185
-SZHFF,Sojitz Corporation,8322409472,1186
-NDRBF,NIBE Industrier AB (publ),8312396288,1187
-ASR,"Grupo Aeroportuario del Sureste, S. A. B. de C. V.",8298160640,1188
-YAMHF,"Yamaha Motor Co., Ltd.",8296733184,1189
-GGAL,Grupo Financiero Galicia S.A.,8289661952,1190
-NDBKY,Nedbank Group Limited,8282104320,1191
-SFOSF,"Shanghai Fosun Pharmaceutical (Group) Co., Ltd.",8277919232,1192
-ESAIY,"Eisai Co., Ltd.",8241291264,1193
-PSSMF,PRESS METAL ALUMINIUM HLDG BHD,8239617536,1194
-CMHHF,China Merchants Port Holdings Company Limited,8228098048,1195
-SHZHY,Shenzhou International Group Holdings Limited,8223068160,1196
-SUMCF,Sumco Corporation,8207769088,1197
-WRFRF,Wharf Real Estate Investment Company Limited,8197813760,1198
-CHKIF,China Southern Airlines Company Limited,8154436608,1199
-PNDZF,Pandora A/S,8153268736,1200
-SHKLY,Sinotruk (Hong Kong) Limited,8093576704,1201
-FKKFY,"Fukuoka Financial Group, Inc.",8091380736,1202
-TBABF,Trelleborg AB (publ),8066193920,1203
-JAPSY,"Japan Airlines Co., Ltd.",8063567872,1204
-KAKKF,"Kawasaki Kisen Kaisha, Ltd.",8055463424,1205
-TOPPY,TOPPAN Holdings Inc.,8049797120,1206
-SUOPY,Sumco Corporation,8031163904,1207
-NIABY,NIBE Industrier AB (publ),7983623168,1208
-NPEHF,"Nippon Express Holdings, Inc.",7956179456,1209
-BILI,Bilibili Inc.,7947424256,1210
-SCABY,Svenska Cellulosa Aktiebolaget SCA (publ),7919964672,1211
-DNPLY,"Dai Nippon Printing Co., Ltd.",7916732416,1212
-MEBUF,"Mebuki Financial Group,Inc.",7893225984,1213
-ELPQF,"El Puerto de Liverpool, S.A.B. de C.V.",7865269248,1214
-KUNUF,Kunlun Energy Company Limited,7845868544,1215
-SVCBF,Svenska Cellulosa Aktiebolaget SCA (publ),7845165568,1216
-MYTKY,Magyar Telekom Telecommunicatio,7827714048,1217
-TSUSF,Tsuruha Holdings Inc.,7815836672,1218
-ALNPF,ANA Holdings Inc.,7813901312,1219
-CIADF,China Mengniu Dairy Company Limited,7809026560,1220
-VFS,VinFast Auto Ltd.,7790654976,1221
-KLYCY,Kunlun Energy Company Limited,7785515520,1222
-ESALF,"Eisai Co., Ltd.",7772779520,1223
-YORUF,"The Yokohama Rubber Company, Limited",7754875392,1224
-SOTGY,Sunny Optical Technology (Group) Company Limited,7749096960,1225
-SBRKF,SpareBank 1 Sør-Norge ASA,7741673984,1226
-WARFY,The Wharf (Holdings) Limited,7731749376,1227
-SNTMF,SenseTime Group Inc.,7704380416,1228
-SGLOF,Food & Life Companies Ltd.,7691481600,1229
-JPNRF,"Japan Airlines Co., Ltd.",7683170304,1230
-OSUKF,Otsuka Corporation,7584023552,1231
-CMHHY,China Merchants Port Holdings Company Limited,7577406464,1232
-JYSKY,Jyske Bank A/S,7561311232,1233
-KYKOF,"Kyowa Kirin Co., Ltd.",7551298048,1234
-SALRF,SalMar ASA,7522368000,1235
-SHMXY,Shimadzu,7512445952,1236
-SNPTF,Sunny Optical Technology (Group) Company Limited,7504185344,1237
-JEXYY,Jiangsu Expressway Company Limited,7491502592,1238
-XZJCF,"Mitsui Kinzoku Company, Limited",7461628416,1239
-SFGRF,Sony Financial,7446375424,1240
-MTHRY,"M3, Inc.",7435166208,1241
-NBFJF,Nippon Building Fund Inc.,7430374912,1242
-SASOF,Sasol Limited,7371933696,1243
-PTBRY,PT Bank Negara Indonesia (Persero) Tbk,7332831744,1244
-TKCOF,"Toho Co., Ltd.",7320291328,1245
-AKBTY,Akbank T.A.S.,7305999872,1246
-ZHAOF,Zhaojin Mining Industry Company Limited,7297329664,1247
-NSANF,"Nissan Motor Co., Ltd.",7272475136,1248
-NSANY,"Nissan Motor Co., Ltd.",7254993920,1249
-SALRY,SalMar ASA,7254002176,1250
-HTCMF,"Hitachi Construction Machinery Co., Ltd.",7200052736,1251
-SSL,Sasol Limited,7141159936,1252
-HPIFF,Huadian Power International Corporation Limited,7129629696,1253
-VLVCY,Volvo Car AB (publ.),7102648320,1254
-SHMZF,Shimadzu Corporation,7076146176,1255
-OCLCF,Oracle Corporation Japan,7075453440,1256
-JEXYF,Jiangsu Expressway Company Limited,7052846592,1257
-KCDMY,"Kimberly-Clark de México, S. A. B. de C. V.",7021985792,1258
-TQLCF,Tianqi Lithium,7007063040,1259
-OMRNY,OMRON Corporation,7005905408,1260
-CPNNF,Central Pattana Public Company Limited,7001668096,1261
-HTCMY,"Hitachi Construction Machinery Co., Ltd.",7001144320,1262
-GGDVY,Guangdong Investment Limited,6995469312,1263
-OPHLF,"Ono Pharmaceutical Co., Ltd.",6982822400,1264
-FBASF,Fibra UNO,6965867520,1265
-HULCF,"Hulic Co., Ltd.",6959925248,1266
-RGEDF,Gedeon Richter PLC,6928459264,1267
-OPHLY,"Ono Pharmaceutical Co., Ltd.",6922426880,1268
-SBSW,Sibanye Stillwater Limited,6915420160,1269
-HACBY,"Hachijuni Nagano Bank, Ltd.",6892700672,1270
-MEJHY,"Meiji Holdings Co., Ltd.",6860519424,1271
-MSSMY,MISUMI Group Inc.,6859022848,1272
-GNGBY,Getinge AB (publ),6850094592,1273
-HRIBF,"HORIBA, Ltd.",6825645056,1274
-BMBRF,BIM Birlesik Magazalar A.S.,6818234880,1275
-IMHDF,Isetan Mitsukoshi Holdings Ltd.,6804186112,1276
-REGMF,"RemeGen Co., Ltd.",6791479808,1277
-SYANY,AL Sydbank A/S,6789587968,1278
-SSDOF,"Shiseido Company, Limited",6765542912,1279
-KCDMF,"Kimberly-Clark de México, S. A. B. de C. V.",6751909376,1280
-AGRPF,Absa Group Limited,6721397760,1281
-MOLFF,MOL Magyar Olaj- és Gázipari Nyilvánosan Muködo Részvénytársaság,6705963520,1282
-TOTDF,TOTO LTD.,6657036800,1283
-DIFTY,"Daito Trust Construction Co.,Ltd.",6638583296,1284
-TOTDY,TOTO LTD.,6632369664,1285
-SREDY,Storebrand ASA,6619439104,1286
-DNPCF,"Dai Nippon Printing Co., Ltd.",6604424704,1287
-SKSUY,"Sekisui Chemical Co., Ltd.",6527659008,1288
-BYCRF,"Baycurrent, Inc.",6524293120,1289
-SHHGF,Shenwan Hongyuan,6510385152,1290
-SFGYY,Sony Financial Group Inc.,6466942464,1291
-SZHFY,Sojitz Corporation,6385576960,1292
-MDNDF,"McDonald's Holdings Company (Japan), Ltd.",6363405312,1293
-MICLF,Mycronic AB (publ),6346279936,1294
-SKPJF,SKY Perfect JSAT Corporation,6343064576,1295
-BALDF,Fastighets AB Balder (publ),6341771776,1296
-TSUKF,"Toyo Suisan Kaisha, Ltd.",6332900352,1297
-BLBLF,Bilibili Inc.,6331992064,1298
-SRTTY,"ZOZO, Inc.",6331300352,1299
-KUMBF,Kumba Iron Ore Limited,6329818112,1300
-TOKCF,"Tokyo Ohka Kogyo Co., Ltd.",6315159552,1301
-MBSHY,Mitsubishi Gas Chemical Company,6308984320,1302
-JFEEF,"JFE Holdings, Inc.",6297749504,1303
-CWQXY,Castellum AB (publ),6267534336,1304
-OMRNF,OMRON Corporation,6229219328,1305
-TSUKY,"Toyo Suisan Kaisha, Ltd.",6204923904,1306
-DITTF,"Daito Trust Construction Co.,Ltd.",6202519552,1307
-SATLF,"ZOZO, Inc.",6188008448,1308
-AVAL,Grupo Aval Acciones y Valores S.A.,6185175552,1309
-SSMXY,Sysmex Corporation,6179070464,1310
-PYOIF,"Promotora y Operadora de Infraestructura, S. A. B. de C. V.",6157487104,1311
-TOKUY,Tokyu Corporation,6144118784,1312
-GNGBF,Getinge AB (publ),6125591552,1313
-KYSEY,"Kyushu Electric Power Company, Incorporated",6098838016,1314
-HYUHF,"Hankyu Hanshin Holdings, Inc.",6085138432,1315
-DCYHY,Discovery Limited,6056880128,1316
-ERELY,Eregli Demir ve Çelik Fabrikalari T.A.S.,6049688064,1317
-BRTHY,"Brother Industries, Ltd.",6040949760,1318
-SKSUF,"Sekisui Chemical Co., Ltd.",6037497344,1319
-SOMMF,"Sumitomo Chemical Company, Limited",6016945152,1320
-NNCHY,Nissan Chemical Corporation,6001675776,1321
-SBYSF,Sibanye Stillwater Limited,5980668416,1322
-SEKEY,Seiko Epson Corporation,5966364672,1323
-FOVSY,Ford Otomotiv Sanayi A.S.,5965470208,1324
-PUODY,"Promotora y Operadora de Infraestructura, S. A. B. de C. V.",5939557376,1325
-HKCVF,HK Electric Investments and HK Electric Investments Limited,5920254464,1326
-TKFOY,Tokyu Fudosan Holdings Corporation,5919257600,1327
-MONOF,"MonotaRO Co., Ltd.",5906188288,1328
-KTWIY,Kurita Water Industries Ltd.,5893902336,1329
-TEO,Telecom Argentina S.A.,5892490752,1330
-CHPFF,Charoen Pokphand Foods Public Company Limited,5860724224,1331
-USSJY,"USS Co., Ltd.",5857122304,1332
-MSMKF,MatsukiyoCocokara & Co.,5852594688,1333
-CWQXF,Castellum AB (publ),5851488256,1334
-BMA,Banco Macro S.A.,5843387904,1335
-SSMXF,Sysmex Corporation,5840159232,1336
-SGHHF,"SG Holdings Co.,Ltd.",5830083584,1337
-YORUY,"The Yokohama Rubber Company, Limited",5813238272,1338
-AMDLY,"Amada Co., Ltd.",5792170496,1339
-AUOTY,AUO Corporation,5788624896,1340
-HHSSF,Huishang Bank Corporation Limited,5785102336,1341
-SQNNY,"Square Enix Holdings Co., Ltd.",5769901568,1342
-SGHDY,"SG Holdings Co.,Ltd.",5758474752,1343
-VLVOF,Volvo Car AB (publ.),5736629760,1344
-PTGCF,PTT Global Chemical Public Company Limited,5733335552,1345
-AMDWF,"Amada Co., Ltd.",5717692416,1346
-MTHRF,"M3, Inc.",5707858432,1347
-KTWIF,Kurita Water Industries Ltd.,5704648704,1348
-IMHDY,Isetan Mitsukoshi Holdings Ltd.,5691661312,1349
-AHICF,"Asahi Intecc Co., Ltd.",5679267328,1350
-QNDPF,"Qingdao Port International Co., Ltd.",5671923200,1351
-ZHUZY,"Zhuzhou CRRC Times Electric Co., Ltd.",5642182656,1352
-THKLF,"THK Co., Ltd.",5616668672,1353
-MONOY,"MonotaRO Co., Ltd.",5606206976,1354
-MDIKF,"MODEC, Inc.",5604618240,1355
-JREIF,Japan Real Estate Investment Corporation,5602529792,1356
-PUTKF,PT United Tractors Tbk,5588950016,1357
-SQNXF,"Square Enix Holdings Co., Ltd.",5571560960,1358
-MEJHF,"Meiji Holdings Co., Ltd.",5491615744,1359
-NPTLF,Northam Platinum Holdings Limited,5464897024,1360
-TKECF,"Tokyo Electric Power Company Holdings, Incorporated",5449187328,1361
-HPIFY,Huadian Power International Corporation Limited,5436051968,1362
-DNTUY,Dentsu Group Inc.,5412375552,1363
-AXFOF,Axfood AB (publ),5384145408,1364
-CPOUF,Charoen Pokphand Foods Public Company Limited,5382342656,1365
-TMICY,Trend Micro Incorporated,5380153856,1366
-ASLTY,Asymchem Laboratories (Tianjin),5375635968,1367
-OMAB,"Grupo Aeroportuario del Centro Norte, S.A.B. de C.V.",5358100480,1368
-KOBNF,"Kobe Bussan Co., Ltd.",5345648640,1369
-ARHUF,AAK AB (publ.),5321738752,1370
-BRTHF,"Brother Industries, Ltd.",5319993344,1371
-RICOY,"Ricoh Company, Ltd.",5314889216,1372
-MTPOF,Metropolitan Bank & Trust Company,5306950144,1373
-NNCHF,Nissan Chemical Corporation,5260143104,1374
-HROEY,"Hirose Electric Co.,Ltd.",5256710656,1375
-NFPDF,"Nissin Foods Holdings Co.,Ltd.",5231350784,1376
-KYSEF,"Kyushu Electric Power Company, Incorporated",5224198656,1377
-BDVSY,The Bidvest Group Limited,5222374912,1378
-SHPMY,"Shanghai Pharmaceuticals Holding Co., Ltd",5221373440,1379
-RICOF,"Ricoh Company, Ltd.",5190629888,1380
-NMEHF,"Nomura Real Estate Holdings, Inc.",5167966208,1381
-AMKYF,"ABC-Mart,Inc.",5164044800,1382
-YMATF,Azbil Corporation,5160031232,1383
-TKMTY,TOKYO METRO CO LTD.,5149894144,1384
-KIROY,Kumba Iron Ore Limited,5148895232,1385
-SMFRF,"Sumitomo Forestry Co., Ltd.",5144501248,1386
-FKKFF,"Fukuoka Financial Group, Inc.",5141673472,1387
-HSHZY,Hoshizaki Corporation,5129220096,1388
-KOBCY,Kobe Bussan,5101656064,1389
-TKECY,"Tokyo Electric Power Company Holdings, Incorporated",5096592896,1390
-SOMMY,"Sumitomo Chemical Company, Limited",5071248384,1391
-XNJJY,"Goldwind Science&Technology Co., Ltd.",5068546560,1392
-TBBB,BBB Foods Inc.,5057608704,1393
-TCNRF,Tokyo Century Corporation,5044022272,1394
-MTPOY,Metropolitan Bank & Trust Company,5025862144,1395
-CLPXF,China Longyuan Power Group Corporation Limited,5015889920,1396
-ALFFF,"Sigma Foods, S.A.B. de C.V.",4999014400,1397
-YKLTY,"Yakult Honsha Co.,Ltd.",4977504256,1398
-PSBAF,PT Sumber Alfaria Trijaya Tbk,4972111872,1399
-NHKGF,"NHK Spring Co., Ltd.",4965458432,1400
-MBGCF,"Mitsubishi Gas Chemical Company, Inc.",4960285696,1401
-AYALY,Ayala Corporation,4946308096,1402
-TSHXY,Tosoh Corporation,4944722432,1403
-GMXTF,"GMéxico Transportes, S.A.B. de C.V.",4940832768,1404
-TOSCF,Tosoh Corporation,4926248960,1405
-OJIPF,Oji Holdings Corporation,4925559296,1406
-AKO-B,Embotelladora Andina S.A.,4904813056,1407
-XJNGF,"Goldwind Science&Technology Co., Ltd.",4899594752,1408
-TKC,Turkcell Iletisim Hizmetleri A.S.,4875231232,1409
-SNWAF,Sanwa Holdings Corporation,4858877952,1410
-GAERF,"Grupo Aeroportuario del Centro Norte, S.A.B. de C.V.",4832524288,1411
-TAWNF,Thai Airways International Public Company Limited,4825927680,1412
-PPKRF,PEPKOR HOLDINGS LTD,4793639936,1413
-GCHEF,"Grupo Comercial Chedraui, S.A.B. de C.V.",4786611712,1414
-SOOBF,Sapporo Breweries Limited,4775559168,1415
-PAEKY,PT Antam (Persero) Tbk,4741599232,1416
-HSSKY,HASEKO Corporation,4726549504,1417
-THKLY,"THK Co., Ltd.",4718057984,1418
-CMGGF,Commercial International Bank Egypt (CIB) S.A.E.,4708960768,1419
-OJIPY,Oji Holdings Corporation,4703908864,1420
-COLZF,Coca Cola Icecek Sanayi As,4700772352,1421
-MZDAF,Mazda Motor Corporation,4675489280,1422
-HSKCF,Haseko Corp.,4663034880,1423
-HSHIF,Hoshizaki Corporation,4658198016,1424
-AYYLF,Ayala Corporation,4656091136,1425
-PHJMF,PT Hanjaya Mandala Sampoerna Tbk,4652723200,1426
-PUTKY,PT United Tractors Tbk,4630095360,1427
-ABZPF,Aboitiz Power Corporation,4611746816,1428
-MCARY,"Mercari, Inc.",4607335424,1429
-OBIBF,"OBIC Business Consultants Co., Ltd.",4578261504,1430
-TRKNY,Türk Telekomünikasyon Anonim Sirketi,4567499776,1431
-YKLTF,"Yakult Honsha Co.,Ltd.",4560314880,1432
-SEIBF,Seibu Holdings Inc.,4549782528,1433
-KKKUF,"Kakaku.com, Inc.",4544830464,1434
-DNTUF,Dentsu Group Inc.,4542760960,1435
-CCOJY,Coca-Cola Bottlers Japan Holdings Inc.,4532601344,1436
-GEDSF,Gedeon Richter PLC,4532356608,1437
-TYRRY,Toyo Tire Corporation,4524393472,1438
-TGS,Transportadora de Gas del Sur S.A.,4522588672,1439
-TOIPY,Thai Oil Public Company Limited,4502477312,1440
-JRFIF,Japan Metropolitan Fund Investment Corporation,4488168960,1441
-CYAGF,"CyberAgent, Inc.",4482704896,1442
-NPONF,"Nippon Prologis REIT, Inc.",4467115520,1443
-SHAOF,"SHIMAMURA Co., Ltd.",4461361152,1444
-KBSTF,"Kobe Steel, Ltd.",4460709888,1445
-TMICF,Trend Micro Incorporated,4458481152,1446
-FMMFF,Fuji Corporation,4425544192,1447
-NPTVF,"Nippon Television Holdings, Inc.",4424130560,1448
-CMZOF,"Corporación Moctezuma, S.A.B. de C.V.",4421157376,1449
-MINOF,Minor International Public Company Limited,4406291456,1450
-SIM,"Grupo Simec, S.A.B. de C.V.",4403022336,1451
-PCHUY,PTT Global Chemical Public Company Limited,4400636928,1452
-NINOF,Nikon Corporation,4399361024,1453
-CMTOY,Cementos Argos S.A.,4394883584,1454
-EDRWY,"Electric Power Development Co., Ltd.",4391407104,1455
-BUHPF,Bumrungrad Hospital Public Company Limited,4378971648,1456
-JPSWF,"The Japan Steel Works, Ltd.",4371008000,1457
-CYGIY,"CyberAgent, Inc.",4361052160,1458
-MITUY,"Mitsui Chemicals, Inc.",4356602880,1459
-MITUF,"Mitsui Chemicals, Inc.",4338525696,1460
-JYSKF,Jyske Bank A/S,4330858496,1461
-PIFFY,PT Indofood CBP Sukses Makmur Tbk,4320736768,1462
-HRSEF,"Hirose Electric Co.,Ltd.",4317603328,1463
-PYYIF,PROMOTORA Y OPERADORA DE INFRST,4291127552,1464
-MZDAY,Mazda Motor Corporation,4265358848,1465
-PHI,PLDT Inc.,4256299008,1466
-CCOJF,Coca-Cola Bottlers Japan Holdings Inc.,4255789056,1467
-HPHTF,Hamamatsu Photonics K.K.,4242403584,1468
-ABZPY,Aboitiz Power Corporation,4239924480,1469
-YATRF,"Yamato Holdings Co., Ltd.",4226998784,1470
-UNLRY,PT Unilever Indonesia Tbk,4199741184,1471
-SNPHF,"Santen Pharmaceutical Co., Ltd.",4198019584,1472
-TISNF,TISI Inc.,4196567296,1473
-MDIKY,MODEC,4194893312,1474
-OPPPF,"Open House Group Co., Ltd.",4180525568,1475
-HPHTY,Hamamatsu Photonics K.K.,4176201728,1476
-NICFF,Nichias Corporation,4169751040,1477
-TOIPF,Thai Oil Public Company Limited,4169320448,1478
-TMIUF,"Tokyo Seimitsu Co., Ltd.",4140148992,1479
-PPOKF,PT Charoen Pokphand Indonesia Tbk,4099500032,1480
-DEXCF,Dexerials,4094785536,1481
-GTMEF,"Globe Telecom, Inc.",4078610432,1482
-ICHBF,"Industrias CH, S. A. B. de C. V.",4071862272,1483
-NOFCF,NOF Corporation,4013756416,1484
-ORGJF,Organo Corporation,3986669312,1485
-NCTKY,Nabtesco Corporation,3974342144,1486
-GLPJF,GLP J-REIT,3956688896,1487
-THOPF,Thai Oil Public Company Limited,3953888768,1488
-NINOY,Nikon Corporation,3953001216,1489
-ANTOF,"Iida Group Holdings Co., Ltd.",3951522560,1490
-APNHY,Aspen Pharmacare Holdings Limited,3947360768,1491
-INDOY,Indorama Ventures Public Company Limited,3947030272,1492
-TOTTF,Toyo Tire Corporation,3934589952,1493
-BBAJF,"Banco del Bajío, S.A., Institución de Banca Múltiple",3926774272,1494
-ODERF,"Odakyu Electric Railway Co., Ltd.",3923915264,1495
-YATRY,"Yamato Holdings Co., Ltd.",3910955776,1496
-SKPJY,SKY Perfect JSAT Corporation,3905059840,1497
-IIJIY,Internet Initiative Japan Inc.,3901260032,1498
-KYHHY,Kyushu Railway Company,3882766848,1499
-NEXHY,"Nippon Express Holdings, Inc.",3871878912,1500
-MIPCF,Minor International Public Company Limited,3870269696,1501
-MNILY,Minor International Public Company Limited,3869707264,1502
-APNHF,Aspen Pharmacare Holdings Limited,3861397760,1503
-GMYTF,"GMO Payment Gateway, Inc.",3854870272,1504
-SOHVF,"Sumitomo Heavy Industries, Ltd.",3827557632,1505
-ACJJF,"Acom Co., Ltd.",3822537984,1506
-SOHGF,"Alsok Co.,Ltd.",3815654912,1507
-CMPRF,"Gentera, S.A.B. de C.V.",3805966592,1508
-DAWUF,Daiwa House REIT Inv,3795115008,1509
-SOHVY,"Sumitomo Heavy Industries, Ltd.",3791779328,1510
-DNPUF,"Sumitomo Pharma Co., Ltd.",3772670464,1511
-UUICF,United Urban Investment Corporation,3769055744,1512
-MEPDF,MediPal Holdings Corporation,3756220160,1513
-MAHLY,MediPal Holdings Corporation,3745985024,1514
-KWPCF,Kewpie Corporation,3737073920,1515
-TKSNF,"Takasago Thermal Engineering Co., Ltd.",3736787968,1516
-MNRIF,Minor International Public Company Limited,3730939648,1517
-TEPCF,"Tohoku Electric Power Company, Incorporated",3730926336,1518
-GWWTF,Growthpoint Properties Limited,3726509568,1519
-USSJF,"USS Co., Ltd.",3709510912,1520
-BBAR,Banco BBVA Argentina S.A.,3708938240,1521
-MLLUY,Metallurgical Corporation of China Ltd.,3680521472,1522
-JGCCF,JGC Holdings Corporation,3670084352,1523
-AKO-A,Embotelladora Andina S.A.,3669538560,1524
-DWMNF,"Dowa Holdings Co., Ltd.",3667194368,1525
-SNPHY,"Santen Pharmaceutical Co., Ltd.",3664018688,1526
-PIFMF,PT Indofood Sukses Makmur Tbk,3599974656,1527
-SMTUF,"Sumitomo Rubber Industries, Ltd.",3592439552,1528
-QUCOF,"Quálitas Controladora, S.A.B. de C.V.",3588913408,1529
-ORXJF,ORIX JREIT Inc.,3588000000,1530
-FJTNY,"Fuji Media Holdings, Inc.",3575390208,1531
-HSYDF,Harmonic Drive Systems Inc.,3573671424,1532
-TDBOF,Toyota Boshoku Corporation,3573193984,1533
-AYAAF,"Ayala Land, Inc.",3572940544,1534
-AYAAY,"Ayala Land, Inc.",3572940544,1535
-AVVZF,Avanza Bank Holding AB (publ),3570094080,1536
-MIESF,"MITSUI E&S Co., Ltd.",3563914752,1537
-NPSKF,NSK Ltd.,3547577088,1538
-PHBBF,"Pharmaron Beijing Co., Ltd.",3545957120,1539
-YMZBY,"Yamazaki Baking Co., Ltd.",3544287744,1540
-JPSWY,"The Japan Steel Works, Ltd.",3533317120,1541
-SGIPF,"Sugi Holdings Co.,Ltd.",3533181184,1542
-SGAMY,Sega Sammy Holdings Inc.,3530898688,1543
-PNDFF,PT Indofood CBP Sukses Makmur Tbk,3520730112,1544
-JPTXF,"Japan Petroleum Exploration Co., Ltd.",3519991808,1545
-SMDPY,"Sumitomo Pharma Co., Ltd.",3516972288,1546
-TAYIF,"Taiyo Holdings Co., Ltd.",3485185536,1547
-YAMCY,Yamaha Corporation,3479584768,1548
-DSHHF,"Daishi Hokuetsu Financial Group, Inc.",3472157696,1549
-PIFMY,PT Indofood Sukses Makmur Tbk,3468268544,1550
-JSGCF,LIXIL Corporation,3451116544,1551
-KURRY,"Kuraray Co., Ltd.",3436796416,1552
-JSGRY,LIXIL Corporation,3422357248,1553
-PNOCF,"Penta-Ocean Construction Co., Ltd.",3421676288,1554
-TOEAF,"Toei Animation Co.,Ltd.",3406918656,1555
-MAURY,"Marui Group Co., Ltd.",3403538176,1556
-JTTRY,"Japan Airport Terminal Co., Ltd.",3401079552,1557
-CSASF,"Credit Saison Co., Ltd.",3390968320,1558
-RPHCF,"Rohto Pharmaceutical Co.,Ltd.",3389464320,1559
-MAWAF,"Maruwa Co.,Ltd.",3381117952,1560
-BCCLF,"Becle, S.A.B. de C.V.",3368523264,1561
-NCTKF,Nabtesco Corporation,3347961600,1562
-MMTOF,Mitsubishi Motors Corporation,3345881600,1563
-GTMEY,"Globe Telecom, Inc.",3343881984,1564
-TKHCF,"Koei Tecmo Holdings Co., Ltd.",3325662464,1565
-KURRF,"Kuraray Co., Ltd.",3314268672,1566
-NPSKY,NSK Ltd.,3312703232,1567
-SDGCF,"Sundrug Co.,Ltd.",3296578048,1568
-JTEKY,JTEKT Corporation,3284123392,1569
-IIJIF,Internet Initiative Japan Inc.,3282378240,1570
-WKISF,"Workman Co.,Ltd.",3265341184,1571
-CHCLY,"Citizen Watch Co., Ltd.",3264637952,1572
-KOZAY,Turk Altin Isletmeleri A.S.,3234524928,1573
-LPL,"LG Display Co., Ltd.",3230000128,1574
-MRSKF,"DMG Mori Co., Ltd.",3224139008,1575
-ABOIF,"Aboitiz Equity Ventures, Inc.",3216739840,1576
-NSFMF,Nisshin Seifun Group Inc.,3215564800,1577
-SBKLF,Sumitomo Bakelite Company Limited,3209361664,1578
-JGCCY,JGC Holdings Corporation,3209358848,1579
-RINIF,Rinnai Corporation,3200517888,1580
-TEPCY,"Tohoku Electric Power Company, Incorporated",3190067200,1581
-AWTRF,Air Water Inc.,3188536320,1582
-LIOPF,Lion Corporation,3184432896,1583
-TBURF,"Tobu Railway Co., Ltd.",3181295104,1584
-NBCLF,"Nitto Boseki Co., Ltd.",3181006336,1585
-GYUAF,GS Yuasa Corporation,3160059392,1586
-KGTHY,Krungthai Card Public Company Limited,3150228480,1587
-MIMTF,Mitsubishi Materials Corporation,3149326336,1588
-CLCGY,Clicks Group Limited,3139448832,1589
-ODMUF,Old Mutual Limited,3109104640,1590
-NHFOF,NH Foods Ltd.,3106399744,1591
-MJPNF,"Micronics Japan Co., Ltd.",3085632512,1592
-KSANF,"Kansai Paint Co., Ltd.",3080799488,1593
-PGCPF,PTT Global Chemical Public Company Limited,3066017536,1594
-AITUY,Anritsu Corporation,3063204608,1595
-ULVAF,"ULVAC, Inc.",3048775168,1596
-CSIOY,"Casio Computer Co.,Ltd.",3046874368,1597
-NIPOF,Japan Hotel REIT Investment Corporation,3034245888,1598
-NCHEY,Nichirei Corporation,3032469504,1599
-KELRF,"Keisei Electric Railway Co., Ltd.",3023640064,1600
-YMTKF,"Yamato Kogyo Co., Ltd.",3012118784,1601
-NGSCF,Nagase &,3003278848,1602
-ADZZF,Advance Residence Investment Corporation,2994917120,1603
-AITUF,Anritsu Corporation,2975811840,1604
-CZGZF,Colt CZ Group SE,2941444608,1605
-MILGF,Mitsubishi Logistics Corporation,2939221504,1606
-CSMYF,COSMOS Pharmaceutical Corporation,2937274368,1607
-OPMXF,"Operadora de Sites Mexicanos, S.A.B. de C.V.",2913691136,1608
-KDKWF,Kadokawa Corporation,2913002496,1609
-TKKYY,Türkiye Sise Ve Cam Fabrikalari A.S.,2890693376,1610
-CMSYF,COMSYS Holdings Corporation,2886756096,1611
-MIESY,"MITSUI E&S Co., Ltd.",2869095424,1612
-IWTNF,Iwatani Corporation,2865691648,1613
-JGSMY,"JG Summit Holdings, Inc.",2846692352,1614
-KPTCY,"Kansai Paint Co., Ltd.",2823772928,1615
-CCKRF,Clicks,2823749888,1616
-KYDKF,Kraftia Corporation,2822319616,1617
-TDBOY,Toyota Boshoku Corporation,2809870336,1618
-CBCFF,"Calbee, Inc.",2796520704,1619
-HACBF,"Hachijuni Nagano Bank, Ltd.",2792158976,1620
-FJTNF,"Fuji Media Holdings, Inc.",2791938304,1621
-JBFCY,Jollibee Foods Corporation,2787742976,1622
-NTULF,BIPROGY Inc.,2780603648,1623
-INRHF,INFRONEER,2779627008,1624
-MAURF,"Marui Group Co., Ltd.",2775371264,1625
-MMTHF,Momentum Group Limited,2769587968,1626
-JBFCF,Jollibee Foods Corporation,2768130816,1627
-NPPEY,Nippon Electric Glass,2766085120,1628
-STAEY,"Stanley Electric Co., Ltd.",2757670656,1629
-KHEXF,Keikyu Corporation,2752748032,1630
-TORLF,TORIDOLL Holdings Corporation,2752698880,1631
-JAIRF,"Japan Airport Terminal Co., Ltd.",2749453568,1632
-SGAMF,Sega Sammy Holdings Inc.,2739490304,1633
-APELY,"Alps Alpine Co., Ltd.",2727702016,1634
-THYCY,Taiheiyo Cement Corporation,2719566080,1635
-EPWDF,"Electric Power Development Co., Ltd.",2708767488,1636
-SMGBF,San Miguel Corporation,2700107264,1637
-HKUOY,Hakuhodo DY Holdings Inc,2684762624,1638
-NCHEF,Nichirei Corporation,2656543488,1639
-THYCF,Taiheiyo Cement Corporation,2638937856,1640
-NISUY,Nissui Corporation,2632399616,1641
-AOZOY,"Aozora Bank, Ltd.",2629240320,1642
-MMTOY,Mitsubishi Motors Corporation,2628859136,1643
-MRCIF,"Mercari, Inc.",2623699712,1644
-DICCF,DIC Corporation,2622370816,1645
-CSIOF,"Casio Computer Co.,Ltd.",2599397376,1646
-FRRZF,Ferrotec Corporation,2579273984,1647
-SEOTF,"Seino Holdings Co., Ltd.",2571586304,1648
-BLJZY,Berli Jucker Public Company Limited,2564989952,1649
-IFMNF,Dentsu Soken Inc.,2558792960,1650
-SRGBF,Suruga Bank Ltd.,2551192576,1651
-ABTZY,"Aboitiz Equity Ventures, Inc.",2548737536,1652
-KBYPF,"Kobayashi Pharmaceutical Co., Ltd.",2531235072,1653
-TOMYF,"TOMY Company, Ltd.",2530639104,1654
-TKOBF,"TBS Holdings,Inc.",2524327424,1655
-TKCBY,"Tokai Carbon Co., Ltd.",2523643136,1656
-ZNKKY,"ZENKOKU HOSHO Co.,Ltd.",2521715200,1657
-HKUOF,Hakuhodo DY Holdings Inc,2520404736,1658
-USNNF,"U-NEXT HOLDINGS Co.,Ltd.",2516229888,1659
-TOMYY,"TOMY Company, Ltd.",2511682816,1660
-STAEF,"Stanley Electric Co., Ltd.",2505910272,1661
-PHPMF,Philip Morris CR a.s.,2498301184,1662
-PTTMF,PT TIMAH Tbk,2491804928,1663
-HPCRF,Home Product Center Public Company Limited,2478402816,1664
-SKUEF,"Sekisui House Reit, Inc.",2477106688,1665
-PKCOF,"PARK24 Co., Ltd.",2475601920,1666
-NIFCY,Nifco Inc.,2464105728,1667
-KTERF,Keio Corporation,2456432896,1668
-NSHBY,Nisshinbo Holdings Inc.,2448410368,1669
-TSCFY,TISCO Financial Group Public Company Limited,2441999360,1670
-SHCAY,Sharp Corporation,2441393152,1671
-GMOYF,"GMO internet group, Inc.",2438266112,1672
-SKLYF,"Skylark Holdings Co., Ltd.",2433111296,1673
-AEBZY,Anadolu Efes Biracilik ve Malt Sanayii Anonim Sirketi,2427631616,1674
-MBUMY,"Mabuchi Motor Co., Ltd.",2424554240,1675
-SOHGY,"Alsok Co.,Ltd.",2418201600,1676
-DENKF,Denka Company Limited,2413592064,1677
-NHNKF,Nihon Kohden Corporation,2410785280,1678
-KSTUF,Kanematsu Corporation,2401307392,1679
-SOCNF,Socionext,2398831872,1680
-KGMEF,"Kagome Co., Ltd.",2395826432,1681
-RGPCF,Ratch Group Public Company Limited,2395115520,1682
-CEHCF,"Cosmo Energy Holdings Co., Ltd.",2381842688,1683
-ALFRY,Alfresa Holdings Corporation,2376806144,1684
-SHCAF,Sharp Corporation,2367372032,1685
-KUKYF,"Kokuyo Co., Ltd.",2353694976,1686
-CGKEF,"The Chugoku Electric Power Co., Inc.",2340842240,1687
-JPRRF,Japan Prime Realty Investment Corporation,2338880000,1688
-DAIDF,Daido Steel,2338289408,1689
-CLBEY,"Calbee, Inc.",2334487040,1690
-TAPGF,PT Triputra Agro Persada Tbk,2314806016,1691
-THOGF,"Toho Gas Co., Ltd.",2305005568,1692
-DKCLF,Daiei Kankyo,2303145728,1693
-RNW,ReNew Energy Global Plc,2292092928,1694
-NPEGF,"Nippon Electric Glass Co., Ltd.",2291562240,1695
-MBUMF,"Mabuchi Motor Co., Ltd.",2280258560,1696
-MIURF,"Miura Co., Ltd.",2271002624,1697
-LIOPY,Lion Corporation,2268666368,1698
-PKCOY,"PARK24 Co., Ltd.",2253651456,1699
-PTXKY,PT XLSMART Telecom Sejahtera Tbk,2247683072,1700
-TKUGF,"Takeuchi Mfg. Co., Ltd.",2242204160,1701
-NISUF,Nissui Corporation,2192655360,1702
-TGOSY,"Toyoda Gosei Co., Ltd.",2187927552,1703
-CEPU,Central Puerto S.A.,2168801024,1704
-RKUSF,Rakus,2167149056,1705
-CCU,Compañía Cervecerías Unidas S.A.,2158724608,1706
-MNDDF,Monde Nissin Corporation,2156233216,1707
-TKHIF,Takara Holdings Inc.,2144176768,1708
-SKXJF,"Sankyo Co., Ltd.",2139073664,1709
-MWTCF,"Manila Water Company, Inc.",2134642304,1710
-UVRBF,Universal Robina Corporation,2133001984,1711
-GMYYF,"MONETA Money Bank, a.s.",2120650112,1712
-OSGCF,OSG Corporation,2114286080,1713
-TVAHF,TV Asahi Holdings Corporation,2111326080,1714
-MKMLF,"Makino Milling Machine Co., Ltd.",2109029120,1715
-TGOSF,"Toyoda Gosei Co., Ltd.",2104678656,1716
-RNDOF,Round One Corporation,2099064576,1717
-KHNRF,"Keihan Holdings Co., Ltd.",2093686144,1718
-DKSSF,"Daiichikosho Co., Ltd.",2093382144,1719
-UNLRF,PT Unilever Indonesia Tbk,2088967808,1720
-THDDY,TV Asahi Holdings Corporation,2082984960,1721
-KSRYY,KOSE Holdings Corporation,2082216192,1722
-SEBNF,"Seven Bank, Ltd.",2079012864,1723
-KYWAF,"EXEO Group, Inc.",2075857792,1724
-UVRBY,Universal Robina Corporation,2069011968,1725
-GWNCF,Goldwin Inc.,2062481408,1726
-HNWAF,"Hanwa Co., Ltd.",2057776768,1727
-SZUKF,"Suzuken Co., Ltd.",2049426688,1728
-HROGF,"Hirogin Holdings, Inc.",2026702336,1729
-AHHLF,"ARE Holdings, Inc.",2023563776,1730
-GDNGY,PT Gudang Garam Tbk,2006184064,1731
-HKPMF,Hokuetsu Corporation,2000904832,1732
-IBADF,"Inaba Denki Sangyo Co.,Ltd.",1999958784,1733
-JELLF,JEOL Ltd.,1986036480,1734
-TODCF,Toda,1983468160,1735
-CSGYY,"Cosmo Energy Holdings Co., Ltd.",1976135552,1736
-TKCBF,"Tokai Carbon Co., Ltd.",1968527104,1737
-PBATF,PT Bukit Asam (Persero) Tbk,1957440640,1738
-PTKFY,PT Kalbe Farma Tbk.,1954750848,1739
-NPKYY,"Nippon Kayaku Co., Ltd.",1951973888,1740
-APELF,"Alps Alpine Co., Ltd.",1951146112,1741
-UHOIF,Ushio Inc.,1942439424,1742
-AOZOF,"Aozora Bank, Ltd.",1940102656,1743
-SNKCF,SENKO GROUP HLDGS CO LTD.,1900201216,1744
-NSHKF,"Nippon Shokubai Co., Ltd.",1894243200,1745
-KOSCF,KOSE Holdings Corporation,1893852288,1746
-KNCAY,"Konica Minolta, Inc.",1890252544,1747
-EZKGF,"Ezaki Glico Co., Ltd.",1889289216,1748
-EYGPF,Electricity Generating Public Company Limited,1886064128,1749
-GIVPY,Grupo de Inversiones Suramericana S.A.,1884308992,1750
-JPEVF,"Japan Elevator Service Holdings Co.,Ltd",1877021184,1751
-VISIF,Visional,1850093568,1752
-NPNGY,"Nippon Gas Co., Ltd.",1846095872,1753
-OKIEY,"Oki Electric Industry Co., Ltd.",1837102848,1754
-TINLF,Teijin Limited,1834630272,1755
-MWTCY,"Manila Water Company, Inc.",1829862784,1756
-PTKFF,PT Kalbe Farma Tbk.,1823529088,1757
-KANKF,Kaneka Corporation,1820813312,1758
-GTOFF,PT GoTo Gojek Tokopedia Tbk,1812357120,1759
-NXAGF,NEXTAGE CO LTD,1811640064,1760
-MTPLF,Metaplanet Inc.,1806572288,1761
-TINLY,Teijin Limited,1803763712,1762
-RELOF,"Relo Group, Inc.",1793266560,1763
-NNKEF,"NANKAI Co., Ltd.",1785294720,1764
-PGCMF,"Puregold Price Club, Inc.",1779529088,1765
-IZMIF,"Izumi Co., Ltd.",1763615232,1766
-TBNGY,PT Bukit Asam (Persero) Tbk,1760039680,1767
-PAKTY,PT Map Aktif Adiperkasa TBK,1752995968,1768
-KNCAF,"Konica Minolta, Inc.",1749410176,1769
-SVNBY,"Seven Bank, Ltd.",1746137216,1770
-CGKEY,"The Chugoku Electric Power Co., Inc.",1743010432,1771
-HOFJF,House Foods Group Inc.,1741619968,1772
-AMANF,Amano Corporation,1739829888,1773
-SBDHF,"SHO-BOND Holdings Co.,Ltd",1737815680,1774
-TSMRF,Tsumura & Co.,1729454592,1775
-PRGLY,"Puregold Price Club, Inc.",1719351936,1776
-AEORF,AEON REIT Inv,1710906624,1777
-PORBF,Pola Orbis Holdings Inc.,1703871872,1778
-PMDKY,PT. Mitra Adiperkasa Tbk,1695681664,1779
-MIZUF,Mizuno Corporation,1689679488,1780
-EYUUF,Electricity Generating Public C,1688899712,1781
-BYMAF,Bolsas y Mercados Argentinos,1675543808,1782
-NMRSF,NAMURA SHIPBUILDING CO,1660741632,1783
-NPPNY,"Nippon Shinyaku Co., Ltd.",1647278720,1784
-TKSHF,"Takashimaya Company, Limited",1626230016,1785
-SFTTF,SHIFT Inc.,1625477248,1786
-MTSEF,"Matsui Securities Co., Ltd.",1625423232,1787
-NPRRF,NIPRO CORP,1624433920,1788
-KBKIF,"Kotobuki Spirits Co., Ltd.",1621546880,1789
-MCHIF,Maruichi Steel Tube Ltd.,1618519296,1790
-KNFSF,Kiatnakin Phatra Bank Public Company Limited,1613675136,1791
-JPDYY,Japan Display Inc.,1608145536,1792
-OKCTF,Okinawa Cellular Telephone Company,1604514176,1793
-NPNKF,"Nippon Shinyaku Co., Ltd.",1600098048,1794
-TSKMF,Tsubakimoto Chain Co.,1567754496,1795
-NHNKY,Nihon Kohden Corporation,1566130560,1796
-CRPFY,Corporación Financiera Colombiana S.A.,1553931136,1797
-SHHPF,"Ship Healthcare Holdings, Inc.",1547062528,1798
-KMGGF,"Kumagai Gumi Co.,Ltd.",1546249600,1799
-GMYOY,"GMO internet group, Inc.",1535132416,1800
-JRHIF,Daiwa Securities Living Investment Corporation,1533127424,1801
-MAUSY,"Matsui Securities Co., Ltd.",1522385280,1802
-PGENY,Pigeon Corporation,1507524992,1803
-AIKCF,Aica Kogyo Company,1499000448,1804
-UBEOF,UBE Corporation,1484864256,1805
-OSOPF,Osotspa Public Company Limited,1484707968,1806
-MNYFF,MONEY FORWARD INC,1484244480,1807
-MRUHF,Umios Corporation,1481596288,1808
-MHSMF,"Musashi Seimitsu Industry Co., Ltd.",1481223680,1809
-SBCLY,Sumitomo Bakelite Company,1475709696,1810
-TTCAF,"TS TECH Co., Ltd.",1470232960,1811
-NKNSF,Nakanishi,1464197504,1812
-SKURF,SAKURA INTERNET INC,1454096000,1813
-PITPF,PT Indocement Tunggal Prakarsa Tbk,1451344000,1814
-DMCHY,"DMCI Holdings, Inc.",1447244160,1815
-SMSSY,"SMS Co., Ltd.",1428675456,1816
-RBLAF,Robinsons Land Corporation,1427116160,1817
-CUGKF,Chugoku Marine Paints,1416666240,1818
-BUMTF,Bumitama Agri,1403095808,1819
-RYGYF,Reysas Gayrimenkul Yatirim Ortakligi A.S.,1400000000,1820
-DNACF,"DeNA Co., Ltd.",1399932544,1821
-NCKAF,Nickel Asia Corporation,1393112448,1822
-NTTBF,NTN Corporation,1385199616,1823
-OKUMF,Okuma Corporation,1379709952,1824
-WACLY,Wacoal Holdings Corp.,1376130432,1825
-NHMBF,Nohmi Bosai,1375626624,1826
-MGAWF,Megaworld Corporation,1362055040,1827
-SUGBY,Suruga Bank Ltd.,1360976256,1828
-MEITF,MEITEC Group Holdings Inc.,1360382336,1829
-YONXF,"YONEX Co., Ltd.",1360269696,1830
-ACKAY,Arçelik Anonim Sirketi,1354305792,1831
-SMNUF,PT Sarana Menara Nusantara Tbk.,1352638720,1832
-NHMAF,Nihon M&A Center Holdings Inc.,1349142272,1833
-RBLAY,Robinsons Land Corporation,1345429504,1834
-MNFYY,Money Forward,1331160960,1835
-SWGHF,"Sawai Group Holdings Co., Ltd.",1330394496,1836
-LEOPF,Leopalace21,1328001024,1837
-FNOEF,"Furuno Electric Co., Ltd.",1327254528,1838
-NKOKF,"Noritsu Koki Co., Ltd.",1319314432,1839
-PICJF,NTT UD REIT Investment Corporation,1310294016,1840
-OKAMF,Okamura Corporation,1310282112,1841
-GLYYY,Glory Ltd.,1303913216,1842
-AINPF,Ain,1295626112,1843
-HIZOF,Kanadevia Corporation,1295375360,1844
-JNNDF,Japan Display Inc.,1292488320,1845
-SAOGF,"Seria Co., Ltd.",1291660416,1846
-PKCPY,PT AKR Corporindo Tbk,1290945024,1847
-TOWCF,TOWA Corporation,1287856000,1848
-LOMA,Loma Negra Compañía Industrial Argentina Sociedad Anónima,1287163776,1849
-SNBIF,SanBio Company Limited,1283780224,1850
-TWAPF,"Towa Pharmaceutical Co., Ltd.",1278940032,1851
-IRS,IRSA Inversiones y Representaciones Sociedad Anónima,1266635520,1852
-TKURF,"Tokyu REIT, Inc.",1263241472,1853
-MNICF,"Mani, Inc.",1262803328,1854
-HOKRF,Hokuriku Electric Power Company,1259698560,1855
-PTJSY,PT Jasa Marga (Persero) Tbk,1251982848,1856
-DTSOF,DTS Corporation,1251979264,1857
-NPKYF,"Nippon Kayaku Co., Ltd.",1251873792,1858
-SNAAF,"SAN-A CO.,LTD.",1243656192,1859
-PIGEF,Pigeon Corporation,1234734720,1860
-HAZAF,Hazama Ando Corporation,1218981504,1861
-DAIPF,DAIHEN Corporation,1216931200,1862
-SGSUF,Sangetsu Corporation,1215224576,1863
-OKIEF,"Oki Electric Industry Co., Ltd.",1214441472,1864
-EDN,Empresa Distribuidora y Comercializadora Norte Sociedad Anónima,1209335808,1865
-TMRNF,"Tamron Co.,Ltd.",1206112128,1866
-ALGGY,"Alliance Global Group, Inc.",1201319552,1867
-POGHF,Pilot Corporation,1199215104,1868
-MGAWY,Megaworld Corporation,1186933632,1869
-AKEJF,"ARIAKE JAPAN Co., Ltd.",1181571456,1870
-JVCKF,JVCKENWOOD Corporation,1171580032,1871
-SNCPF,Sun Corporation,1169014912,1872
-HKEPF,"Hokkaido Electric Power Company, Incorporated",1168447104,1873
-ACOLF,"and ST HD Co.,Ltd.",1160585344,1874
-CUYRF,"C.Uyemura & Co.,Ltd.",1158393728,1875
-FKDSF,"Fukuda Denshi Co., Ltd.",1149525888,1876
-MRHLF,MIRAIT ONE Corporation,1144666496,1877
-SERNF,"Seiren Co.,Ltd.",1143367680,1878
-NSUKF,NS United Kaiun Kaisha,1141747968,1879
-SIFY,Sify Technologies Limited,1138672128,1880
-HTOCF,H2O Retailing Corporation,1136041472,1881
-TOAGF,"Toagosei Co., Ltd.",1135710976,1882
-HYKUF,"The Hyakugo Bank, Ltd.",1134531584,1883
-NNRDF,Nishi-Nippon Railroad,1132704256,1884
-ASKLF,ASKUL Corporation,1122750976,1885
-NTTAF,Nitta Corporation,1112724736,1886
-NSOMF,"The Nisshin OilliO Group,Ltd.",1106185856,1887
-MITCF,Mitani Corporation,1101715072,1888
-YNOYF,"Yoshinoya Holdings Co., Ltd.",1100353280,1889
-DSKNF,"Duskin Co., Ltd.",1100230144,1890
-SNSNF,"Sansan, Inc.",1099112064,1891
-BKALF,PT Bank Aladin Syariah Tbk,1098999040,1892
-NIPKF,"NIKKON Holdings Co.,Ltd.",1097171072,1893
-MRCHF,"H.U. Group Holdings, Inc.",1080688640,1894
-KNOIF,"Konoike Transport Co.,Ltd.",1073143168,1895
-JVCZY,JVCKENWOOD Corporation,1069919936,1896
-KSPHF,"Kissei Pharmaceutical Co., Ltd.",1068216640,1897
-SKSDF,Sakata Seed Corporation,1067057344,1898
-CHYCY,Chiyoda Corporation,1057385856,1899
-BNXYF,Open Up Group Inc.,1051641216,1900
-LNTEF,LINTEC Corporation,1047702912,1901
-SANJF,"Sanken Electric Co., Ltd.",1041317632,1902
-PBIIF,BFI FINANCE INDONESIA TBK,1032456832,1903
-TSHTY,Toshiba Tec Corporation,1027959488,1904
-MHTCF,MITSUI HIGH TEC INC,1027051584,1905
-FREKF,freee K.K.,1022172736,1906
-DSKIF,"Daiseki Co.,Ltd.",1021840192,1907
-GNIIF,GNI Group Ltd.,1019958528,1908
-MNXBF,"Monex Group, Inc.",1015509248,1909
-RSTCF,"RS Technologies Co., Ltd.",1015179136,1910
-NHPCF,Nihon Parkerizing,1014579328,1911
-YRCCF,Yurtec Corporation,1012443520,1912
-CHYCF,Chiyoda Corporation,1005553216,1913
-MTWTF,"METAWATER Co., Ltd.",1000905856,1914
-IUSDF,AS ONE Corporation,997746496,1915
-MTGSF,MetroGAS,996788160,1916
-ANYCF,ANYCOLOR INC,989190272,1917
-KKPCF,"Kaken Pharmaceutical Co., Ltd.",984576192,1918
-HOSHF,Hoshino Resorts REIT,983627008,1919
-HISJF,"H.I.S. Co., Ltd.",978672512,1920
-LIFCF,Life Corporation,952991936,1921
-KMRIF,KOMERI CO LTD,952770624,1922
-JPAVF,"Japan Aviation Electronics Industry, Limited",950738304,1923
-TSHTF,Toshiba Tec,950597632,1924
-BMLKF,"BML, Inc.",944849152,1925
-ICHIF,Ichigo Inc.,940746688,1926
-PHCCF,PHC Holdings Corporation,937479040,1927
-LIFNF,Lifenet Insurance Company,932751104,1928
-TOKSF,"Tokyo Steel Manufacturing Co., Ltd.",928273088,1929
-PTPKF,PT Pakuwon Jati Tbk,919848320,1930
-BRDLF,"Broadleaf Co., Ltd.",919615872,1931
-NSNHF,"Nissan Shatai Co., Ltd.",904146624,1932
-CVHSY,Cablevisión Holding S.A.,903212864,1933
-HWARF,"Heiwa Real Estate Co., Ltd.",902850048,1934
-JNDOF,JINS HOLDINGS Inc.,897164160,1935
-SKKAF,"Sk Kaken Co.,Ltd.",895338368,1936
-TOETF,Tosei,887605760,1937
-PITPY,PT Indocement Tunggal Prakarsa Tbk,885216896,1938
-SHMWF,"ShinMaywa Industries, Ltd.",879706496,1939
-KMDHF,KOMEDA HOLDINGS CO LTD,873340864,1940
-TYOBY,"Toyobo Co., Ltd.",864798720,1941
-FUJSF,"Fuji Seal International, Inc.",861503360,1942
-FUJXF,Fujimi Incorporated,861267584,1943
-MECGF,MEC Company Ltd.,861171584,1944
-PKBAF,PT Bakrie & Brothers Tbk,859085760,1945
-HOIEF,Hosiden Corporation,858125504,1946
-SUPV,Grupo Supervielle S.A.,855299328,1947
-KUCPF,"Kura Sushi, Inc.",851933888,1948
-AICHF,Aichi Steel,835208384,1949
-KTITF,"KATITAS CO., Ltd.",834833664,1950
-GUNGF,"GungHo Online Entertainment, Inc.",827396800,1951
-YMZNF,Yamazen Corporation,823272640,1952
-NIJPF,"Nippon Paper Industries Co., Ltd.",818690368,1953
-ELCMF,"Elecom Co., Ltd.",817466944,1954
-RZNXF,RAIZNEXT,811743872,1955
-AIHZF,Ai Holdings Corporation,805490560,1956
-ACPIF,Acen Corporation,799028672,1957
-KURCF,Kureha Corporation,789728512,1958
-SETUF,"Shin-Etsu Polymer Co.,Ltd.",784428032,1959
-CRESY,"Cresud Sociedad Anónima, Comercial, Inmobiliaria, Financiera y Agropecuaria",780886464,1960
-TKINF,Takasago,779968384,1961
-PPTDF,PeptiDream Inc.,769926272,1962
-AAGRY,PT Astra Agro Lestari Tbk,769875328,1963
-GBRSF,Global One Real Estate Inv,769422272,1964
-DPRTF,DIP Corporation,766999680,1965
-YGWAF,Yokogawa Bridge Holdings Corp.,747772800,1966
-WACLF,Wacoal Holdings Corp.,741556224,1967
-MNNLF,MENICON CO LTD,739463424,1968
-PXMFF,Philex Mining Corporation,735694784,1969
-FKWAF,"Furukawa Co.,Ltd",734141312,1970
-MSBPF,"Mitsubishi Pencil Co., Ltd.",733135424,1971
-YLLWF,Yellow Hat Ltd.,718491200,1972
-WACMF,"Wacom Co., Ltd.",703365824,1973
-SMSZF,"SMS Co., Ltd.",702608640,1974
-WACMY,"Wacom Co., Ltd.",696993344,1975
-FIELF,Tsuburaya Fields Holdings Inc.,695359808,1976
-AUCTF,Aucnet Inc.,693105664,1977
-PTABF,PT Astra Agro Lestari Tbk,692887872,1978
-RLDCF,Roland,692618112,1979
-TAKMF,"Takamatsu Construction Group Co., Ltd.",680700992,1980
-NPRKF,NPR-Riken,675314624,1981
-DTNHF,"DOUTOR NICHIRES Holdings Co., Ltd.",672357824,1982
-NMUCF,"NOMURA Co., Ltd.",669556736,1983
-MKOEF,MEIKO ELECTRONICS CO,668617856,1984
-TKUMF,"Takuma Co., Ltd.",665942464,1985
-YDWAF,"Yodoko, Ltd.",660071424,1986
-DLGEF,"Digital Garage, Inc.",658481536,1987
-ARGPF,ARGO GRAPHICS,655518144,1988
-KNMOF,"Kanamoto Co.,Ltd.",621151488,1989
-ENPSF,Enplas Corporation,617498176,1990
-TSHMF,"Shibaura Machine Co.,Ltd.",617423488,1991
-TKCCF,Toukei Computer,609227392,1992
-TMTMF,TechMatrix Corporation,599160576,1993
-OSTTF,"OSAKA Titanium technologies Co.,Ltd.",597973888,1994
-COVCF,COVER Corporation,593063936,1995
-KYRNF,"KYORIN Pharmaceutical Co., Ltd.",592271360,1996
-CGCLF,"Central Glass Co., Ltd.",591555840,1997
-ZOJIF,ZOJIRUSHI CORPORATION,591141376,1998
-CHBKF,The Chiba Kogyo Bank,589064384,1999
-PPLFF,PT Perusahaan Perkebunan London Sumatra Indonesia Tbk,585698496,2000
+NVDA,NVIDIA Corporation,5309727768576,1
+AAPL,Apple Inc.,4538790051840,2
+GOOGL,Alphabet Inc.,4432495378432,3
+GOOG,Alphabet Inc.,4404366802944,4
+MSFT,Microsoft Corporation,3619656564736,5
+AMZN,"Amazon.com, Inc.",2940888154112,6
+AVGO,Broadcom Inc.,1990000640000,7
+META,"Meta Platforms, Inc.",1499895300096,8
+SPCX,Space Exploration Technologies Corp.,1426369150976,9
+TSLA,"Tesla, Inc.",1269976924160,10
+BRK-B,Berkshire Hathaway Inc.,1119083560960,11
+BRK-A,Berkshire Hathaway Inc.,1118251384832,12
+LLY,Eli Lilly and Company,1043212533760,13
+MU,"Micron Technology, Inc.",1008762683392,14
+JPM,JPMorgan Chase & Co.,954931740672,15
+WMT,Walmart Inc.,894010589184,16
+AMD,"Advanced Micro Devices, Inc.",786030985216,17
+XOM,ExxonMobil Holdings Corporation,628498366464,18
+JNJ,Johnson & Johnson,620765773824,19
+INTC,Intel Corporation,509746610176,20
+MA,Mastercard Incorporated,499746111488,21
+CSCO,"Cisco Systems, Inc.",478884298752,22
+BAC,Bank of America Corporation,442291355648,23
+ABBV,AbbVie Inc.,435064274944,24
+AMAT,"Applied Materials, Inc.",424164884480,25
+COST,Costco Wholesale Corporation,417752612864,26
+ORCL,Oracle Corporation,415911215104,27
+CAT,Caterpillar Inc.,401212473344,28
+GE,GE Aerospace,395539578880,29
+LRCX,Lam Research Corporation,384667877376,30
+PLTR,Palantir Technologies Inc.,379806121984,31
+UNH,UnitedHealth Group Incorporated,374836592640,32
+KO,The Coca-Cola Company,373590327296,33
+CVX,Chevron Corporation,371253739520,34
+HSBC,HSBC Holdings plc,352155631616,35
+HD,"The Home Depot, Inc.",352121782272,36
+MS,Morgan Stanley,343120445440,37
+PG,The Procter & Gamble Company,341838331904,38
+MRK,"Merck & Co., Inc.",316952576000,39
+GS,"The Goldman Sachs Group, Inc.",312819974144,40
+NFLX,"Netflix, Inc.",308964294656,41
+RTX,RTX Corporation,299620106240,42
+DELL,Dell Technologies Inc.,298970087424,43
+PANW,"Palo Alto Networks, Inc.",295567917056,44
+PM,Philip Morris International Inc.,294468812800,45
+RY,Royal Bank of Canada,293593972736,46
+NVS,Novartis AG,293546426368,47
+GEV,GE Vernova Inc.,271116943360,48
+WFC,Wells Fargo & Company,269650001920,49
+TXN,Texas Instruments Incorporated,253627154432,50
+MUFG,"Mitsubishi UFJ Financial Group, Inc.",252827484160,51
+KLAC,KLA Corporation,251849867264,52
+AZN,AstraZeneca PLC,250468073472,53
+ANET,"Arista Networks, Inc.",248446713856,54
+AXP,American Express Company,235676368896,55
+C,Citigroup Inc.,230877347840,56
+LIN,Linde plc,226364309504,57
+IBM,International Business Machines Corporation,222268342272,58
+TM,Toyota Motor Corporation,220113321984,59
+AMGN,Amgen Inc.,220109225984,60
+CRWD,"CrowdStrike Holdings, Inc.",213691891712,61
+TMO,Thermo Fisher Scientific Inc.,213651079168,62
+APH,Amphenol Corporation,212369063936,63
+TD,The Toronto-Dominion Bank,200145977344,64
+SNDK,Sandisk Corporation,199995228160,65
+NVO,Novo Nordisk A/S,196856004608,66
+MCD,McDonald's Corporation,194678603776,67
+VZ,Verizon Communications Inc.,193072414720,68
+STX,Seagate Technology Holdings plc,190148820992,69
+BA,The Boeing Company,189838983168,70
+PEP,"PepsiCo, Inc.",189573480448,71
+MRVL,"Marvell Technology, Inc.",189399826432,72
+TTE,TotalEnergies SE,188024111104,73
+SCHW,The Charles Schwab Corporation,187861401600,74
+SHOP,Shopify Inc.,187173715968,75
+TMUS,"T-Mobile US, Inc.",186065633280,76
+BLK,"BlackRock, Inc.",184322736128,77
+ADI,"Analog Devices, Inc.",183967907840,78
+ABT,Abbott Laboratories,182918823936,79
+NEE,"NextEra Energy, Inc.",179206406144,80
+WDC,Western Digital Corporation,178948620288,81
+DIS,The Walt Disney Company,176707420160,82
+TJX,"The TJX Companies, Inc.",176664330240,83
+UBS,UBS Group AG,175592013824,84
+UNP,Union Pacific Corporation,175573090304,85
+ETN,Eaton Corporation plc,173678821376,86
+WELL,Welltower Inc.,170955718656,87
+BX,Blackstone Inc.,169303932928,88
+QCOM,QUALCOMM Incorporated,165406490624,89
+DE,Deere & Company,165201707008,90
+RIO,Rio Tinto Group,165080875008,91
+SCCO,Southern Copper Corporation,164363354112,92
+GILD,"Gilead Sciences, Inc.",163589242880,93
+BKNG,Booking Holdings Inc.,160415350784,94
+CRM,"Salesforce, Inc.",158050615296,95
+BBVA,"Banco Bilbao Vizcaya Argentaria, S.A.",155094761472,96
+IBKR,"Interactive Brokers Group, Inc.",150974201856,97
+PFE,Pfizer Inc.,147102646272,98
+DHR,Danaher Corporation,140358189056,99
+APP,AppLovin Corporation,140355534848,100
+COP,ConocoPhillips,140152537088,101
+UBER,"Uber Technologies, Inc.",138787143680,102
+CB,Chubb Limited,136009891840,103
+COF,Capital One Financial Corporation,135966654464,104
+GLW,Corning Incorporated,134705242112,105
+ISRG,"Intuitive Surgical, Inc.",134425927680,106
+PLD,"Prologis, Inc.",134403465216,107
+LMT,Lockheed Martin Corporation,133304729600,108
+BMY,Bristol-Myers Squibb Company,129977933824,109
+SYK,Stryker Corporation,129275625472,110
+BMO,Bank of Montreal,126733385728,111
+CVS,CVS Health Corporation,126469914624,112
+PH,Parker-Hannifin Corporation,125695524864,113
+PGR,The Progressive Corporation,123692654592,114
+LOW,"Lowe's Companies, Inc.",123321917440,115
+VRTX,Vertex Pharmaceuticals Incorporated,122807435264,116
+HDB,HDFC Bank Limited,122469924864,117
+NOW,"ServiceNow, Inc.",121189310464,118
+SPGI,S&P Global Inc.,120876843008,119
+SBUX,Starbucks Corporation,120840003584,120
+FTNT,"Fortinet, Inc.",120424423424,121
+HWM,Howmet Aerospace Inc.,116599332864,122
+ENB,Enbridge Inc.,113441398784,123
+MDT,Medtronic plc,110071078912,124
+SNOW,Snowflake Inc.,109816741888,125
+IBN,ICICI Bank Limited,109033807872,126
+BNY,The Bank of New York Mellon Cor,107705745408,127
+ADP,"Automatic Data Processing, Inc.",107441799168,128
+SO,The Southern Company,107098791936,129
+VRT,Vertiv Holdings Co,107003609088,130
+BP,BP p.l.c.,106129858560,131
+ACN,Accenture plc,104476868608,132
+EQIX,"Equinix, Inc.",104217034752,133
+NET,"Cloudflare, Inc.",103983087616,134
+GD,General Dynamics Corporation,103915601920,135
+CVNA,Carvana Co.,103391272960,136
+ADBE,Adobe Inc.,103079706624,137
+MCK,McKesson Corporation,102704103424,138
+PWR,"Quanta Services, Inc.",102683033600,139
+ING,ING Groep N.V.,102670467072,140
+PNC,"The PNC Financial Services Group, Inc.",101892628480,141
+DDOG,"Datadog, Inc.",100797251584,142
+USB,U.S. Bancorp,100021952512,143
+BN,Brookfield Corporation,99484352512,144
+SPOT,Spotify Technology S.A.,99156164608,145
+KKR,KKR & Co. Inc.,98512453632,146
+MELI,"MercadoLibre, Inc.",97468882944,147
+FCX,Freeport-McMoRan Inc.,97145995264,148
+DUK,Duke Energy Corporation,96168468480,149
+BCS,Barclays PLC,95957950464,150
+CME,CME Group Inc.,95209398272,151
+CSX,CSX Corporation,94698512384,152
+CEG,Constellation Energy Corporation,94674886656,153
+MMM,3M Company,93902741504,154
+CNQ,Canadian Natural Resources Limited,93335519232,155
+JCI,Johnson Controls International plc,93072171008,156
+CDNS,"Cadence Design Systems, Inc.",92826714112,157
+MNST,Monster Beverage Corporation,92382650368,158
+UPS,"United Parcel Service, Inc.",91545673728,159
+MRSH,"Marsh & McLennan Companies, Inc.",91371642880,160
+EMR,Emerson Electric Co.,90999439360,161
+ABNB,"Airbnb, Inc.",90503561216,162
+DASH,"DoorDash, Inc.",90311417856,163
+SHW,The Sherwin-Williams Company,89742827520,164
+CMI,Cummins Inc.,89727393792,165
+INTU,Intuit Inc.,89703718912,166
+WM,"Waste Management, Inc.",89660112896,167
+HCA,"HCA Healthcare, Inc.",88687681536,168
+CMCSA,Comcast Corporation,87828758528,169
+WMB,"The Williams Companies, Inc.",87823499264,170
+RCL,Royal Caribbean Cruises Ltd.,87569162240,171
+VLO,Valero Energy Corporation,87066386432,172
+MPC,Marathon Petroleum Corporation,86924132352,173
+ITW,Illinois Tool Works Inc.,85538963456,174
+SPG,"Simon Property Group, Inc.",85423218688,175
+ELV,"Elevance Health, Inc.",84847943680,176
+ICE,"Intercontinental Exchange, Inc.",84119347200,177
+BAM,Brookfield Asset Management Ltd.,84038868992,178
+MCO,Moody's Corporation,83816136704,179
+AEM,Agnico Eagle Mines Limited,83778068480,180
+HOOD,"Robinhood Markets, Inc.",83434840064,181
+EPD,Enterprise Products Partners L.P.,81607909376,182
+ROST,"Ross Stores, Inc.",81228185600,183
+PSX,Phillips 66,81209384960,184
+GM,General Motors Company,80640901120,185
+CTAS,Cintas Corporation,80594149376,186
+CP,Canadian Pacific Kansas City Limited,80391790592,187
+ECL,Ecolab Inc.,80341966848,188
+MDLZ,"Mondelez International, Inc.",79896887296,189
+TRV,"The Travelers Companies, Inc.",79769518080,190
+NOC,Northrop Grumman Corporation,79195873280,191
+REGN,"Regeneron Pharmaceuticals, Inc.",79129149440,192
+HON,Honeywell International Inc.,78639153152,193
+AMT,American Tower Corporation,78313914368,194
+CNI,Canadian National Railway Company,77148946432,195
+NSC,Norfolk Southern Corporation,76757663744,196
+SNPS,"Synopsys, Inc.",76748742656,197
+E,Eni S.p.A.,76537815040,198
+AON,Aon plc,76358795264,199
+ORLY,"O'Reilly Automotive, Inc.",76262539264,200
+APO,"Apollo Global Management, Inc.",74797383680,201
+CL,Colgate-Palmolive Company,74360274944,202
+SU,Suncor Energy Inc.,74174414848,203
+SLB,SLB N.V.,74073587712,204
+MFC,Manulife Financial Corporation,74039230464,205
+FDX,FedEx Corporation,73510502400,206
+DLR,"Digital Realty Trust, Inc.",73357844480,207
+HLT,Hilton Worldwide Holdings Inc.,73047064576,208
+MSI,"Motorola Solutions, Inc.",72729305088,209
+URI,"United Rentals, Inc.",72328265728,210
+RACE,Ferrari N.V.,71501127680,211
+EOG,"EOG Resources, Inc.",71494729728,212
+DB,Deutsche Bank Aktiengesellschaft,71477166080,213
+CI,The Cigna Group,71477051392,214
+HPE,Hewlett Packard Enterprise Company,70474113024,215
+PCAR,PACCAR Inc,70185500672,216
+TDG,TransDigm Group Incorporated,70180421632,217
+NU,Nu Holdings Ltd.,69945409536,218
+KMI,"Kinder Morgan, Inc.",69298085888,219
+BSX,Boston Scientific Corporation,69186224128,220
+BE,Bloom Energy Corporation,69016600576,221
+B,Barrick Mining Corporation,68945051648,222
+AEP,"American Electric Power Company, Inc.",68849934336,223
+ALL,The Allstate Corporation,68111003648,224
+TGT,Target Corporation,67084025856,225
+CRH,CRH plc,66528448512,226
+TRP,TC Energy Corporation,66527236096,227
+MPWR,"Monolithic Power Systems, Inc.",66101956608,228
+APD,"Air Products and Chemicals, Inc.",65712275456,229
+MDLN,Medline Inc.,65328603136,230
+WBD,"Warner Bros. Discovery, Inc.",65110339584,231
+TFC,Truist Financial Corporation,64562946048,232
+HONA,Honeywell Aerospace Inc.,64541609984,233
+AJG,Arthur J. Gallagher & Co.,64349278208,234
+LITE,Lumentum Holdings Inc.,64283029504,235
+COHR,Coherent Corp.,64212742144,236
+AFL,Aflac Incorporated,63908143104,237
+RSG,"Republic Services, Inc.",63692623872,238
+TEL,TE Connectivity plc,63212867584,239
+NKE,"NIKE, Inc.",62974521344,240
+NUE,Nucor Corporation,62569545728,241
+IMO,Imperial Oil Limited,62323806208,242
+MET,"MetLife, Inc.",61937225728,243
+COR,"Cencora, Inc.",61718659072,244
+DAL,"Delta Air Lines, Inc.",61251010560,245
+BKR,Baker Hughes Company,61218205696,246
+FIX,"Comfort Systems USA, Inc.",61132546048,247
+PSA,Public Storage,61129351168,248
+TER,"Teradyne, Inc.",60877529088,249
+GWW,"W.W. Grainger, Inc.",60672159744,250
+D,"Dominion Energy, Inc.",60045234176,251
+O,Realty Income Corporation,58467282944,252
+GRMN,Garmin Ltd.,58347536384,253
+NXPI,NXP Semiconductors N.V.,58287747072,254
+CIEN,Ciena Corporation,57871081472,255
+KEYS,"Keysight Technologies, Inc.",57424257024,256
+FAST,Fastenal Company,57363406848,257
+F,Ford Motor Company,56344727552,258
+CAH,"Cardinal Health, Inc.",56029065216,259
+TRGP,Targa Resources Corp.,55831023616,260
+WPM,Wheaton Precious Metals Corp.,55775641600,261
+NBIS,Nebius Group N.V.,55601168384,262
+SRE,Sempra,55342870528,263
+OKE,"ONEOK, Inc.",54964064256,264
+ALAB,"Astera Labs, Inc.",54581428224,265
+CARR,Carrier Global Corporation,53935587328,266
+OXY,Occidental Petroleum Corporation,53521293312,267
+LNG,"Cheniere Energy, Inc.",53385433088,268
+LHX,"L3Harris Technologies, Inc.",53279727616,269
+NDAQ,"Nasdaq, Inc.",52856897536,270
+CTVA,"Corteva, Inc.",52488310784,271
+FANG,"Diamondback Energy, Inc.",52372099072,272
+FITB,Fifth Third Bancorp,52218601472,273
+STT,State Street Corporation,51382964224,274
+HEI,HEICO Corporation,51255791616,275
+EW,Edwards Lifesciences Corporation,51228925952,276
+CVE,Cenovus Energy Inc.,51140911104,277
+ADSK,"Autodesk, Inc.",50681192448,278
+XYZ,"Block, Inc.",50114236416,279
+ROK,"Rockwell Automation, Inc.",50078838784,280
+AZO,"AutoZone, Inc.",50054520832,281
+WAB,Westinghouse Air Brake Technologies Corporation,50049974272,282
+ETR,Entergy Corporation,49864241152,283
+AMP,"Ameriprise Financial, Inc.",49595056128,284
+PYPL,"PayPal Holdings, Inc.",49556848640,285
+FERG,Ferguson Enterprises Inc.,49502629888,286
+EBAY,eBay Inc.,49350598656,287
+DEO,Diageo plc,49158234112,288
+AXON,"Axon Enterprise, Inc.",49126162432,289
+CRWV,"CoreWeave, Inc.",49041321984,290
+DVN,Devon Energy Corporation,48546738176,291
+UMC,United Microelectronics Corporation,48377561088,292
+VIK,Viking Holdings Ltd,48300969984,293
+XEL,Xcel Energy Inc.,48221765632,294
+CCEP,Coca-Cola Europacific Partners PLC,48007376896,295
+FER,Ferrovial N.V.,47976038400,296
+CBRS,Cerebras Systems Inc.,47756873728,297
+VTR,"Ventas, Inc.",47462928384,298
+VST,Vistra Corp.,47401111552,299
+EXC,Exelon Corporation,47144419328,300
+STM,STMicroelectronics N.V.,47064367104,301
+BDX,"Becton, Dickinson and Company",47023726592,302
+RKLB,Rocket Lab Corporation,46748938240,303
+IDXX,"IDEXX Laboratories, Inc.",46129201152,304
+ARES,Ares Management Corporation,46102663168,305
+SLF,Sun Life Financial Inc.,45380526080,306
+JBS,JBS N.V.,45059923968,307
+FLEX,Flex Ltd.,45022834688,308
+AU,AngloGold Ashanti plc,44811153408,309
+ODFL,"Old Dominion Freight Line, Inc.",44806766592,310
+TTWO,"Take-Two Interactive Software, Inc.",43923578880,311
+CBRE,"CBRE Group, Inc.",43772203008,312
+HUM,Humana Inc.,43687616512,313
+CMG,"Chipotle Mexican Grill, Inc.",43656921088,314
+UAL,"United Airlines Holdings, Inc.",43089874944,315
+TRI,Thomson Reuters Corporation,43047096320,316
+LYV,"Live Nation Entertainment, Inc.",42752729088,317
+AIG,"American International Group, Inc.",42480123904,318
+FMX,"Fomento Económico Mexicano, S.A.B. de C.V.",42370555904,319
+DHI,"D.R. Horton, Inc.",42360758272,320
+MCHP,Microchip Technology Incorporated,42240622592,321
+WDAY,"Workday, Inc.",42142318592,322
+PAYX,"Paychex, Inc.",42066608128,323
+RVMD,"Revolution Medicines, Inc.",41945284608,324
+CRDO,Credo Technology Group Holding Ltd,41888534528,325
+KDP,Keurig Dr Pepper Inc.,41837203456,326
+PRU,"Prudential Financial, Inc.",41734586368,327
+CLS,Celestica Inc.,41710903296,328
+MSCI,MSCI Inc.,41574948864,329
+WCN,"Waste Connections, Inc.",41462149120,330
+CCJ,Cameco Corporation,41057693696,331
+CCL,Carnival Corporation Ltd.,40637489152,332
+ESLT,Elbit Systems Ltd.,40491597824,333
+SYY,Sysco Corporation,40314720256,334
+ED,"Consolidated Edison, Inc.",39919136768,335
+A,"Agilent Technologies, Inc.",39853969408,336
+HMC,"Honda Motor Co., Ltd.",39704322048,337
+COIN,"Coinbase Global, Inc.",39546515456,338
+HIG,"The Hartford Insurance Group, Inc.",39365185536,339
+NTRA,"Natera, Inc.",39329804288,340
+WAT,Waters Corporation,39274340352,341
+RKT,"Rocket Companies, Inc.",39215894528,342
+ROP,"Roper Technologies, Inc.",39019360256,343
+IQV,IQVIA Holdings Inc.,38853828608,344
+EXPE,"Expedia Group, Inc.",38366257152,345
+STLD,"Steel Dynamics, Inc.",38119538688,346
+PCG,PG&E Corporation,37880713216,347
+IRM,Iron Mountain Incorporated,37824311296,348
+KVUE,Kenvue Inc.,37766569984,349
+PEG,Public Service Enterprise Group Incorporated,37643198464,350
+ADM,Archer-Daniels-Midland Company,37390188544,351
+KMB,Kimberly-Clark Corporation,37300137984,352
+HEI-A,HEICO Corporation,37234507776,353
+VMC,Vulcan Materials Company,37159292928,354
+NTAP,"NetApp, Inc.",36617318400,355
+MTB,M&T Bank Corporation,36514418688,356
+EME,"EMCOR Group, Inc.",36265394176,357
+HSY,The Hershey Company,36082229248,358
+MSTR,Strategy Inc,35936493568,359
+HBAN,Huntington Bancshares Incorporated,35559301120,360
+JBL,Jabil Inc.,35483004928,361
+WEC,"WEC Energy Group, Inc.",35276455936,362
+IR,Ingersoll Rand Inc.,34919948288,363
+PUK,Prudential plc,34756210688,364
+KR,The Kroger Co.,34724847616,365
+RJF,"Raymond James Financial, Inc.",34683654144,366
+VEEV,Veeva Systems Inc.,34683269120,367
+TKO,"TKO Group Holdings, Inc.",34649608192,368
+UI,Ubiquiti Inc.,34444328960,369
+ALC,Alcon Inc.,34416988160,370
+QSR,Restaurant Brands International Inc.,33992534016,371
+ACGL,Arch Capital Group Ltd.,33789687808,372
+NTRS,Northern Trust Corporation,33733363712,373
+RPRX,Royalty Pharma plc,33254309888,374
+MLM,"Martin Marietta Materials, Inc.",33238634496,375
+EXR,Extra Space Storage Inc.,33114208256,376
+CNC,Centene Corporation,33092724736,377
+SUNB,"Sunbelt Rentals Holdings, Inc.",32754810880,378
+RMD,ResMed Inc.,32496982016,379
+TECK,Teck Resources Limited,32404131840,380
+CCI,Crown Castle Inc.,32268079104,381
+TPR,"Tapestry, Inc.",32157437952,382
+NTR,Nutrien Ltd.,32123174912,383
+EQT,EQT Corporation,32045185024,384
+GEHC,GE HealthCare Technologies Inc.,31726440448,385
+TDY,Teledyne Technologies Incorporated,31676618752,386
+CASY,"Casey's General Stores, Inc.",31560009728,387
+EL,The Estée Lauder Companies Inc.,31461685248,388
+WTW,Willis Towers Watson Public Limited Company,31397216256,389
+BAP,Credicorp Ltd.,31372552192,390
+DXCM,"DexCom, Inc.",31192641536,391
+ZTS,Zoetis Inc.,31186380800,392
+CFG,"Citizens Financial Group, Inc.",31109074944,393
+VG,"Venture Global, Inc.",30880573440,394
+ALNY,"Alnylam Pharmaceuticals, Inc.",30604822528,395
+BIIB,Biogen Inc.,30530410496,396
+KHC,The Kraft Heinz Company,30510059520,397
+KGC,Kinross Gold Corporation,30486388736,398
+MDB,"MongoDB, Inc.",30271358976,399
+ILMN,"Illumina, Inc.",30180368384,400
+AEE,Ameren Corporation,30162073600,401
+RDDT,"Reddit, Inc.",29871480832,402
+LVS,Las Vegas Sands Corp.,29697097728,403
+ZM,"Zoom Communications, Inc.",29510891520,404
+TWLO,Twilio Inc.,29325744128,405
+AMRZ,Amrize Ltd,29271017472,406
+WSM,"Williams-Sonoma, Inc.",29229418496,407
+VICI,VICI Properties Inc.,29068445696,408
+DTE,DTE Energy Company,29061580800,409
+FTS,Fortis Inc.,28763670528,410
+TEAM,Atlassian Corporation,28756973568,411
+ATO,Atmos Energy Corporation,28743593984,412
+CPNG,"Coupang, Inc.",28721027072,413
+XYL,Xylem Inc.,28543762432,414
+MTD,Mettler-Toledo International Inc.,28482371584,415
+Q,"Qnity Electronics, Inc.",28394768384,416
+LPLA,LPL Financial Holdings Inc.,28340924416,417
+CRS,Carpenter Technology Corporation,28340176896,418
+DOV,Dover Corporation,28336717824,419
+SYM,Symbotic Inc.,28081043456,420
+DG,Dollar General Corporation,28001267712,421
+ATI,ATI Inc.,27991449600,422
+P,"Everpure, Inc.",27835588608,423
+OTIS,Otis Worldwide Corporation,27826927616,424
+BSP,Bending Spoons S.p.A.,27790845952,425
+FE,FirstEnergy Corp.,27653203968,426
+CW,Curtiss-Wright Corporation,27647135744,427
+PBA,Pembina Pipeline Corporation,27420319744,428
+CINF,Cincinnati Financial Corporation,27286861824,429
+ES,Eversource Energy,27254519808,430
+RF,Regions Financial Corporation,27205738496,431
+FTI,TechnipFMC plc,27165224960,432
+GFS,GLOBALFOUNDRIES Inc.,27138744320,433
+HUBB,Hubbell Incorporated,27133753344,434
+AVB,"AvalonBay Communities, Inc.",27075921920,435
+CNP,"CenterPoint Energy, Inc.",26776979456,436
+CPRT,"Copart, Inc.",26765209600,437
+WRB,W. R. Berkley Corporation,26758080512,438
+AWK,"American Water Works Company, Inc.",26661482496,439
+HAL,Halliburton Company,26582355968,440
+ASTS,"AST SpaceMobile, Inc.",26539958272,441
+VRSN,"VeriSign, Inc.",26524264448,442
+PPG,"PPG Industries, Inc.",26482597888,443
+TPL,Texas Pacific Land Corporation,26339956736,444
+PPL,PPL Corporation,26294644736,445
+EIX,Edison International,26290491392,446
+AFRM,"Affirm Holdings, Inc.",26279489536,447
+NVT,nVent Electric plc,26227458048,448
+EQR,Equity Residential,26173110272,449
+ZS,"Zscaler, Inc.",26140342272,450
+HPQ,HP Inc.,26082187264,451
+DGX,Quest Diagnostics Incorporated,26030452736,452
+RBLX,Roblox Corporation,25853263872,453
+UTHR,United Therapeutics Corporation,25847799808,454
+CPAY,"Corpay, Inc.",25787238400,455
+SYF,Synchrony Financial,25785638912,456
+SN,"SharkNinja, Inc.",25772277760,457
+JBHT,"J.B. Hunt Transport Services, Inc.",25606846464,458
+OKTA,"Okta, Inc.",25556633600,459
+NRG,"NRG Energy, Inc.",25472397312,460
+FSLR,"First Solar, Inc.",25448847360,461
+SW,Smurfit Westrock Plc,25423626240,462
+LH,Labcorp Holdings Inc.,25399363584,463
+FCNCA,"First Citizens BancShares, Inc.",25366208512,464
+PHM,"PulteGroup, Inc.",25336588288,465
+CTSH,Cognizant Technology Solutions Corporation,25125777408,466
+ROIV,Roivant Sciences Ltd.,24995256320,467
+ARXS,"Arxis, Inc.",24881471488,468
+KEY,KeyCorp,24753289216,469
+DLTR,"Dollar Tree, Inc.",24744398848,470
+WST,"West Pharmaceutical Services, Inc.",24703297536,471
+FOXA,Fox Corporation,24639770624,472
+PFG,"Principal Financial Group, Inc.",24589918208,473
+CHD,"Church & Dwight Co., Inc.",24583813120,474
+VRSK,"Verisk Analytics, Inc.",24566947840,475
+TROW,"T. Rowe Price Group, Inc.",24527056896,476
+AER,AerCap Holdings N.V.,24383965184,477
+INCY,Incyte Corporation,24283191296,478
+FWONK,Formula One Group,24070678528,479
+GPN,Global Payments Inc.,23929587712,480
+DRI,"Darden Restaurants, Inc.",23920635904,481
+LUV,Southwest Airlines Co.,23868467200,482
+TSEM,Tower Semiconductor Ltd.,23865415680,483
+BRO,"Brown & Brown, Inc.",23740604416,484
+EXPD,"Expeditors International of Washington, Inc.",23726821376,485
+VLTO,Veralto Corporation,23686963200,486
+FICO,Fair Isaac Corporation,23574900736,487
+SOFI,"SoFi Technologies, Inc.",23548203008,488
+XPO,"XPO, Inc.",23438366720,489
+FFIV,"F5, Inc.",23373670400,490
+MKL,Markel Group Inc.,23268712448,491
+BURL,"Burlington Stores, Inc.",23247075328,492
+ULTA,"Ulta Beauty, Inc.",23191443456,493
+FTAI,FTAI Aviation Ltd.,22978656256,494
+PKG,Packaging Corporation of America,22810144768,495
+STE,STERIS plc,22679377920,496
+RL,Ralph Lauren Corporation,22662633472,497
+IOT,Samsara Inc.,22568361984,498
+RIVN,"Rivian Automotive, Inc.",22528710656,499
+IFF,International Flavors & Fragrances Inc.,22484576256,500
+MRNA,"Moderna, Inc.",22459017216,501
+CMS,CMS Energy Corporation,22448988160,502
+OMC,Omnicom Group Inc.,22416807936,503
+IP,International Paper Company,22372091904,504
+STZ,"Constellation Brands, Inc.",22313879552,505
+TW,Tradeweb Markets Inc.,22308421632,506
+ENTG,"Entegris, Inc.",22167265280,507
+FIS,"Fidelity National Information Services, Inc.",22143102976,508
+FWONA,Formula One Group,22130989056,509
+USFD,US Foods Holding Corp.,22130073600,510
+AMCR,Amcor plc,22077007872,511
+WWD,"Woodward, Inc.",22040623104,512
+FOX,Fox Corporation,21918814208,513
+GH,"Guardant Health, Inc.",21898129408,514
+ROKU,"Roku, Inc.",21800364032,515
+SNA,Snap-on Incorporated,21665906688,516
+RS,"Reliance, Inc.",21498052608,517
+INSM,Insmed Incorporated,21462827008,518
+DOW,Dow Inc.,21431848960,519
+MTZ,"MasTec, Inc.",21421344768,520
+AS,"Amer Sports, Inc.",21370322944,521
+FDXF,"FedEx Freight Holding Company, Inc.",21298046976,522
+STLA,Stellantis N.V.,21210034176,523
+LEN,Lennar Corporation,21169864704,524
+MKSI,MKS Inc.,21148067840,525
+THC,Tenet Healthcare Corporation,21075042304,526
+SNX,TD SYNNEX Corporation,21034749952,527
+EXE,Expand Energy Corporation,21025173504,528
+EFX,Equifax Inc.,20838295552,529
+CHTR,"Charter Communications, Inc.",20643866624,530
+NI,NiSource Inc.,20572737536,531
+BCE,BCE Inc.,20571518976,532
+VTRS,Viatris Inc.,20554354688,533
+BG,Bunge Global SA,20483741696,534
+PAAS,Pan American Silver Corp.,20325924864,535
+TOST,"Toast, Inc.",20184000512,536
+MTSI,"MACOM Technology Solutions Holdings, Inc.",20100884480,537
+SQM,Sociedad Química y Minera de Chile S.A.,20008931328,538
+DD,"DuPont de Nemours, Inc.",19897808896,539
+ESS,"Essex Property Trust, Inc.",19853500416,540
+WIT,Wipro Limited,19784701952,541
+SMCI,"Super Micro Computer, Inc.",19613190144,542
+INIO,Innio N.V.,19582500864,543
+MGA,Magna International Inc.,19197224960,544
+GIS,"General Mills, Inc.",19176142848,545
+EVRG,"Evergy, Inc.",19146412032,546
+LYB,LyondellBasell Industries N.V.,19068930048,547
+ZBH,"Zimmer Biomet Holdings, Inc.",18990278656,548
+SBAC,SBA Communications Corporation,18921641984,549
+BR,"Broadridge Financial Solutions, Inc.",18899722240,550
+FN,Fabrinet,18711005184,551
+WY,Weyerhaeuser Company,18623817728,552
+SSNC,"SS&C Technologies Holdings, Inc.",18577635328,553
+FTV,Fortive Corporation,18525726720,554
+TPG,TPG Inc.,18412404736,555
+ITT,ITT Inc.,18334511104,556
+RCI,Rogers Communications Inc.,18329843712,557
+ON,ON Semiconductor Corporation,18277595136,558
+EWBC,"East West Bancorp, Inc.",18254751744,559
+RGLD,"Royal Gold, Inc.",18253957120,560
+LNT,Alliant Energy Corporation,18201786368,561
+LSCC,Lattice Semiconductor Corporation,18187841536,562
+WCC,"WESCO International, Inc.",18181253120,563
+INVH,Invitation Homes Inc.,18118281216,564
+RBC,RBC Bearings Incorporated,18114469888,565
+GPC,Genuine Parts Company,18103744512,566
+ROL,"Rollins, Inc.",18076633088,567
+APG,APi Group Corporation,18055655424,568
+OWL,Blue Owl Capital Inc.,18007031808,569
+CDE,"Coeur Mining, Inc.",17962217472,570
+CHRW,"C.H. Robinson Worldwide, Inc.",17948354560,571
+CG,The Carlyle Group Inc.,17941125120,572
+NWS,News Corporation,17931366400,573
+CF,"CF Industries Holdings, Inc.",17930074112,574
+DKS,"DICK'S Sporting Goods, Inc.",17929148416,575
+CDW,CDW Corporation,17898258432,576
+RBA,"RB Global, Inc.",17815869440,577
+BBY,"Best Buy Co., Inc.",17809821696,578
+AKAM,"Akamai Technologies, Inc.",17776279552,579
+BEN,"Franklin Resources, Inc.",17742045184,580
+PFGC,Performance Food Group Company,17594064896,581
+ZBRA,Zebra Technologies Corporation,17576245248,582
+TSCO,Tractor Supply Company,17521860608,583
+IEX,IDEX Corporation,17470140416,584
+RBRK,"Rubrik, Inc.",17456320512,585
+HST,"Host Hotels & Resorts, Inc.",17434345472,586
+NDSN,Nordson Corporation,17309894656,587
+JLL,Jones Lang LaSalle Incorporated,17171914752,588
+NLY,"Annaly Capital Management, Inc.",17086706688,589
+J,Jacobs Solutions Inc.,17082760192,590
+PR,Permian Resources Corporation,17049800704,591
+NVR,"NVR, Inc.",17048531968,592
+CRCL,Circle Internet Group,16914154496,593
+BALL,Ball Corporation,16903991296,594
+H,Hyatt Hotels Corporation,16859894784,595
+GEN,Gen Digital Inc.,16730229760,596
+KIM,Kimco Realty Corporation,16682531840,597
+QXO,"QXO, Inc.",16501104640,598
+NTNX,"Nutanix, Inc.",16478738432,599
+JHX,James Hardie Industries plc,16458350592,600
+WPC,W. P. Carey Inc.,16443126784,601
+JAZZ,Jazz Pharmaceuticals plc,16431207424,602
+NBIX,"Neurocrine Biosciences, Inc.",16416343040,603
+MEDP,"Medpace Holdings, Inc.",16405075968,604
+STRL,"Sterling Infrastructure, Inc.",16396363776,605
+CLH,"Clean Harbors, Inc.",16323928064,606
+SITM,SiTime Corporation,16269442048,607
+YUMC,"Yum China Holdings, Inc.",16269235200,608
+PNFP,"Pinnacle Financial Partners, Inc.",16209849344,609
+FLUT,Flutter Entertainment plc,16118132736,610
+BBIO,"BridgeBio Pharma, Inc.",16058662912,611
+MAA,"Mid-America Apartment Communities, Inc.",16056592384,612
+LAMR,Lamar Advertising Company,16051331072,613
+ASND,Ascendis Pharma A/S,16017769472,614
+LDOS,"Leidos Holdings, Inc.",15955886080,615
+ULS,UL Solutions Inc.,15933564928,616
+MAIR,Madison Air Solutions Corporation,15909623808,617
+KEP,Korea Electric Power Corporation,15869351936,618
+EMA,Emera Incorporated,15778322432,619
+TLN,Talen Energy Corporation,15764704256,620
+NWSA,News Corporation,15728508928,621
+IESC,"IES Holdings, Inc.",15621293056,622
+SWK,"Stanley Black & Decker, Inc.",15595488256,623
+RGA,"Reinsurance Group of America, Incorporated",15486002176,624
+U,Unity Software Inc.,15483896832,625
+SUI,"Sun Communities, Inc.",15453257728,626
+LII,Lennox International Inc.,15444128768,627
+TU,TELUS Corporation,15435000832,628
+BWXT,"BWX Technologies, Inc.",15416912896,629
+TIGO,Millicom International Cellular S.A.,15378628608,630
+OHI,"Omega Healthcare Investors, Inc.",15356595200,631
+NXT,Nextpower Inc.,15334643712,632
+TRU,TransUnion,15322252288,633
+MLI,"Mueller Industries, Inc.",15319023616,634
+CSL,Carlisle Companies Incorporated,15302649856,635
+GRAB,Grab Holdings Limited,15296600064,636
+MAS,Masco Corporation,15246531584,637
+LECO,"Lincoln Electric Holdings, Inc.",15227273216,638
+TXT,Textron Inc.,15213962240,639
+SOLV,Solventum Corporation,15147592704,640
+PTC,PTC Inc.,15129027584,641
+GIB,CGI Inc.,15035745280,642
+DOC,"Healthpeak Properties, Inc.",15022455808,643
+CRBG,"Corebridge Financial, Inc.",14973367296,644
+ARMK,Aramark,14956798976,645
+AIZ,"Assurant, Inc.",14942081024,646
+VNOM,"Viper Energy, Inc.",14915872768,647
+IONQ,"IonQ, Inc.",14904669184,648
+RPM,RPM International Inc.,14898491392,649
+FIG,"Figma, Inc.",14873800704,650
+GFL,GFL Environmental Inc.,14865072128,651
+DT,"Dynatrace, Inc.",14824456192,652
+REG,Regency Centers Corporation,14782827520,653
+QNT,Quantinuum Inc.,14755941376,654
+DINO,HF Sinclair Corporation,14752504832,655
+SGI,Somnigroup International Inc.,14637231104,656
+COO,"The Cooper Companies, Inc.",14596090880,657
+DOCN,"DigitalOcean Holdings, Inc.",14550381568,658
+PS,Pershing Square Inc.,14496001024,659
+TOL,"Toll Brothers, Inc.",14485200896,660
+UHAL,U-Haul Holding Company,14482210816,661
+ALLE,Allegion plc,14335501312,662
+EG,"Everest Group, Ltd.",14312576000,663
+GL,Globe Life Inc.,14275765248,664
+EXEL,"Exelixis, Inc.",14251833344,665
+W,Wayfair Inc.,14198862848,666
+AMH,American Homes 4 Rent,14176141312,667
+PAG,"Penske Automotive Group, Inc.",14167420928,668
+UDR,"UDR, Inc.",14150870016,669
+IVZ,Invesco Ltd.,14132414464,670
+BAX,Baxter International Inc.,14129500160,671
+MKC,"McCormick & Company, Incorporated",14125460480,672
+MKC-V,"McCormick & Company, Incorporated",14106641408,673
+UNM,Unum Group,14101364736,674
+LULU,lululemon athletica inc.,14025044992,675
+ALB,Albemarle Corporation,14015352832,676
+EQH,"Equitable Holdings, Inc.",14002752512,677
+IREN,IREN Limited,13898457088,678
+HRL,Hormel Foods Corporation,13884445696,679
+FNF,"Fidelity National Financial, Inc.",13753949184,680
+ONTO,Onto Innovation Inc.,13729224704,681
+WSO,"Watsco, Inc.",13720639488,682
+TXRH,"Texas Roadhouse, Inc.",13704625152,683
+BWA,BorgWarner Inc.,13697575936,684
+TRMB,Trimble Inc.,13655672832,685
+TTMI,"TTM Technologies, Inc.",13630319616,686
+ALLY,Ally Financial Inc.,13609893888,687
+DTM,"DT Midstream, Inc.",13578236928,688
+WMG,Warner Music Group Corp.,13562003456,689
+DECK,Deckers Outdoor Corporation,13524219904,690
+RNR,RenaissanceRe Holdings Ltd.,13445360640,691
+AVY,Avery Dennison Corporation,13430181888,692
+SKM,"SK Telecom Co., Ltd.",13390018560,693
+AMKR,"Amkor Technology, Inc.",13381650432,694
+GGG,Graco Inc.,13361190912,695
+GWRE,"Guidewire Software, Inc.",13348493312,696
+AIT,"Applied Industrial Technologies, Inc.",13236689920,697
+AEIS,"Advanced Energy Industries, Inc.",13172708352,698
+BF-A,Brown-Forman Corporation,13164815360,699
+AUR,"Aurora Innovation, Inc.",13120448512,700
+ERIE,Erie Indemnity Company,13113776128,701
+ELAN,Elanco Animal Health Incorporated,13095567360,702
+AGI,Alamos Gold Inc.,13089762304,703
+PINS,"Pinterest, Inc.",13085275136,704
+ELS,"Equity LifeStyle Properties, Inc.",13033208832,705
+BF-B,Brown-Forman Corporation,13022567424,706
+EMBJ,Embraer S.A.,12951800832,707
+MOG-A,Moog Inc.,12939889664,708
+CR,Crane Company,12893526016,709
+HAS,"Hasbro, Inc.",12857614336,710
+WSO-B,"Watsco, Inc.",12857538560,711
+RVTY,"Revvity, Inc.",12831604736,712
+GNRC,Generac Holdings Inc.,12828416000,713
+WBS,Webster Financial Corporation,12820085760,714
+HUBS,"HubSpot, Inc.",12808427520,715
+CLX,The Clorox Company,12798315520,716
+CHKP,Check Point Software Technologies Ltd.,12798314496,717
+NVMI,Nova Ltd.,12798162944,718
+SF,Stifel Financial Corp.,12780467200,719
+GLPI,"Gaming and Leisure Properties, Inc.",12768283648,720
+SJM,The J. M. Smucker Company,12741246976,721
+PEN,"Penumbra, Inc.",12731055104,722
+ONON,On Holding AG,12729862144,723
+UHAL-B,U-Haul Holding Company,12689529856,724
+SNN,Smith & Nephew plc,12652447744,725
+AGNC,AGNC Investment Corp.,12649086976,726
+ICLR,ICON Public Limited Company,12615484416,727
+AA,Alcoa Corporation,12585840640,728
+SEIC,SEI Investments Company,12573209600,729
+CRL,"Charles River Laboratories International, Inc.",12558289920,730
+TYL,"Tyler Technologies, Inc.",12555147264,731
+ALGN,"Align Technology, Inc.",12520997888,732
+HII,"Huntington Ingalls Industries, Inc.",12518842368,733
+BXP,"BXP, Inc.",12483582976,734
+BTSG,"BrightSpring Health Services, Inc.",12469404672,735
+MOG-B,Moog Inc.,12444868608,736
+FHN,First Horizon Corporation,12420748288,737
+FIVE,"Five Below, Inc.",12395005952,738
+BNT,Brookfield Wealth Solutions Ltd.,12379755520,739
+BJ,"BJ's Wholesale Club Holdings, Inc.",12346731520,740
+EVR,Evercore Inc.,12331202560,741
+PNW,Pinnacle West Capital Corporation,12300497920,742
+COKE,"Coca-Cola Consolidated, Inc.",12297088000,743
+OC,Owens Corning,12278153216,744
+DY,"Dycom Industries, Inc.",12270552064,745
+APA,APA Corporation,12251278336,746
+ARWR,"Arrowhead Pharmaceuticals, Inc.",12241884160,747
+CSGP,"CoStar Group, Inc.",12241018880,748
+RRX,Regal Rexnord Corporation,12198208512,749
+AFG,"American Financial Group, Inc.",12191219712,750
+WTS,"Watts Water Technologies, Inc.",12148940800,751
+DPZ,"Domino's Pizza, Inc.",12128095232,752
+DVA,DaVita Inc.,12111068160,753
+CORT,Corcept Therapeutics Incorporated,11965412352,754
+DRS,"Leonardo DRS, Inc.",11908699136,755
+RYAN,"Ryan Specialty Holdings, Inc.",11881605120,756
+WSE,Wise Group plc,11879198720,757
+MDGL,"Madrigal Pharmaceuticals, Inc.",11878293504,758
+IT,"Gartner, Inc.",11771600896,759
+CGNX,Cognex Corporation,11767519232,760
+FPS,"Forgent Power Solutions, Inc.",11717469184,761
+LFUS,"Littelfuse, Inc.",11712886784,762
+SCI,Service Corporation International,11631123456,763
+GDDY,GoDaddy Inc.,11622459392,764
+ARW,"Arrow Electronics, Inc.",11599735808,765
+BMRN,BioMarin Pharmaceutical Inc.,11579670528,766
+MICC,The Magnum Ice Cream Company N.V.,11551979520,767
+ENLT,Enlight Renewable Energy Ltd,11518742528,768
+HBM,Hudbay Minerals Inc.,11503349760,769
+AHR,"American Healthcare REIT, Inc.",11473087488,770
+BROS,Dutch Bros Inc.,11471459328,771
+WMS,"Advanced Drainage Systems, Inc.",11465382912,772
+TFII,TFI International Inc.,11461818368,773
+CACI,CACI International Inc,11443958784,774
+JEF,Jefferies Financial Group Inc.,11428595712,775
+PJT,PJT Partners Inc.,11414036480,776
+MGM,MGM Resorts International,11387937792,777
+BPOP,"Popular, Inc.",11337613312,778
+SMTC,Semtech Corporation,11294578688,779
+DCI,"Donaldson Company, Inc.",11272349696,780
+WTRG,"Essential Utilities, Inc.",11229030400,781
+TECH,Bio-Techne Corporation,11218367488,782
+MANH,"Manhattan Associates, Inc.",11199218688,783
+VSAT,"Viasat, Inc.",11162327040,784
+UMBF,UMB Financial Corporation,11150224384,785
+BMNR,"Bitmine Immersion Technologies, Inc.",11117462528,786
+HL,Hecla Mining Company,11093583872,787
+CPT,Camden Property Trust,11089228800,788
+PNR,Pentair plc,11015591936,789
+EHC,Encompass Health Corporation,11001178112,790
+DOCU,"DocuSign, Inc.",10977405952,791
+AAL,American Airlines Group Inc.,10975461376,792
+JKHY,"Jack Henry & Associates, Inc.",10966688768,793
+AXSM,"Axsome Therapeutics, Inc.",10953211904,794
+BSY,"Bentley Systems, Incorporated",10948832256,795
+GMED,"Globus Medical, Inc.",10932872192,796
+EGP,"EastGroup Properties, Inc.",10900388864,797
+WTFC,Wintrust Financial Corporation,10890002432,798
+DKNG,DraftKings Inc.,10795763712,799
+SMMT,Summit Therapeutics Inc.,10793551872,800
+LGN,Legence Corp.,10766416896,801
+SPXC,"SPX Technologies, Inc.",10764953600,802
+GIL,Gildan Activewear Inc.,10757793792,803
+AYI,Acuity Inc.,10749255680,804
+GSAT,"Globalstar, Inc.",10747436032,805
+MUSA,Murphy USA Inc.,10730358784,806
+CYTK,"Cytokinetics, Incorporated",10705511424,807
+SANM,Sanmina Corporation,10674984960,808
+CART,Maplebear Inc.,10658600960,809
+NYT,The New York Times Company,10598770688,810
+FRT,Federal Realty Investment Trust,10589268992,811
+SSB,SouthState Bank Corporation,10588649472,812
+AR,Antero Resources Corporation,10554381312,813
+RMBS,Rambus Inc.,10553314304,814
+ORI,Old Republic International Corporation,10507161600,815
+WYNN,"Wynn Resorts, Limited",10498027520,816
+AES,The AES Corporation,10483418112,817
+ZION,"Zions Bancorporation, National Association",10463825920,818
+HUT,Hut 8 Corp.,10444229632,819
+ENSG,"The Ensign Group, Inc.",10412155904,820
+UHS,"Universal Health Services, Inc.",10391670784,821
+KTOS,"Kratos Defense & Security Solutions, Inc.",10377356288,822
+SIRI,Sirius XM Holdings Inc.,10347953152,823
+MOD,Modine Manufacturing Company,10336264192,824
+ONB,Old National Bancorp,10329389056,825
+CFR,"Cullen/Frost Bankers, Inc.",10324777984,826
+AAOI,"Applied Optoelectronics, Inc.",10316010496,827
+LINE,"Lineage, Inc.",10310751232,828
+SARO,"StandardAero, Inc.",10309955584,829
+FROG,JFrog Ltd.,10237038592,830
+HSIC,"Henry Schein, Inc.",10205802496,831
+MOH,"Molina Healthcare, Inc.",10186307584,832
+R,"Ryder System, Inc.",10182627328,833
+APGE,"Apogee Therapeutics, Inc.",10151388160,834
+LTH,"Life Time Group Holdings, Inc.",10125061120,835
+SAIL,"SailPoint, Inc.",10118544384,836
+RDY,Dr. Reddy's Laboratories Limited,10112621568,837
+VICR,Vicor Corporation,10101062656,838
+GGB,Gerdau S.A.,10090747904,839
+WLK,Westlake Corporation,10088399872,840
+GKOS,Glaukos Corporation,10082123776,841
+SWKS,"Skyworks Solutions, Inc.",10080171008,842
+FLS,Flowserve Corporation,10054578176,843
+AM,Antero Midstream Corporation,10044101632,844
+PSO,Pearson plc,10035657728,845
+PRI,"Primerica, Inc.",9997281280,846
+APTV,Aptiv PLC,9948280832,847
+SOLS,"Solstice Advanced Materials, Inc.",9927960576,848
+SFD,"Smithfield Foods, Inc.",9927431168,849
+AMG,"Affiliated Managers Group, Inc.",9920907264,850
+HALO,"Halozyme Therapeutics, Inc.",9914860544,851
+FDS,FactSet Research Systems Inc.,9888287744,852
+CHYM,"Chime Financial, Inc.",9876016128,853
+CHWY,"Chewy, Inc.",9838464000,854
+PSKY,Paramount Skydance Corporation,9803957248,855
+ALSN,"Allison Transmission Holdings, Inc.",9797227520,856
+CTRE,"CareTrust REIT, Inc.",9718923264,857
+OGE,OGE Energy Corp.,9713452032,858
+EAT,"Brinker International, Inc.",9691354112,859
+DDS,"Dillard's, Inc.",9628692480,860
+ACM,AECOM,9626366976,861
+VIAV,Viavi Solutions Inc.,9596071936,862
+COMP,"Compass, Inc.",9585973248,863
+VMI,"Valmont Industries, Inc.",9582930944,864
+CUBE,CubeSmart,9548170240,865
+LLYVK,"Liberty Live Holdings, Inc.",9541779456,866
+LEVI,Levi Strauss & Co.,9525051392,867
+FRHC,Freedom Holdings Corp.,9518206976,868
+SAIA,"Saia, Inc.",9517782016,869
+ADC,Agree Realty Corporation,9489370112,870
+BRX,Brixmor Property Group Inc.,9488492544,871
+OSK,Oshkosh Corporation,9434450944,872
+MSGS,Madison Square Garden Sports Corp.,9422185472,873
+TTC,The Toro Company,9420105728,874
+EGO,Eldorado Gold Corporation,9389171712,875
+JXN,Jackson Financial Inc.,9384632320,876
+ESI,Element Solutions Inc,9343109120,877
+NCLH,Norwegian Cruise Line Holdings Ltd.,9321512960,878
+BIO,"Bio-Rad Laboratories, Inc.",9309289472,879
+PODD,Insulet Corporation,9230210048,880
+SNEX,StoneX Group Inc.,9195601920,881
+LLYVA,"Liberty Live Holdings, Inc.",9194923008,882
+MHK,"Mohawk Industries, Inc.",9191389184,883
+PRMB,Primo Brands Corporation,9187831808,884
+DAR,Darling Ingredients Inc.,9186000896,885
+IAG,IAMGOLD Corporation,9184419840,886
+TKR,The Timken Company,9126020096,887
+OSCR,"Oscar Health, Inc.",9077954560,888
+VOYA,"Voya Financial, Inc.",9076604928,889
+SYRE,"Spyre Therapeutics, Inc.",9061884928,890
+WAL,Western Alliance Bancorporation,9053190144,891
+AVTR,"Avantor, Inc.",9036153856,892
+FCFS,"FirstCash Holdings, Inc.",9020467200,893
+BIO-B,"Bio-Rad Laboratories, Inc.",9018658816,894
+ALV,"Autoliv, Inc.",9016966144,895
+NNN,"NNN REIT, Inc.",9010153472,896
+IONS,"Ionis Pharmaceuticals, Inc.",9005528064,897
+CNM,"Core & Main, Inc.",9005417472,898
+LNC,Lincoln National Corporation,8980794368,899
+SNAP,Snap Inc.,8966557696,900
+HLI,"Houlihan Lokey, Inc.",8958749696,901
+WULF,TeraWulf Inc.,8954274816,902
+RGEN,Repligen Corporation,8950124544,903
+PB,"Prosperity Bancshares, Inc.",8943557632,904
+FORM,"FormFactor, Inc.",8921144320,905
+TTD,"The Trade Desk, Inc.",8913254400,906
+RRC,Range Resources Corporation,8912536576,907
+CRNX,"Crinetics Pharmaceuticals, Inc.",8911997952,908
+PRAX,"Praxis Precision Medicines, Inc.",8899741696,909
+MTCH,"Match Group, Inc.",8899118080,910
+COLB,"Columbia Banking System, Inc.",8866313216,911
+PTGX,"Protagonist Therapeutics, Inc.",8831238144,912
+FR,"First Industrial Realty Trust, Inc.",8792345600,913
+BOKF,BOK Financial Corporation,8781641728,914
+TTEK,"Tetra Tech, Inc.",8779763712,915
+XP,XP Inc.,8773182464,916
+ZWS,Zurn Elkay Water Solutions Corporation,8750989312,917
+ARE,"Alexandria Real Estate Equities, Inc.",8730900480,918
+HQY,"HealthEquity, Inc.",8728901632,919
+ATR,"AptarGroup, Inc.",8694719488,920
+AG,First Majestic Silver Corp.,8680081408,921
+KYMR,"Kymera Therapeutics, Inc.",8676530176,922
+KT,KT Corporation,8658472960,923
+QGEN,Qiagen N.V.,8652187648,924
+BAH,Booz Allen Hamilton Holding Corporation,8649693184,925
+CAE,CAE Inc.,8624766976,926
+APLD,Applied Digital Corporation,8599084032,927
+AOS,A. O. Smith Corporation,8586703872,928
+CBSH,"Commerce Bancshares, Inc.",8584723456,929
+IDCC,"InterDigital, Inc.",8529917952,930
+GME,GameStop Corp.,8529620992,931
+MP,MP Materials Corp.,8529042944,932
+AVAV,"AeroVironment, Inc.",8505185792,933
+ESE,ESCO Technologies Inc.,8487966720,934
+REXR,"Rexford Industrial Realty, Inc.",8468655104,935
+PCOR,"Procore Technologies, Inc.",8462392832,936
+FRO,Frontline plc,8452991488,937
+KNSL,"Kinsale Capital Group, Inc.",8450112000,938
+ZG,"Zillow Group, Inc.",8440498688,939
+AGX,"Argan, Inc.",8437063168,940
+TEM,"Tempus AI, Inc.",8426302976,941
+QRVO,"Qorvo, Inc.",8403110400,942
+EMN,Eastman Chemical Company,8385857536,943
+CMC,Commercial Metals Company,8370943488,944
+STN,Stantec Inc.,8342859776,945
+ALKS,Alkermes plc,8322735616,946
+IDA,"IDACORP, Inc.",8285294592,947
+Z,"Zillow Group, Inc.",8259744768,948
+TTAN,"ServiceTitan, Inc.",8251890176,949
+ASR,"Grupo Aeroportuario del Sureste, S. A. B. de C. V.",8196652032,950
+VNO,Vornado Realty Trust,8173249536,951
+MAAS,Maase Inc.,8171404800,952
+VLY,Valley National Bancorp,8168830976,953
+DBX,"Dropbox, Inc.",8165522944,954
+BLDR,"Builders FirstSource, Inc.",8162267136,955
+PAYC,"Paycom Software, Inc.",8150416384,956
+ETSY,"Etsy, Inc.",8147790336,957
+AXTA,Axalta Coating Systems Ltd.,8147741184,958
+EQX,Equinox Gold Corp.,8144108544,959
+RIOT,"Riot Platforms, Inc.",8130251264,960
+SSD,"Simpson Manufacturing Co., Inc.",8118648320,961
+NEU,NewMarket Corporation,8108286976,962
+LAD,"Lithia Motors, Inc.",8102317056,963
+KNTK,Kinetik Holdings Inc.,8082182656,964
+PCVX,"Vaxcyte, Inc.",8074718208,965
+IMVT,"Immunovant, Inc.",8064534016,966
+RHP,"Ryman Hospitality Properties, Inc.",8054005248,967
+BRKR,Bruker Corporation,7987278848,968
+AVT,"Avnet, Inc.",7974381056,969
+PL,Planet Labs PBC,7965596672,970
+FSS,Federal Signal Corporation,7946396672,971
+SFM,"Sprouts Farmers Market, Inc.",7937238016,972
+CBC,"Central Bancompany, Inc.",7929133056,973
+LQDA,Liquidia Corporation,7925272064,974
+PCTY,Paylocity Holding Corporation,7914347008,975
+AWI,"Armstrong World Industries, Inc.",7864266240,976
+TAP,Molson Coors Beverage Company,7852775424,977
+MAC,The Macerich Company,7846280704,978
+TAP-A,Molson Coors Beverage Company,7830269440,979
+ALGM,"Allegro MicroSystems, Inc.",7791605248,980
+CAVA,"CAVA Group, Inc.",7707075072,981
+KLAR,Klarna Group plc,7702171648,982
+IBRX,"ImmunityBio, Inc.",7683812864,983
+JOBY,"Joby Aviation, Inc.",7672414720,984
+FAF,First American Financial Corporation,7656478720,985
+CIFR,Cipher Digital Inc.,7653309952,986
+AAON,"AAON, Inc.",7630075904,987
+UGI,UGI Corporation,7619552768,988
+AXS,AXIS Capital Holdings Limited,7606738944,989
+RYTM,"Rhythm Pharmaceuticals, Inc.",7593994752,990
+POWL,"Powell Industries, Inc.",7589805056,991
+TEX,Terex Corporation,7549515264,992
+YOU,"Clear Secure, Inc.",7546515968,993
+OMF,"OneMain Holdings, Inc.",7540968960,994
+POOL,Pool Corporation,7509088768,995
+NFG,National Fuel Gas Company,7499058176,996
+VFS,VinFast Auto Ltd.,7486515712,997
+CWEN,"Clearway Energy, Inc.",7486217216,998
+OKLO,Oklo Inc.,7479873024,999
+MORN,"Morningstar, Inc.",7477392384,1000
+DPC,DPC Holdings PLC,7456447488,1001
+CELH,"Celsius Holdings, Inc.",7451916288,1002
+MOS,The Mosaic Company,7440790016,1003
+MSA,MSA Safety Incorporated,7438279680,1004
+GLXY,Galaxy Digital,7433445376,1005
+GTES,Gates Industrial Corporation Ltd.,7417329152,1006
+GAP,"The Gap, Inc.",7404766720,1007
+SOBO,South Bow Corporation,7398496768,1008
+PLXS,Plexus Corp.,7349988864,1009
+TRNO,Terreno Realty Corporation,7342071808,1010
+RAL,Ralliant Corporation,7342070784,1011
+STAG,"STAG Industrial, Inc.",7334833664,1012
+LW,"Lamb Weston Holdings, Inc.",7327852032,1013
+HIMS,"Hims & Hers Health, Inc.",7325636096,1014
+CHRD,Chord Energy Corporation,7316078592,1015
+KRMN,Karman Holdings Inc.,7304849408,1016
+AGCO,AGCO Corporation,7271394304,1017
+PBF,PBF Energy Inc.,7250898944,1018
+ESTC,Elastic N.V.,7247507968,1019
+PACS,"PACS Group, Inc.",7223551488,1020
+COGT,"Cogent Biosciences, Inc.",7222590464,1021
+CLF,Cleveland-Cliffs Inc.,7217331200,1022
+S,"SentinelOne, Inc.",7198877696,1023
+SLAB,Silicon Laboratories Inc.,7197623296,1024
+ECG,"Everus Construction Group, Inc.",7184106496,1025
+CAG,"Conagra Brands, Inc.",7183270400,1026
+PATH,"UiPath, Inc.",7160421888,1027
+HR,Healthcare Realty Trust Incorporated,7151833088,1028
+VSXY,Victorias Secret & Co.,7143126016,1029
+ACA,"Arcosa, Inc.",7136201728,1030
+AN,"AutoNation, Inc.",7133860864,1031
+LOAR,Loar Holdings Inc.,7083628032,1032
+FLR,Fluor Corporation,7042155520,1033
+NAVN,"Navan, Inc.",7032259584,1034
+MSM,"MSC Industrial Direct Co., Inc.",7012619264,1035
+KEX,Kirby Corporation,7010179584,1036
+CORZ,"Core Scientific, Inc.",6995581952,1037
+GLBE,Global-E Online Ltd.,6982404608,1038
+SM,SM Energy Company,6957507584,1039
+NPO,Enpro Inc.,6954217984,1040
+NOV,NOV Inc.,6951323136,1041
+ST,Sensata Technologies Holding plc,6926051328,1042
+ENS,EnerSys,6921924608,1043
+BLLN,"BillionToOne, Inc.",6897943040,1044
+BIRK,Birkenstock Holding plc,6892798464,1045
+CAMT,Camtek Ltd.,6886502400,1046
+CPB,The Campbell's Company,6873653760,1047
+FNB,F.N.B. Corporation,6838066688,1048
+APPF,"AppFolio, Inc.",6835479552,1049
+MBGL,"Mobility Global, Inc.",6803200000,1050
+HLNE,Hamilton Lane Incorporated,6756494336,1051
+ICL,ICL Group Ltd,6750456832,1052
+ZETA,Zeta Global Holdings Corp.,6747403776,1053
+UBSI,"United Bankshares, Inc.",6721120768,1054
+M,"Macy's, Inc.",6710098432,1055
+EXP,Eagle Materials Inc.,6695502848,1056
+ACT,"Enact Holdings, Inc.",6677104128,1057
+FND,"Floor & Decor Holdings, Inc.",6675855872,1058
+URBN,"Urban Outfitters, Inc.",6670116352,1059
+EPRT,"Essential Properties Realty Trust, Inc.",6665008128,1060
+SGHC,Super Group (SGHC) Limited,6660886528,1061
+RYN,Rayonier Inc.,6659511296,1062
+NXE,NexGen Energy Ltd.,6645570560,1063
+INGM,Ingram Micro Holding Corporation,6633836544,1064
+LNTH,"Lantheus Holdings, Inc.",6608267264,1065
+CROX,"Crocs, Inc.",6583818240,1066
+IFS,Intercorp Financial Services Inc.,6581053952,1067
+DSGX,The Descartes Systems Group Inc.,6565630976,1068
+SWX,"Southwest Gas Holdings, Inc.",6562229760,1069
+ENVA,"Enova International, Inc.",6548769280,1070
+CRUS,"Cirrus Logic, Inc.",6529590784,1071
+INGR,Ingredion Incorporated,6513370112,1072
+GBCI,"Glacier Bancorp, Inc.",6510103040,1073
+IBP,"Installed Building Products, Inc.",6506450944,1074
+FRVO,Fervo Energy Company,6496921088,1075
+JAN,"Janus Living, Inc.",6470679040,1076
+ERAS,"Erasca, Inc.",6463512576,1077
+TFPM,Triple Flag Precious Metals Corp.,6460504064,1078
+QLYS,"Qualys, Inc.",6453516800,1079
+MIRM,"Mirum Pharmaceuticals, Inc.",6451204096,1080
+MRCY,"Mercury Systems, Inc.",6451050496,1081
+STEP,StepStone Group Inc.,6430961664,1082
+WEX,WEX Inc.,6420975616,1083
+SNDR,"Schneider National, Inc.",6403741696,1084
+CGON,"CG Oncology, Inc.",6387622912,1085
+NE,Noble Corporation plc,6369724928,1086
+RUSHA,"Rush Enterprises, Inc.",6356986368,1087
+FSV,FirstService Corporation,6354273792,1088
+JBTM,JBT Marel Corporation,6352793600,1089
+FIGR,"Figure Technology Solutions, Inc.",6352227328,1090
+GATX,GATX Corporation,6337964032,1091
+BBUC,Brookfield Business Corporation,6328999424,1092
+PPC,Pilgrim's Pride Corporation,6328924672,1093
+DUOL,"Duolingo, Inc.",6304980992,1094
+HWC,Hancock Whitney Corporation,6302488576,1095
+MTG,MGIC Investment Corporation,6274768896,1096
+WFRD,Weatherford International plc,6274626560,1097
+LUMN,"Lumen Technologies, Inc.",6264290816,1098
+LYFT,"Lyft, Inc.",6257167872,1099
+HOMB,"Home BancShares, Inc.",6256356352,1100
+HNGE,"Hinge Health, Inc.",6251540480,1101
+VCTR,"Victory Capital Holdings, Inc.",6251234304,1102
+FBIN,"Fortune Brands Innovations, Inc.",6237852672,1103
+OTEX,Open Text Corporation,6224289792,1104
+MATX,"Matson, Inc.",6219406336,1105
+XENE,Xenon Pharmaceuticals Inc.,6215595520,1106
+CACC,Credit Acceptance Corporation,6197801472,1107
+BEPC,Brookfield Renewable Corporation,6180455424,1108
+LEA,Lear Corporation,6178912768,1109
+RRR,"Red Rock Resorts, Inc.",6177661952,1110
+RUSHB,"Rush Enterprises, Inc.",6162701824,1111
+CPA,"Copa Holdings, S.A.",6151742464,1112
+DNTH,"Dianthus Therapeutics, Inc.",6149950976,1113
+CZR,"Caesars Entertainment, Inc.",6131983360,1114
+ESNT,Essent Group Ltd.,6129086976,1115
+BYD,Boyd Gaming Corporation,6126304768,1116
+MIDD,The Middleby Corporation,6119329792,1117
+MXL,"MaxLinear, Inc.",6118162432,1118
+GTLB,GitLab Inc.,6107423744,1119
+AUB,Atlantic Union Bankshares Corporation,6105577472,1120
+LKQ,LKQ Corporation,6099880448,1121
+KNSA,"Kiniksa Pharmaceuticals International, plc",6092115456,1122
+LSTR,"Landstar System, Inc.",6086587392,1123
+MCY,Mercury General Corporation,6071147520,1124
+LGND,Ligand Pharmaceuticals Incorporated,6063823872,1125
+TFX,Teleflex Incorporated,6055279616,1126
+VSEC,VSE Corporation,6053330432,1127
+OR,OR Royalties Inc.,6044867072,1128
+GOLF,Acushnet Holdings Corp.,6039850496,1129
+TXG,"10x Genomics, Inc.",6025340928,1130
+ORA,"Ormat Technologies, Inc.",6023677440,1131
+CHDN,Churchill Downs Incorporated,6022797824,1132
+SSRM,SSR Mining Inc.,6017241088,1133
+RSI,"Rush Street Interactive, Inc.",6002404864,1134
+BLCO,Bausch + Lomb Corporation,5986089472,1135
+VFC,V.F. Corporation,5983507968,1136
+G,Genpact Limited,5978494976,1137
+OGC,OceanaGold Corporation,5974940672,1138
+ABCB,Ameris Bancorp,5966447104,1139
+FLG,"Flagstar Bank, National Association",5963371520,1140
+ASB,Associated Banc-Corp,5950278656,1141
+AROC,"Archrock, Inc.",5946626048,1142
+ROAD,"Construction Partners, Inc.",5940105728,1143
+AIR,AAR Corp.,5911205376,1144
+TXNM,"TXNM Energy, Inc.",5910725120,1145
+AMRX,"Amneal Pharmaceuticals, Inc.",5894856704,1146
+DFTX,"Definium Therapeutics, Inc.",5892472832,1147
+AX,"Axos Financial, Inc.",5889561600,1148
+ACIW,"ACI Worldwide, Inc.",5875022336,1149
+MWH,"SOLV Energy, Inc.",5870458368,1150
+PECO,"Phillips Edison & Company, Inc.",5869912576,1151
+DOX,Amdocs Limited,5869807616,1152
+SEZL,Sezzle Inc.,5864551936,1153
+ORKA,"Oruka Therapeutics, Inc.",5861733376,1154
+GTX,Garrett Motion Inc.,5857757696,1155
+MTDR,Matador Resources Company,5840101888,1156
+KGS,"Kodiak Gas Services, Inc.",5838158848,1157
+TVTX,"Travere Therapeutics, Inc.",5836234752,1158
+HRB,"H&R Block, Inc.",5815758336,1159
+ALK,"Alaska Air Group, Inc.",5807060480,1160
+NXST,"Nexstar Media Group, Inc.",5803319296,1161
+POR,Portland General Electric Company,5792181248,1162
+SON,Sonoco Products Company,5780232192,1163
+PTCT,"PTC Therapeutics, Inc.",5776322048,1164
+KVYO,"Klaviyo, Inc.",5776099840,1165
+SPHR,Sphere Entertainment Co.,5769161728,1166
+RLI,RLI Corp.,5765179904,1167
+SIGI,"Selective Insurance Group, Inc.",5762724352,1168
+PSMT,"PriceSmart, Inc.",5757339136,1169
+MGY,Magnolia Oil & Gas Corporation,5751911424,1170
+ACI,"Albertsons Companies, Inc.",5751109632,1171
+DLB,"Dolby Laboratories, Inc.",5747516928,1172
+ESAB,ESAB Corporation,5745713152,1173
+EPAM,"EPAM Systems, Inc.",5740098048,1174
+SRRK,Scholar Rock Holding Corporation,5736182272,1175
+CWST,"Casella Waste Systems, Inc.",5727438848,1176
+PRM,"Perimeter Solutions, Inc.",5724131840,1177
+AMTM,"Amentum Holdings, Inc.",5717001728,1178
+MKTX,MarketAxess Holdings Inc.,5715677696,1179
+BCPC,Balchem Corporation,5699470848,1180
+RIG,Transocean Ltd.,5688748032,1181
+KRG,Kite Realty Group Trust,5688585728,1182
+NTSK,"Netskope, Inc.",5687244800,1183
+WH,"Wyndham Hotels & Resorts, Inc.",5648950784,1184
+HRI,Herc Holdings Inc.,5644230656,1185
+REYN,Reynolds Consumer Products Inc.,5640766464,1186
+RITM,Rithm Capital Corp.,5639911424,1187
+CSW,"CSW Industrials, Inc.",5638035456,1188
+OUT,OUTFRONT Media Inc.,5635792384,1189
+OZK,Bank OZK,5632958976,1190
+ADT,ADT Inc.,5625306112,1191
+NJR,New Jersey Resources Corporation,5591055360,1192
+RGTI,"Rigetti Computing, Inc.",5577652224,1193
+ALH,Alliance Laundry Holdings Inc.,5563028480,1194
+SXT,Sensient Technologies Corporation,5543755264,1195
+ACMR,"ACM Research, Inc.",5521848320,1196
+CVLT,"Commvault Systems, Inc.",5519172608,1197
+WFG,West Fraser Timber Co. Ltd.,5501626880,1198
+MDA,MDA Space Ltd.,5495535104,1199
+AUGO,Aura Minerals Inc.,5490960384,1200
+STVN,Stevanato Group S.p.A.,5487373824,1201
+GXO,"GXO Logistics, Inc.",5478614016,1202
+XE,"X-Energy, Inc.",5476088320,1203
+DAVE,Dave Inc.,5469160448,1204
+BTG,B2Gold Corp.,5462912512,1205
+BKH,Black Hills Corporation,5459908608,1206
+NOVT,Novanta Inc.,5453108736,1207
+OBDC,Blue Owl Capital Corporation,5444470272,1208
+BC,Brunswick Corporation,5430563840,1209
+LPX,Louisiana-Pacific Corporation,5404747264,1210
+GVA,Granite Construction Incorporated,5397477376,1211
+MTN,"Vail Resorts, Inc.",5389927424,1212
+JMKE,Jersey Mike's Subs Inc.,5387782656,1213
+FTDR,"Frontdoor, Inc.",5364542976,1214
+SEI,"Solaris Energy Infrastructure, Inc.",5339045376,1215
+VAL,Valaris Limited,5330309120,1216
+SBRA,"Sabra Health Care REIT, Inc.",5316167168,1217
+BETA,"BETA Technologies, Inc.",5311516672,1218
+EBC,"Eastern Bankshares, Inc.",5310480384,1219
+UEC,Uranium Energy Corp.,5305031680,1220
+FOUR,"Shift4 Payments, Inc.",5291556864,1221
+WHD,"Cactus, Inc.",5284625408,1222
+RDNT,"RadNet, Inc.",5273211904,1223
+OCTV,Octave Intelligence plc,5258696192,1224
+UNF,UniFirst Corporation,5242601472,1225
+LAUR,"Laureate Education, Inc.",5241362944,1226
+UFPI,"UFP Industries, Inc.",5235717120,1227
+CAKE,The Cheesecake Factory Incorporated,5232365568,1228
+WTM,"White Mountains Insurance Group, Ltd.",5230503936,1229
+PEGA,Pegasystems Inc.,5229721088,1230
+MAIN,Main Street Capital Corporation,5217659904,1231
+MMED,"MiniMed Group, Inc.",5212443136,1232
+RDN,Radian Group Inc.,5208638464,1233
+MMSI,"Merit Medical Systems, Inc.",5205554688,1234
+MYRG,MYR Group Inc.,5196548608,1235
+LBRDA,Liberty Broadband Corporation,5181882880,1236
+BGC,"BGC Group, Inc.",5180633600,1237
+CIGI,Colliers International Group Inc.,5174772736,1238
+MUR,Murphy Oil Corporation,5166318592,1239
+CRSP,CRISPR Therapeutics AG,5165492736,1240
+LBRDK,Liberty Broadband Corporation,5164483584,1241
+SLM,SLM Corporation,5164359680,1242
+VIRT,"Virtu Financial, Inc.",5162940928,1243
+CNO,"CNO Financial Group, Inc.",5161369088,1244
+RNG,"RingCentral, Inc.",5155627008,1245
+TREX,"Trex Company, Inc.",5150259712,1246
+ENPH,"Enphase Energy, Inc.",5147034112,1247
+MC,Moelis & Company,5144918016,1248
+PIPR,Piper Sandler Companies,5142150144,1249
+GNTX,Gentex Corporation,5136398336,1250
+GHC,Graham Holdings Company,5135993856,1251
+SHC,Sotera Health Company,5127302656,1252
+IRDM,Iridium Communications Inc.,5125303808,1253
+GEF,"Greif, Inc.",5123156480,1254
+BB,BlackBerry Limited,5116656128,1255
+GLNG,Golar LNG Limited,5110362112,1256
+CNX,CNX Resources Corporation,5109972992,1257
+EXLS,"ExlService Holdings, Inc.",5106309120,1258
+PSN,Parsons Corporation,5103161344,1259
+XMTR,"Xometry, Inc.",5101402112,1260
+ELF,"e.l.f. Beauty, Inc.",5090392064,1261
+VSH,"Vishay Intertechnology, Inc.",5089078784,1262
+CHH,"Choice Hotels International, Inc.",5085941248,1263
+SAIC,Science Applications International Corporation,5085901824,1264
+RELY,"Remitly Global, Inc.",5068205056,1265
+VSNT,"Versant Media Group, Inc.",5064214016,1266
+CUZ,Cousins Properties Incorporated,5063159296,1267
+FFIN,"First Financial Bankshares, Inc.",5060623360,1268
+TBBB,BBB Foods Inc.,5057608704,1269
+ONDS,Ondas Inc.,5054468096,1270
+EQPT,EquipmentShare.com Inc.,5044978176,1271
+PAY,"Paymentus Holdings, Inc.",5031573504,1272
+BDC,Belden Inc.,5009042432,1273
+SKY,"Champion Homes, Inc.",5004162560,1274
+PI,"Impinj, Inc.",4992285184,1275
+VRNS,"Varonis Systems, Inc.",4984945152,1276
+LIF,"Life360, Inc.",4979397120,1277
+OGS,"ONE Gas, Inc.",4973930496,1278
+SFBS,"ServisFirst Bancshares, Inc.",4944993792,1279
+AKO-B,Embotelladora Andina S.A.,4931632640,1280
+ACAD,ACADIA Pharmaceuticals Inc.,4931593216,1281
+GBTG,"Global Business Travel Group, Inc.",4925152256,1282
+KLIC,"Kulicke and Soffa Industries, Inc.",4910917120,1283
+CAR,"Avis Budget Group, Inc.",4898621952,1284
+DYN,"Dyne Therapeutics, Inc.",4887154176,1285
+MTH,Meritage Homes Corporation,4884146688,1286
+NNI,"Nelnet, Inc.",4881277440,1287
+BOOT,"Boot Barn Holdings, Inc.",4879191040,1288
+HASI,"HA Sustainable Infrastructure Capital, Inc.",4878166528,1289
+MRP,"Millrose Properties, Inc.",4871845888,1290
+FELE,"Franklin Electric Co., Inc.",4865472000,1291
+ANF,Abercrombie & Fitch Co.,4863050752,1292
+SKT,Tanger Inc.,4847296512,1293
+EWTX,"Edgewise Therapeutics, Inc.",4840609792,1294
+OTF,Blue Owl Technology Finance Corp.,4820731904,1295
+BILL,"BILL Holdings, Inc.",4812513792,1296
+WSC,WillScot Holdings Corporation,4807218176,1297
+DOO,BRP Inc.,4805658112,1298
+OII,"Oceaneering International, Inc.",4784390144,1299
+FHI,"Federated Hermes, Inc.",4783483904,1300
+SR,Spire Inc.,4775454208,1301
+TNL,Travel + Leisure Co.,4773874688,1302
+BCO,The Brink's Company,4768351232,1303
+OLLI,"Ollie's Bargain Outlet Holdings, Inc.",4739538432,1304
+VNT,Vontier Corporation,4733696000,1305
+FULT,Fulton Financial Corporation,4732915712,1306
+CE,Celanese Corporation,4730841600,1307
+TKC,Turkcell Iletisim Hizmetleri A.S.,4727233024,1308
+IBOC,International Bancshares Corporation,4719556608,1309
+VVV,Valvoline Inc.,4716284416,1310
+GFF,Griffon Corporation,4715548160,1311
+OPLN,"OPENLANE, Inc.",4693319168,1312
+PTRN,Pattern Group Inc.,4689821184,1313
+TNGX,"Tango Therapeutics, Inc.",4687434240,1314
+EPR,EPR Properties,4683103232,1315
+NVST,Envista Holdings Corporation,4658899968,1316
+MANE,"Veradermics, Incorporated",4651638784,1317
+CAI,"Caris Life Sciences, Inc.",4650097664,1318
+CENX,Century Aluminum Company,4641883136,1319
+KTB,"Kontoor Brands, Inc.",4623533056,1320
+ITRI,"Itron, Inc.",4622567424,1321
+BRC,Brady Corporation,4622236160,1322
+MRX,Marex Group Limited,4620120064,1323
+CMBT,Cmb.Tech NV,4616601088,1324
+SKYW,"SkyWest, Inc.",4598213120,1325
+KBR,"KBR, Inc.",4580041728,1326
+CRC,California Resources Corporation,4559618048,1327
+BFH,"Bread Financial Holdings, Inc.",4539329536,1328
+KRC,Kilroy Realty Corporation,4539154944,1329
+CELC,Celcuity Inc.,4531363328,1330
+PRIM,Primoris Services Corporation,4524861952,1331
+CVCO,"Cavco Industries, Inc.",4519291904,1332
+SLGN,Silgan Holdings Inc.,4508298752,1333
+NP,Neptune Insurance Holdings Inc.,4502617600,1334
+PLNT,"Planet Fitness, Inc.",4495666688,1335
+INSW,"International Seaways, Inc.",4490570752,1336
+AXTI,"AXT, Inc.",4488684544,1337
+WAY,Waystar Holding Corp.,4483077632,1338
+DLO,DLocal Limited,4472890368,1339
+TPC,Tutor Perini Corporation,4463517184,1340
+SITE,"SiteOne Landscape Supply, Inc.",4451540480,1341
+HCC,"Warrior Met Coal, Inc.",4451205632,1342
+TGS,Transportadora de Gas del Sur S.A.,4450322944,1343
+MIAX,"Miami International Holdings, Inc.",4448406016,1344
+AQN,Algonquin Power & Utilities Corp.,4440970240,1345
+FBP,First BanCorp.,4435191296,1346
+BOX,"Box, Inc.",4433044480,1347
+CHEF,"The Chefs' Warehouse, Inc.",4428006912,1348
+ATMU,Atmus Filtration Technologies Inc.,4422562304,1349
+GPGI,"GPGI, Inc.",4411691008,1350
+CVSA,Covista Inc.,4386921984,1351
+CNK,"Cinemark Holdings, Inc.",4377990656,1352
+CBT,Cabot Corporation,4364074496,1353
+LFTO,"Liftoff Mobile, Inc.",4350101504,1354
+TCBI,"Texas Capital Bancshares, Inc.",4346567680,1355
+CNS,"Cohen & Steers, Inc.",4330721280,1356
+CDP,COPT Defense Properties,4330266112,1357
+UCB,"United Community Banks, Inc.",4319881216,1358
+CRGY,Crescent Energy Company,4319565824,1359
+LIVN,LivaNova PLC,4292781056,1360
+RLAY,"Relay Therapeutics, Inc.",4291245312,1361
+CATY,Cathay General Bancorp,4285510656,1362
+MARA,"MARA Holdings, Inc.",4285480192,1363
+PBLS,"Parabilis Medicines, Inc.",4268704512,1364
+ELVN,"Enliven Therapeutics, Inc.",4264865280,1365
+LAZ,"Lazard, Inc.",4263462656,1366
+NWE,"NorthWestern Energy Group, Inc.",4253344000,1367
+KFY,Korn Ferry,4245542656,1368
+LASR,"nLIGHT, Inc.",4244755200,1369
+ITGR,Integer Holdings Corporation,4244355072,1370
+CAAP,Corporación América Airports S.A.,4243790336,1371
+BNL,"Broadstone Net Lease, Inc.",4241326336,1372
+NSIT,"Insight Enterprises, Inc.",4237005312,1373
+DORM,"Dorman Products, Inc.",4229609728,1374
+GEF-B,"Greif, Inc.",4229502976,1375
+FCN,"FTI Consulting, Inc.",4229265152,1376
+WSFS,WSFS Financial Corporation,4228718592,1377
+SLG,SL Green Realty Corp.,4222063616,1378
+CNR,"Core Natural Resources, Inc.",4218108672,1379
+MAT,"Mattel, Inc.",4201627648,1380
+ACLS,"Axcelis Technologies, Inc.",4200401408,1381
+USAR,"USA Rare Earth, Inc.",4198556672,1382
+GEO,"The GEO Group, Inc.",4198286592,1383
+MDU,"MDU Resources Group, Inc.",4184300544,1384
+BELFB,Bel Fuse Inc.,4181618176,1385
+PII,Polaris Inc.,4159647488,1386
+ICUI,"ICU Medical, Inc.",4158932224,1387
+RHI,Robert Half Inc.,4148005120,1388
+THO,"THOR Industries, Inc.",4137520128,1389
+MWA,"Mueller Water Products, Inc.",4132400896,1390
+IRT,"Independence Realty Trust, Inc.",4129906432,1391
+SEB,Seaboard Corporation,4122033408,1392
+IRTC,"iRhythm Holdings, Inc.",4091369728,1393
+INDB,Independent Bank Corp.,4081868544,1394
+ZGN,Ermenegildo Zegna N.V.,4081026304,1395
+FSLY,"Fastly, Inc.",4073695232,1396
+POST,"Post Holdings, Inc.",4043681024,1397
+WSBC,"WesBanco, Inc.",4042433280,1398
+BMI,"Badger Meter, Inc.",4041926144,1399
+CECO,CECO Environmental Corp.,4036817664,1400
+CVBF,CVB Financial Corp.,4034296832,1401
+RNST,Renasant Corporation,4033624832,1402
+LMND,"Lemonade, Inc.",4029267968,1403
+TDS,"Telephone and Data Systems, Inc.",4029151488,1404
+COLD,"Americold Realty Trust, Inc.",4022013440,1405
+CSTM,Constellium SE,4021107712,1406
+CALM,"Cal-Maine Foods, Inc.",4019386112,1407
+MEOH,Methanex Corporation,4018299648,1408
+PVH,PVH Corp.,4014631680,1409
+TAC,TransAlta Corporation,4007521024,1410
+LBTYB,Liberty Global Ltd.,4004367872,1411
+KAI,Kadant Inc.,3980868608,1412
+YETI,"YETI Holdings, Inc.",3978069248,1413
+REZI,"Resideo Technologies, Inc.",3973424896,1414
+BFAM,Bright Horizons Family Solutions Inc.,3972856064,1415
+TENB,"Tenable Holdings, Inc.",3969791232,1416
+ACHR,Archer Aviation Inc.,3966897408,1417
+QTWO,"Q2 Holdings, Inc.",3966382336,1418
+LFST,"LifeStance Health Group, Inc.",3959622912,1419
+SXI,Standex International Corporation,3954916352,1420
+IPAR,"Interparfums, Inc.",3951020544,1421
+OLED,Universal Display Corporation,3949930240,1422
+FRMI,Fermi Inc.,3949735936,1423
+PFSI,"PennyMac Financial Services, Inc.",3940578816,1424
+ABG,"Asbury Automotive Group, Inc.",3939907072,1425
+CON,"Concentra Group Holdings Parent, Inc.",3936104192,1426
+DIOD,Diodes Incorporated,3932409856,1427
+FG,"F&G Annuities & Life, Inc.",3928179968,1428
+BULL,Webull Corporation,3924821760,1429
+LOPE,"Grand Canyon Education, Inc.",3924351744,1430
+HHH,Howard Hughes Holdings Inc.,3916739328,1431
+ADPT,Adaptive Biotechnologies Corporation,3912866560,1432
+SYNA,Synaptics Incorporated,3910955264,1433
+VKTX,"Viking Therapeutics, Inc.",3909039616,1434
+APLE,"Apple Hospitality REIT, Inc.",3906917888,1435
+CLBT,Cellebrite DI Ltd.,3901239040,1436
+OTTR,Otter Tail Corporation,3900327680,1437
+IPGP,IPG Photonics Corporation,3894201856,1438
+DOCS,"Doximity, Inc.",3888068864,1439
+NMRK,"Newmark Group, Inc.",3882680832,1440
+DNLI,Denali Therapeutics Inc.,3875692032,1441
+OSIS,"OSI Systems, Inc.",3874962432,1442
+MNDY,monday.com Ltd.,3865968128,1443
+LION,Lionsgate Studios Corp.,3861432320,1444
+SMG,The Scotts Miracle-Gro Company,3847571200,1445
+KNF,Knife River Corporation,3847343872,1446
+TDW,Tidewater Inc.,3847163392,1447
+MANU,Manchester United plc,3840113152,1448
+MIR,"Mirion Technologies, Inc.",3837670144,1449
+BANF,BancFirst Corporation,3832878592,1450
+ATRO,Astronics Corporation,3806736128,1451
+CGAU,Centerra Gold Inc.,3806522368,1452
+MHO,"M/I Homes, Inc.",3806107392,1453
+CRK,"Comstock Resources, Inc.",3805322240,1454
+CCC,CCC Intelligent Solutions Holdings Inc.,3804905728,1455
+HAE,Haemonetics Corporation,3799284224,1456
+SKE,Skeena Resources Limited,3795741440,1457
+AKO-A,Embotelladora Andina S.A.,3786282240,1458
+ALM,Almonty Industries Inc.,3776604160,1459
+PRK,Park National Corporation,3754093824,1460
+COCO,"The Vita Coco Company, Inc.",3751911424,1461
+SIG,Signet Jewelers Limited,3751723520,1462
+FLY,Firefly Aerospace Inc.,3751132416,1463
+GNW,"Genworth Financial, Inc.",3711359488,1464
+VCYT,"Veracyte, Inc.",3710032128,1465
+STNG,Scorpio Tankers Inc.,3708524288,1466
+JOE,The St. Joe Company,3696494336,1467
+RH,RH,3696290816,1468
+LEU,Centrus Energy Corp.,3691206400,1469
+MSGE,Madison Square Garden Entertainment Corp.,3680347136,1470
+MCHB,Mechanics Bancorp,3680091648,1471
+AGO,Assured Guaranty Ltd.,3663930880,1472
+DK,"Delek US Holdings, Inc.",3661930752,1473
+HGV,Hilton Grand Vacations Inc.,3660029952,1474
+NIC,"Nicolet Bankshares, Inc.",3650169856,1475
+HIW,"Highwoods Properties, Inc.",3641308928,1476
+NHI,"National Health Investors, Inc.",3637269760,1477
+HAFN,Hafnia Limited,3633410048,1478
+FIBK,"First Interstate BancSystem, Inc.",3628246272,1479
+OPEN,Opendoor Technologies Inc.,3627409664,1480
+PTEN,"Patterson-UTI Energy, Inc.",3621552384,1481
+BLSH,Bullish,3615296768,1482
+KBH,KB Home,3614821632,1483
+FFBC,First Financial Bancorp.,3611551744,1484
+LBTYA,Liberty Global Ltd.,3605295360,1485
+UCTT,"Ultra Clean Holdings, Inc.",3595233792,1486
+AYA,Aya Gold & Silver Inc.,3593777920,1487
+WRBY,Warby Parker Inc.,3591874816,1488
+SHOO,"Steven Madden, Ltd.",3590800128,1489
+AMBA,"Ambarella, Inc.",3590610688,1490
+LXP,LXP Industrial Trust,3575168512,1491
+OGN,Organon & Co.,3563610112,1492
+BHF,"Brighthouse Financial, Inc.",3553596160,1493
+PLMR,"Palomar Holdings, Inc.",3551518720,1494
+OPCH,"Option Care Health, Inc.",3549910528,1495
+FA,First Advantage Corporation,3526801408,1496
+FRPT,"Freshpet, Inc.",3512235520,1497
+LRN,"Stride, Inc.",3511701248,1498
+LBTYK,Liberty Global Ltd.,3509790976,1499
+CLMT,"Calumet, Inc.",3508543744,1500
+PARR,"Par Pacific Holdings, Inc.",3506087680,1501
+TOWN,TowneBank,3500367360,1502
+HNI,HNI Corporation,3498855424,1503
+HG,"Hamilton Insurance Group, Ltd.",3495796480,1504
+VAC,Marriott Vacations Worldwide Corporation,3494063360,1505
+RCUS,"Arcus Biosciences, Inc.",3483916544,1506
+AVNT,Avient Corporation,3477649408,1507
+CBU,"Community Financial System, Inc.",3476727808,1508
+SFNC,Simmons First National Corporation,3470952960,1509
+IDYA,"IDEAYA Biosciences, Inc.",3469743872,1510
+CLSK,"CleanSpark, Inc.",3464216320,1511
+RXO,"RXO, Inc.",3463326720,1512
+WK,Workiva Inc.,3462563072,1513
+NHC,National HealthCare Corporation,3458969344,1514
+CURB,Curbline Properties Corp.,3458042880,1515
+ALMS,Alumis Inc.,3457582592,1516
+NATL,NCR Atleos Corporation,3454479872,1517
+POWI,"Power Integrations, Inc.",3451853056,1518
+BKD,Brookdale Senior Living Inc.,3446154240,1519
+NIQ,NIQ Global Intelligence plc,3441289728,1520
+CALY,Callaway Golf Company,3435167232,1521
+HAYW,"Hayward Holdings, Inc.",3434216192,1522
+BKU,"BankUnited, Inc.",3432412416,1523
+EXTR,"Extreme Networks, Inc.",3425078272,1524
+STUB,"StubHub Holdings, Inc.",3423988224,1525
+XNDU,Xanadu Quantum Technologies Limited,3417954560,1526
+QS,QuantumScape Corporation,3395600896,1527
+SBCF,Seacoast Banking Corporation of Florida,3389773056,1528
+ARQT,"Arcutis Biotherapeutics, Inc.",3389759488,1529
+BATRA,"Atlanta Braves Holdings, Inc.",3385510656,1530
+NMIH,"NMI Holdings, Inc.",3380290048,1531
+USLM,"United States Lime & Minerals, Inc.",3379776000,1532
+FHB,"First Hawaiian, Inc.",3378949376,1533
+KN,Knowles Corporation,3376270080,1534
+WING,Wingstop Inc.,3374261760,1535
+WT,"WisdomTree, Inc.",3369296128,1536
+KEN,Kenon Holdings Ltd.,3350569984,1537
+AWR,American States Water Company,3329024000,1538
+HP,"Helmerich & Payne, Inc.",3325701888,1539
+MMS,"Maximus, Inc.",3317924096,1540
+GPI,"Group 1 Automotive, Inc.",3309609728,1541
+ADEA,Adeia Inc.,3298886144,1542
+CWK,Cushman & Wakefield Limited,3287236096,1543
+CARG,"CarGurus, Inc.",3283712256,1544
+ASH,Ashland Inc.,3283384320,1545
+PPLI,People Incorporated,3282720256,1546
+PFS,"Provident Financial Services, Inc.",3274922752,1547
+AAMI,Acadian Asset Management Inc.,3256845824,1548
+SMR,NuScale Power Corporation,3246472448,1549
+EXPO,"Exponent, Inc.",3244942848,1550
+VECO,Veeco Instruments Inc.,3232333312,1551
+ARIS,Aris Mining Corporation,3226511616,1552
+NVTS,Navitas Semiconductor Corporation,3224504576,1553
+CLDX,"Celldex Therapeutics, Inc.",3222884608,1554
+AEHR,"Aehr Test Systems, Inc.",3222247936,1555
+CPK,Chesapeake Utilities Corporation,3212796928,1556
+MBX,"MBX Biosciences, Inc.",3211881984,1557
+NAMS,NewAmsterdam Pharma Company N.V.,3205507072,1558
+FUL,H.B. Fuller Company,3203578368,1559
+ZIM,ZIM Integrated Shipping Services Ltd.,3203412736,1560
+CRVL,CorVel Corporation,3191636992,1561
+BATRK,"Atlanta Braves Holdings, Inc.",3191154944,1562
+VGNT,Versigent PLC,3189711872,1563
+DX,"Dynex Capital, Inc.",3188944896,1564
+FRSH,Freshworks Inc.,3184521728,1565
+GRAL,"GRAIL, Inc.",3183552768,1566
+SHAK,Shake Shack Inc.,3179950336,1567
+GSHD,"Goosehead Insurance, Inc.",3176864000,1568
+ERO,Ero Copper Corp.,3173178624,1569
+ARCB,ArcBest Corporation,3166516224,1570
+LBRT,Liberty Energy Inc.,3165913600,1571
+BWLP,BW LPG Limited,3165334528,1572
+GRND,Grindr Inc.,3159968000,1573
+WDFC,WD-40 Company,3151273472,1574
+GRBK,"Green Brick Partners, Inc.",3149673472,1575
+CSQR,"Csquare, Inc.",3145370112,1576
+BOH,Bank of Hawaii Corporation,3141829632,1577
+TNET,"TriNet Group, Inc.",3138507008,1578
+SA,Seabridge Gold Inc.,3137208576,1579
+CVI,"CVR Energy, Inc.",3136554752,1580
+AKR,Acadia Realty Trust,3133093376,1581
+WTTR,"Select Water Solutions, Inc.",3129200896,1582
+HTGC,"Hercules Capital, Inc.",3123767296,1583
+AGYS,"Agilysys, Inc.",3123508992,1584
+SBLK,Star Bulk Carriers Corp.,3118404608,1585
+UUUU,Energy Fuels Inc.,3108994048,1586
+FSK,FS KKR Capital Corp.,3091933440,1587
+CXW,"CoreCivic, Inc.",3088286720,1588
+FBK,FB Financial Corporation,3087064320,1589
+CWT,California Water Service Group,3075876864,1590
+QURE,uniQure N.V.,3068770304,1591
+BANC,"Banc of California, Inc.",3067253504,1592
+KD,"Kyndryl Holdings, Inc.",3065189120,1593
+KYIV,Kyivstar Group Ltd.,3052281344,1594
+MZTI,The Marzetti Company,3051014144,1595
+AD,"Array Digital Infrastructure, Inc.",3042791936,1596
+AMBP,Ardagh Metal Packaging S.A.,3042325248,1597
+APAM,Artisan Partners Asset Management Inc.,3037227264,1598
+OUST,"Ouster, Inc.",3036342272,1599
+IRON,"Disc Medicine, Inc.",3029579520,1600
+MGEE,"MGE Energy, Inc.",3027648256,1601
+BHE,"Benchmark Electronics, Inc.",3019429376,1602
+PRVA,"Privia Health Group, Inc.",3019256320,1603
+FIZZ,National Beverage Corp.,3015245824,1604
+DAN,Dana Incorporated,3014243328,1605
+CXT,"Crane NXT, Co.",3013493760,1606
+PK,Park Hotels & Resorts Inc.,3008345856,1607
+ACHC,"Acadia Healthcare Company, Inc.",3001552896,1608
+BELFA,Bel Fuse Inc.,2996324608,1609
+TR,"Tootsie Roll Industries, Inc.",2994820096,1610
+TGB,Trekor Metals Limited,2990995200,1611
+TBBK,"The Bancorp, Inc.",2986854656,1612
+AEO,"American Eagle Outfitters, Inc.",2986156544,1613
+BCC,Boise Cascade Company,2984089600,1614
+NTCT,"NetScout Systems, Inc.",2982227968,1615
+SII,Sprott Inc.,2981497600,1616
+CBZ,"CBIZ, Inc.",2974237184,1617
+KWR,Quaker Chemical Corporation,2970009344,1618
+ASO,"Academy Sports and Outdoors, Inc.",2968819456,1619
+MGNI,"Magnite, Inc.",2960254208,1620
+TTAM,Titan America SA,2959017472,1621
+MGRC,McGrath RentCorp,2955749632,1622
+BRZE,"Braze, Inc.",2953202432,1623
+WHR,Whirlpool Corporation,2946359808,1624
+TRMD,TORM plc,2929746944,1625
+PLUG,Plug Power Inc.,2929644800,1626
+UE,Urban Edge Properties,2925992448,1627
+COLM,Columbia Sportswear Company,2925253376,1628
+KALU,Kaiser Aluminum Corporation,2910955776,1629
+FSM,Fortuna Mining Corp.,2908390912,1630
+UNFI,"United Natural Foods, Inc.",2907944704,1631
+PATK,"Patrick Industries, Inc.",2903213056,1632
+RGC,Regencell Bioscience Holdings Limited,2902649856,1633
+BTE,Baytex Energy Corp.,2899352064,1634
+BGSI,Boyd Group Services Inc.,2892378624,1635
+DCO,Ducommun Incorporated,2892203264,1636
+UPST,"Upstart Holdings, Inc.",2890489344,1637
+IMNM,"Immunome, Inc.",2890150144,1638
+UAA,"Under Armour, Inc.",2881956352,1639
+WOR,"Worthington Enterprises, Inc.",2873428992,1640
+ETOR,eToro Group Ltd.,2871723264,1641
+PPTA,Perpetua Resources Corp.,2868417024,1642
+ABM,ABM Industries Incorporated,2866364672,1643
+PENG,"Penguin Solutions, Inc.",2855243264,1644
+INTA,"Intapp, Inc.",2848196352,1645
+AVPT,"AvePoint, Inc.",2841030400,1646
+NESR,National Energy Services Reunited Corp.,2838850304,1647
+ALHC,"Alignment Healthcare, Inc.",2837712896,1648
+EEFT,"Euronet Worldwide, Inc.",2827837184,1649
+TRMK,Trustmark Corporation,2825110528,1650
+HWKN,"Hawkins, Inc.",2824194304,1651
+PTON,"Peloton Interactive, Inc.",2823107328,1652
+UA,"Under Armour, Inc.",2818007552,1653
+GPOR,Gulfport Energy Corporation,2805600000,1654
+PHIN,PHINIA Inc.,2803180288,1655
+ALRM,"Alarm.com Holdings, Inc.",2802436608,1656
+SOUN,"SoundHound AI, Inc.",2801384960,1657
+CUBI,"Customers Bancorp, Inc.",2798011392,1658
+DNN,Denison Mines Corp.,2796502272,1659
+BEAM,Beam Therapeutics Inc.,2795996928,1660
+ALGT,Allegiant Travel Company,2794991104,1661
+WAFD,"WaFd, Inc.",2789550080,1662
+MPT,"Medical Properties Trust, Inc.",2787145728,1663
+BWIN,"The Baldwin Insurance Group, Inc.",2786045952,1664
+VISN,"Vistance Networks, Inc.",2785785088,1665
+VC,Visteon Corporation,2785134080,1666
+BTU,Peabody Energy Corporation,2777815808,1667
+IMAX,IMAX Corporation,2776656128,1668
+FCPT,"Four Corners Property Trust, Inc.",2773362432,1669
+NBTB,NBT Bancorp Inc.,2767984640,1670
+WLY,"John Wiley & Sons, Inc.",2764408832,1671
+XRAY,DENTSPLY SIRONA Inc.,2760501760,1672
+DJT,Trump Media & Technology Group Corp.,2758460160,1673
+HOG,"Harley-Davidson, Inc.",2756976896,1674
+CENT,Central Garden & Pet Company,2756868608,1675
+WLYB,"John Wiley & Sons, Inc.",2755271936,1676
+IHS,IHS Holding Limited,2753968896,1677
+SAH,"Sonic Automotive, Inc.",2744480768,1678
+DGII,Digi International Inc.,2742834944,1679
+SPNT,SiriusPoint Ltd.,2742656000,1680
+KOD,Kodiak Sciences Inc.,2729045760,1681
+FRME,First Merchants Corporation,2723697664,1682
+DRH,DiamondRock Hospitality Company,2723459584,1683
+HLIO,"Helios Technologies, Inc.",2722689536,1684
+STNE,StoneCo Ltd.,2716859392,1685
+ATS,ATS Corporation,2711349504,1686
+WIX,Wix.com Ltd.,2702223104,1687
+OSW,OneSpaWorld Holdings Limited,2700880896,1688
+BTDR,Bitdeer Technologies Group,2691048960,1689
+ESTA,Establishment Labs Holdings Inc.,2685523200,1690
+EFXT,Enerflex Ltd.,2684252160,1691
+FBNC,First Bancorp,2683945728,1692
+BBT,Beacon Financial Corporation,2679424000,1693
+ARX,Accelerant Holdings,2675148544,1694
+TARS,"Tarsus Pharmaceuticals, Inc.",2674147328,1695
+ATAI,AtaiBeckley Inc.,2671070976,1696
+IOND,Ionic Digital Inc.,2659348480,1697
+EXK,Endeavour Silver Corp.,2653454592,1698
+DBD,"Diebold Nixdorf, Incorporated",2651907584,1699
+NGVT,Ingevity Corporation,2650881536,1700
+TRVI,"Trevi Therapeutics, Inc.",2647921664,1701
+TMDX,"TransMedics Group, Inc.",2643564032,1702
+GDV,The Gabelli Dividend & Income Trust,2639129344,1703
+SYBT,"Stock Yards Bancorp, Inc.",2634566400,1704
+PENN,"PENN Entertainment, Inc.",2627947776,1705
+NWL,Newell Brands Inc.,2627803136,1706
+PAGS,PagSeguro Digital Ltd.,2627481600,1707
+PLSE,"Pulse Biosciences, Inc.",2623048192,1708
+FLNC,"Fluence Energy, Inc.",2622740992,1709
+LCID,"Lucid Group, Inc.",2614720512,1710
+SPSC,"SPS Commerce, Inc.",2614692608,1711
+DXPE,"DXP Enterprises, Inc.",2610629376,1712
+IVT,InvenTrust Properties Corp.,2610072064,1713
+BUSE,First Busey Corporation,2609654784,1714
+NRIX,"Nurix Therapeutics, Inc.",2606995968,1715
+KMT,Kennametal Inc.,2603337216,1716
+DNOW,DNOW Inc.,2595803904,1717
+SDRL,Seadrill Limited,2595016192,1718
+HTO,H2O America,2587169024,1719
+TRN,"Trinity Industries, Inc.",2586071552,1720
+AGM,Federal Agricultural Mortgage Corporation,2575683840,1721
+GRDN,"Guardian Pharmacy Services, Inc.",2564485632,1722
+RDW,Redwire Corporation,2560207872,1723
+SKWD,"Skyward Specialty Insurance Group, Inc.",2555834880,1724
+MBIN,Merchants Bancorp,2551859968,1725
+MAN,ManpowerGroup Inc.,2529534464,1726
+DAC,Danaos Corporation,2523378432,1727
+INTR,"Inter & Co, Inc.",2520898816,1728
+BKV,BKV Corporation,2515891968,1729
+PBH,Prestige Consumer Healthcare Inc.,2509777408,1730
+PBI,Pitney Bowes Inc.,2508750592,1731
+CTOS,"Custom Truck One Source, Inc.",2508583936,1732
+RUN,Sunrun Inc.,2502381824,1733
+NYAX,Nayax Ltd.,2498728704,1734
+UFPT,"UFP Technologies, Inc.",2491758592,1735
+COTY,Coty Inc.,2491719936,1736
+AAUC,Allied Gold Corporation,2490462720,1737
+NEOG,Neogen Corporation,2485838592,1738
+PLUS,ePlus inc.,2472893696,1739
+NKTR,Nektar Therapeutics,2469421056,1740
+TDC,Teradata Corporation,2468242944,1741
+PGNY,"Progyny, Inc.",2457286400,1742
+ICHR,"Ichor Holdings, Ltd.",2456622592,1743
+PGEN,"Precigen, Inc.",2456360704,1744
+BOBS,"Bob's Discount Furniture, Inc.",2455796736,1745
+RARE,Ultragenyx Pharmaceutical Inc.,2455336448,1746
+NTB,The Bank of N.T. Butterfield & Son Limited,2450310400,1747
+COHU,"Cohu, Inc.",2448817152,1748
+CMPR,Cimpress plc,2440413696,1749
+VVX,"V2X, Inc.",2440339200,1750
+BLBD,Blue Bird Corporation,2434572032,1751
+AXGN,"Axogen, Inc.",2431095552,1752
+AMLX,"Amylyx Pharmaceuticals, Inc.",2429421056,1753
+CALX,"Calix, Inc.",2424743168,1754
+SLDE,"Slide Insurance Holdings, Inc.",2422674944,1755
+EFSC,Enterprise Financial Services Corp,2420555520,1756
+CENTA,Central Garden & Pet Company,2412103424,1757
+DRVN,Driven Brands Holdings Inc.,2410006528,1758
+PAYO,Payoneer Global Inc.,2407944192,1759
+BANR,Banner Corporation,2400693760,1760
+MTX,Minerals Technologies Inc.,2399716096,1761
+JBLU,JetBlue Airways Corporation,2399705600,1762
+SVM,Silvercorp Metals Inc.,2393411328,1763
+AMC,"AMC Entertainment Holdings, Inc.",2383254272,1764
+HURN,Huron Consulting Group Inc.,2381419520,1765
+ANDE,"The Andersons, Inc.",2375270400,1766
+KEEL,Keel Infrastructure Corp.,2373046784,1767
+DEI,"Douglas Emmett, Inc.",2372750848,1768
+INFQ,"Infleqtion, Inc.",2367436288,1769
+MLYS,"Mineralys Therapeutics, Inc.",2367055104,1770
+TALO,Talos Energy Inc.,2367008256,1771
+ECO,Okeanis Eco Tankers Corp.,2366886912,1772
+ROG,Rogers Corporation,2361836544,1773
+HAPN,"Happen, Inc.",2356620544,1774
+KLRA,"Kailera Therapeutics, Inc.",2354207232,1775
+ARR,"ARMOUR Residential REIT, Inc.",2354027008,1776
+CDNA,"CareDx, Inc.",2353907200,1777
+BHC,Bausch Health Companies Inc.,2352400640,1778
+UNIT,Uniti Group Inc.,2352006400,1779
+BXMT,"Blackstone Mortgage Trust, Inc.",2349497600,1780
+HTFL,"Heartflow, Inc.",2343163392,1781
+BKE,"The Buckle, Inc.",2339951360,1782
+COAG,"Hemab Therapeutics Holdings, Inc.",2339473920,1783
+NWBI,"Northwest Bancshares, Inc.",2336488448,1784
+PHVS,Pharvaris N.V.,2335380480,1785
+UTI,"Universal Technical Institute, Inc.",2332950528,1786
+SLS,"SELLAS Life Sciences Group, Inc.",2332062208,1787
+VRDN,"Viridian Therapeutics, Inc.",2326711296,1788
+VCEL,Vericel Corporation,2322732032,1789
+SSMR,Sunshine Silver Mining & Refining Company,2316872960,1790
+BCRX,"BioCryst Pharmaceuticals, Inc.",2305255168,1791
+HAWK,"HawkEye 360, Inc.",2304998144,1792
+PLPC,Preformed Line Products Company,2303995904,1793
+FLYW,Flywire Corporation,2301743360,1794
+RAMP,"LiveRamp Holdings, Inc.",2297722624,1795
+RVT,"Royce Small-Cap Trust, Inc.",2286979584,1796
+HYMC,Hycroft Mining Holding Corporation,2281087488,1797
+LIME,"Neutron Holdings, Inc.",2279323136,1798
+HCI,"HCI Group, Inc.",2278135296,1799
+WERN,"Werner Enterprises, Inc.",2268336128,1800
+FIVN,"Five9, Inc.",2266294016,1801
+INOD,Innodata Inc.,2265302272,1802
+IOSP,Innospec Inc.,2265071104,1803
+WU,The Western Union Company,2264241408,1804
+URGN,UroGen Pharma Ltd.,2262148608,1805
+PLBL,Polibeli Group Ltd,2256946688,1806
+GRC,The Gorman-Rupp Company,2250681088,1807
+OFG,OFG Bancorp,2245539584,1808
+LUNR,"Intuitive Machines, Inc.",2244727808,1809
+CTRI,"Centuri Holdings, Inc.",2243777536,1810
+TMC,TMC the metals company Inc.,2242848768,1811
+BFLY,"Butterfly Network, Inc.",2242121216,1812
+MH,"McGraw Hill, Inc.",2232192768,1813
+KSS,Kohl's Corporation,2229443840,1814
+GENI,Genius Sports Limited,2226933504,1815
+SIND,Sinda Ltd.,2223548672,1816
+PVLA,"Palvella Therapeutics, Inc.",2221850112,1817
+ATEN,"A10 Networks, Inc.",2220423680,1818
+NUVB,Nuvation Bio Inc.,2218046720,1819
+DHC,Diversified Healthcare Trust,2217699328,1820
+HRMY,"Harmony Biosciences Holdings, Inc.",2213816064,1821
+APPN,Appian Corporation,2199427072,1822
+BLX,Bladex Inc.,2198816256,1823
+CC,The Chemours Company,2194010880,1824
+FCF,First Commonwealth Financial Corporation,2191881216,1825
+PLGO,Pelagos Insurance Capital Limit,2184442112,1826
+MCRI,"Monarch Casino & Resort, Inc.",2180633088,1827
+CLOV,"Clover Health Investments, Corp.",2180473088,1828
+VERA,"Vera Therapeutics, Inc.",2178611200,1829
+SHO,"Sunstone Hotel Investors, Inc.",2175881984,1830
+ADUS,Addus HomeCare Corporation,2173699840,1831
+HE,"Hawaiian Electric Industries, Inc.",2173482496,1832
+PRKS,United Parks & Resorts Inc.,2171062528,1833
+CNXN,"PC Connection, Inc.",2169467136,1834
+SRCE,1st Source Corporation,2165959424,1835
+CCU,Compañía Cervecerías Unidas S.A.,2164278784,1836
+STGW,Stagwell Inc.,2163607808,1837
+PRLB,"Proto Labs, Inc.",2160386304,1838
+NOG,"Northern Oil and Gas, Inc.",2150662656,1839
+PEB,Pebblebrook Hotel Trust,2146705664,1840
+ADMA,"ADMA Biologics, Inc.",2146215424,1841
+SION,"Sionna Therapeutics, Inc.",2137416576,1842
+MD,"Pediatrix Medical Group, Inc.",2134348416,1843
+OLN,Olin Corporation,2133752064,1844
+MBLY,Mobileye Global Inc.,2132945408,1845
+INVX,"Innovex International, Inc.",2125332736,1846
+TGLS,Tecnoglass Holdings Inc.,2118419968,1847
+MFP,"Midera Food Processing, Inc.",2110164736,1848
+NCNO,"nCino, Inc.",2106703232,1849
+HMN,Horace Mann Educators Corporation,2103858944,1850
+EVCM,EverCommerce Inc.,2096865920,1851
+BLKB,"Blackbaud, Inc.",2082951424,1852
+SPB,"Spectrum Brands Holdings, Inc.",2080411648,1853
+NWN,Northwest Natural Holding Company,2076244608,1854
+GTY,Getty Realty Corp.,2075984128,1855
+BRSL,Brightstar Lottery PLC,2075673856,1856
+WGS,GeneDx Holdings Corp.,2075490176,1857
+STC,Stewart Information Services Corporation,2073036032,1858
+PRDO,Perdoceo Education Corporation,2071084416,1859
+PDFS,"PDF Solutions, Inc.",2070777344,1860
+NTST,NETSTREIT Corp.,2065778688,1861
+SEDG,"SolarEdge Technologies, Inc.",2061737088,1862
+VOYG,"Voyager Technologies, Inc.",2058174336,1863
+CHCO,City Holding Company,2057690368,1864
+BHVN,Biohaven Ltd.,2052146304,1865
+SHAZ,SharonAI Holdings Inc.,2049290112,1866
+ASAN,"Asana, Inc.",2046927232,1867
+TILE,"Interface, Inc.",2042997376,1868
+ALG,Alamo Group Inc.,2041604608,1869
+KARO,Karooooo Ltd.,2036177536,1870
+AVAH,Aveanna Healthcare Holdings Inc.,2031655936,1871
+RAPP,"Rapport Therapeutics, Inc.",2029774720,1872
+CCS,"Century Communities, Inc.",2025844096,1873
+LOB,"Live Oak Bancshares, Inc.",2025371136,1874
+XHR,"Xenia Hotels & Resorts, Inc.",2024072576,1875
+NN,NextNav Inc.,2022677632,1876
+NEO,"NeoGenomics, Inc.",2020918656,1877
+ALKT,"Alkami Technology, Inc.",2011578624,1878
+ZBIO,"Zenas BioPharma, Inc.",2011429376,1879
+SGRY,"Surgery Partners, Inc.",2003674624,1880
+QUBT,Quantum Computing Inc.,2002750720,1881
+ATRC,"AtriCure, Inc.",2001080064,1882
+GHRS,GH Research PLC,1998577792,1883
+GT,The Goodyear Tire & Rubber Company,1994824064,1884
+STOK,"Stoke Therapeutics, Inc.",1988653312,1885
+ECPG,"Encore Capital Group, Inc.",1987311872,1886
+LTC,"LTC Properties, Inc.",1981746048,1887
+WKC,World Kinect Corporation,1967291264,1888
+RBCAA,"Republic Bancorp, Inc.",1967265920,1889
+FSUN,FirstSun Capital Bancorp,1965254912,1890
+ALMR,"Alamar Biosciences, Inc.",1964972032,1891
+AUPH,Aurinia Pharmaceuticals Inc.,1953459328,1892
+NSP,"Insperity, Inc.",1952542208,1893
+ZD,"Ziff Davis, Inc.",1941962368,1894
+WS,"Worthington Steel, Inc.",1940614784,1895
+ATEX,Anterix Inc.,1938343168,1896
+IOVA,"Iovance Biotherapeutics, Inc.",1937820544,1897
+EVTC,"EVERTEC, Inc.",1929332992,1898
+NBHC,National Bank Holdings Corporation,1925811072,1899
+SAM,"The Boston Beer Company, Inc.",1924299904,1900
+GABC,"German American Bancorp, Inc.",1917917440,1901
+FUN,Six Flags Entertainment Corporation,1916323968,1902
+VERX,"Vertex, Inc.",1909439744,1903
+CTS,CTS Corporation,1906982784,1904
+EPAC,Enerpac Tool Group Corp.,1905550976,1905
+STRA,"Strategic Education, Inc.",1899351552,1906
+DMRA,"Damora Therapeutics, Inc.",1897684864,1907
+TY,Tri-Continental Corporation,1895108352,1908
+AGIO,"Agios Pharmaceuticals, Inc.",1893743616,1909
+CASH,"Pathward Financial, Inc.",1889136896,1910
+SNDA,"Sonida Senior Living, Inc.",1885801472,1911
+PLAB,"Photronics, Inc.",1885069312,1912
+SONO,"Sonos, Inc.",1883240064,1913
+RLJ,RLJ Lodging Trust,1881283072,1914
+SMA,"SmartStop Self Storage REIT, Inc.",1874115200,1915
+NVCR,NovoCure Limited,1868955648,1916
+TFIN,"Triumph Financial, Inc.",1866402176,1917
+NEXA,Nexa Resources S.A.,1860762496,1918
+TCBK,TriCo Bancshares,1857663488,1919
+GENB,"Generate Biomedicines, Inc.",1857508992,1920
+TSHA,"Taysha Gene Therapies, Inc.",1856352256,1921
+AGM-A,Federal Agricultural Mortgage Corporation,1855790464,1922
+STBA,"S&T Bancorp, Inc.",1854935552,1923
+AMR,"Alpha Metallurgical Resources, Inc.",1853604480,1924
+WMK,"Weis Markets, Inc.",1847431680,1925
+EYE,"National Vision Holdings, Inc.",1845086848,1926
+LPG,Dorian LPG Ltd.,1841794304,1927
+VSTS,Vestis Corporation,1840223744,1928
+DV,"DoubleVerify Holdings, Inc.",1840035584,1929
+CPRI,Capri Holdings Limited,1839033600,1930
+PRGO,Perrigo Company plc,1836140416,1931
+CYD,China Yuchai International Limited,1835396352,1932
+DCOM,"Dime Commercial Bancshares, Inc.",1833823360,1933
+XPRO,Expro Ltd,1833538176,1934
+EZPW,"EZCORP, Inc.",1832541440,1935
+ULCC,"Frontier Group Holdings, Inc.",1831366528,1936
+PAX,Patria Investments Limited,1830206208,1937
+PRG,"PROG Holdings, Inc.",1826280320,1938
+FIGS,"FIGS, Inc.",1824155904,1939
+HOPE,"Hope Bancorp, Inc.",1822876160,1940
+GNL,"Global Net Lease, Inc.",1819595904,1941
+PGY,Pagaya Technologies Ltd.,1818683264,1942
+VIA,"Via Transportation, Inc.",1818634368,1943
+ANIP,"ANI Pharmaceuticals, Inc.",1816041216,1944
+FTRE,Fortrea Holdings Inc.,1811654912,1945
+RVLV,"Revolve Group, Inc.",1810355200,1946
+KARD,"Kardigan, Inc.",1809117184,1947
+HLMN,Hillman Solutions Corp.,1809052544,1948
+TIC,"TIC Solutions, Inc.",1808128640,1949
+ABCL,AbCellera Biologics Inc.,1807822336,1950
+LMAT,"LeMaitre Vascular, Inc.",1805208448,1951
+AGL,"agilon health, inc.",1799346304,1952
+BY,"Byline Bancorp, Inc.",1794573952,1953
+AAT,"American Assets Trust, Inc.",1789596928,1954
+PRCH,"Porch Group, Inc.",1789072768,1955
+BL,"BlackLine, Inc.",1787398016,1956
+HUN,Huntsman Corporation,1778339328,1957
+GAB,The Gabelli Equity Trust Inc.,1776933248,1958
+DXC,DXC Technology Company,1776738944,1959
+ASTH,"Astrana Health, Inc.",1776573824,1960
+CMRE,Costamare Inc.,1773646464,1961
+SNDX,"Syndax Pharmaceuticals, Inc.",1765111680,1962
+WD,"Walker & Dunlop, Inc.",1764282368,1963
+CBL,"CBL & Associates Properties, Inc.",1753639424,1964
+MQ,"Marqeta, Inc.",1752666112,1965
+AIN,Albany International Corp.,1752620416,1966
+SEPN,"Septerna, Inc.",1747127552,1967
+ENOV,Enovis Corporation,1737239424,1968
+INSP,"Inspire Medical Systems, Inc.",1737224448,1969
+PRGS,Progress Software Corporation,1732796928,1970
+PICS,PicS N.V.,1732585472,1971
+BFC,Bank First Corporation,1732109184,1972
+ARLO,"Arlo Technologies, Inc.",1730154368,1973
+ZYME,Zymeworks Inc.,1728987648,1974
+YSS,"York Space Systems, Inc.",1727884032,1975
+OCFC,OceanFirst Financial Corp.,1726247936,1976
+GCT,GigaCloud Technology Inc.,1724246784,1977
+QCRH,"QCR Holdings, Inc.",1724128000,1978
+TSLX,"Sixth Street Specialty Lending, Inc.",1717954304,1979
+NEXT,NextDecade Corporation,1708910592,1980
+RUM,RUM Group Inc.,1706855040,1981
+BCAX,Bicara Therapeutics Inc.,1701073024,1982
+EMAT,Evolution Metals & Technologies Corp.,1697488512,1983
+IIPR,"Innovative Industrial Properties, Inc.",1695358848,1984
+OBK,"Origin Bancorp, Inc.",1691835776,1985
+OMCL,"Omnicell, Inc.",1690450944,1986
+FCEL,"FuelCell Energy, Inc.",1690231552,1987
+LILA,Liberty Latin America Ltd.,1687731968,1988
+EFC,Ellington Financial Inc.,1686964096,1989
+IE,Ivanhoe Electric Inc.,1685805440,1990
+ATLC,Atlanticus Holdings Corporation,1682784256,1991
+RXRX,"Recursion Pharmaceuticals, Inc.",1682516224,1992
+SRPT,"Sarepta Therapeutics, Inc.",1681829248,1993
+CNOB,"ConnectOne Bancorp, Inc.",1680641408,1994
+SVV,"Savers Value Village, Inc.",1678449024,1995
+IMKTA,"Ingles Markets, Incorporated",1668655872,1996
+COUR,"Coursera, Inc.",1663743616,1997
+LILAK,Liberty Latin America Ltd.,1663564032,1998
+AMPX,"Amprius Technologies, Inc.",1659870464,1999
+LZB,La-Z-Boy Incorporated,1658464640,2000

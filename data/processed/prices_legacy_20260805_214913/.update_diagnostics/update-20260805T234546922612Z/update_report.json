@@ -1,0 +1,14 @@
+{
+  "expected_active_ticker_count": 2000,
+  "failure_reason": "insufficient_target_coverage",
+  "finished_at_utc": "2026-08-05T23:51:23.664962Z",
+  "minimum_target_coverage_ratio": 0.97,
+  "missing_ticker_count": 1188,
+  "refresh_start": "2025-02-01",
+  "run_id": "20260805T234546922612Z",
+  "started_at_utc": "2026-08-05T23:45:46.922600Z",
+  "success": false,
+  "target_session": "2026-08-05",
+  "target_session_coverage_ratio": 0.406,
+  "unresolved_failure_count": 0
+}

@@ -1,0 +1,152 @@
+{
+  "actual_max_date": "2026-08-04",
+  "actual_min_date": "2010-01-04",
+  "assets": {
+    "2010": {
+      "asset_name": "prices-year-2010.parquet",
+      "local_path": "daily/year=2010/prices.parquet",
+      "sha256": "5c583ac8a00447c9ffe2de91cd398aee5d1a4d2fd19f34ec6bab76c6a2735b0b",
+      "size_bytes": 2143058
+    },
+    "2011": {
+      "asset_name": "prices-year-2011.parquet",
+      "local_path": "daily/year=2011/prices.parquet",
+      "sha256": "0236bb6b1324d9be7639eba5e9e90352d3b99e85eec279a0c7415812e926c0ee",
+      "size_bytes": 2381640
+    },
+    "2012": {
+      "asset_name": "prices-year-2012.parquet",
+      "local_path": "daily/year=2012/prices.parquet",
+      "sha256": "e3eb761668f60dd9a490b4dc961719a74ab8312688dc712204d1c9e6c92b3cc4",
+      "size_bytes": 2509465
+    },
+    "2013": {
+      "asset_name": "prices-year-2013.parquet",
+      "local_path": "daily/year=2013/prices.parquet",
+      "sha256": "9c914117b766a61a3c44279f2946539d567c2cf28f22b00b60a95358c9c76a5a",
+      "size_bytes": 2798435
+    },
+    "2014": {
+      "asset_name": "prices-year-2014.parquet",
+      "local_path": "daily/year=2014/prices.parquet",
+      "sha256": "eb4801d661bbb502a28d2aab8356cd5e5e0e88497ae09e422803a401963a5452",
+      "size_bytes": 2951087
+    },
+    "2015": {
+      "asset_name": "prices-year-2015.parquet",
+      "local_path": "daily/year=2015/prices.parquet",
+      "sha256": "7dc249188639d7f07e77f8a9800329b8cf8ffa7a9fc430b0bf8a2cbd1d6b5930",
+      "size_bytes": 3020332
+    },
+    "2016": {
+      "asset_name": "prices-year-2016.parquet",
+      "local_path": "daily/year=2016/prices.parquet",
+      "sha256": "a5cf892e2642f035018bb76dd15f59f8ff2bd14b61a936f58ad15deff76be750",
+      "size_bytes": 3052738
+    },
+    "2017": {
+      "asset_name": "prices-year-2017.parquet",
+      "local_path": "daily/year=2017/prices.parquet",
+      "sha256": "3494d083b47e7e39f7f1a20f6aa3206689ce0420427490c880a800bfb04d7b78",
+      "size_bytes": 3014348
+    },
+    "2018": {
+      "asset_name": "prices-year-2018.parquet",
+      "local_path": "daily/year=2018/prices.parquet",
+      "sha256": "3a70cb2cc78a03aa00e42b214f08fe1fff960370eb7ba99c94aff7d7c30b770b",
+      "size_bytes": 3149723
+    },
+    "2019": {
+      "asset_name": "prices-year-2019.parquet",
+      "local_path": "daily/year=2019/prices.parquet",
+      "sha256": "a373dd8f35554e00926aac5267f4624e66cc2de0e488b7e2c36fa8e7a69a6768",
+      "size_bytes": 3227948
+    },
+    "2020": {
+      "asset_name": "prices-year-2020.parquet",
+      "local_path": "daily/year=2020/prices.parquet",
+      "sha256": "c653502b5b1dac344f59d87f8350ad3f7ccfe7aad34cb9e8ad4d28f697d64119",
+      "size_bytes": 3429271
+    },
+    "2021": {
+      "asset_name": "prices-year-2021.parquet",
+      "local_path": "daily/year=2021/prices.parquet",
+      "sha256": "787ebcd1b858b0db5626f2fb9a02ea5f96417cb4d42614d6fef75fbb996cdb32",
+      "size_bytes": 3521020
+    },
+    "2022": {
+      "asset_name": "prices-year-2022.parquet",
+      "local_path": "daily/year=2022/prices.parquet",
+      "sha256": "483e47f4405213a202271fa8cea5df09ce66cea3c768d11cff0f8bf3e9223200",
+      "size_bytes": 3578696
+    },
+    "2023": {
+      "asset_name": "prices-year-2023.parquet",
+      "local_path": "daily/year=2023/prices.parquet",
+      "sha256": "4ac4ea148972fbcc155d1e817b2330061a3db9dd56cb0de5e94f98fe0b22a895",
+      "size_bytes": 3571011
+    },
+    "2024": {
+      "asset_name": "prices-year-2024.parquet",
+      "local_path": "daily/year=2024/prices.parquet",
+      "sha256": "0242a3a72ac77dbdd33790ec668d23fb609959ea7f478fddb71430005fb456c9",
+      "size_bytes": 3635848
+    },
+    "2025": {
+      "asset_name": "prices-year-2025.parquet",
+      "local_path": "daily/year=2025/prices.parquet",
+      "sha256": "a909a578b4ab26a58b331e7473fa9d804aad8908a96b7304e3303ecc32fff177",
+      "size_bytes": 3806247
+    },
+    "2026": {
+      "asset_name": "prices-year-2026.parquet",
+      "local_path": "daily/year=2026/prices.parquet",
+      "sha256": "055591a0a3e897333cbb470df5c60017cce9051d4d27cc1131311d12d17e4f7b",
+      "size_bytes": 2287056
+    },
+    "ticker_coverage": {
+      "asset_name": "prices-ticker-coverage.csv",
+      "local_path": "ticker_coverage.csv",
+      "sha256": "8bab064a6128aea726b408116ebcbef3925e461aebf022280676d9b56ad64c69",
+      "size_bytes": 89032
+    }
+  },
+  "batch_size": 100,
+  "completed": true,
+  "duplicate_rows_removed": 0,
+  "failed_ticker_count": 0,
+  "generated_at_utc": "2026-08-05T01:33:38.469999Z",
+  "invalid_rows_removed": 2338885,
+  "last_successful_update_utc": "2026-08-05T01:33:38.469999Z",
+  "latest_session": "2026-08-04",
+  "no_data_ticker_count": 0,
+  "partition_row_counts": {
+    "2010": 198390,
+    "2011": 228236,
+    "2012": 251855,
+    "2013": 295014,
+    "2014": 323687,
+    "2015": 341366,
+    "2016": 354242,
+    "2017": 361004,
+    "2018": 371295,
+    "2019": 384424,
+    "2020": 397450,
+    "2021": 416690,
+    "2022": 426713,
+    "2023": 436705,
+    "2024": 456834,
+    "2025": 474762,
+    "2026": 287699
+  },
+  "requested_end_exclusive": "2026-08-05",
+  "requested_start": "2010-01-01",
+  "schema_version": "daily_prices_v1",
+  "source": "yahoo_finance_via_yfinance",
+  "successful_ticker_count": 2000,
+  "total_row_count": 6006366,
+  "universe_path": "data/universe/universe.csv",
+  "universe_sha256": "63df2adce953db4e599fc105a965baef4315d67ff0a016b1bc420913327c994f",
+  "universe_ticker_count": 2000,
+  "yfinance_version": "1.5.2"
+}
