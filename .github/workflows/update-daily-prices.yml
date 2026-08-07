@@ -20,6 +20,7 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       PYTHONUNBUFFERED: "1"
+      RELEASE_TAG: marketData
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -45,10 +46,15 @@ jobs:
       - name: Verify local and remote dataset identity
         run: >-
           uv run python -m momentum_screener.release_storage check
+          --repository "${{ github.repository }}"
+          --release-tag "${RELEASE_TAG}"
           --result-json "$RUNNER_TEMP/dataset-check-before.json"
 
       - name: Restore update inputs from Release
-        run: uv run python -m momentum_screener.release_storage pull-update-inputs
+        run: >-
+          uv run python -m momentum_screener.release_storage pull-update-inputs
+          --repository "${{ github.repository }}"
+          --release-tag "${RELEASE_TAG}"
 
       - name: Plan daily refresh without Yahoo access
         run: >-
@@ -83,11 +89,15 @@ jobs:
         if: steps.refresh.outputs.publish == 'true'
         run: >-
           uv run python -m momentum_screener.release_storage publish-update
+          --repository "${{ github.repository }}"
+          --release-tag "${RELEASE_TAG}"
           --result-json "$RUNNER_TEMP/release-publish-result.json"
 
       - name: Verify remote manifest after update
         run: >-
           uv run python -m momentum_screener.release_storage check
+          --repository "${{ github.repository }}"
+          --release-tag "${RELEASE_TAG}"
           --result-json "$RUNNER_TEMP/dataset-check-after.json"
 
       - name: Write job summary
@@ -98,7 +108,7 @@ jobs:
             echo "## Daily price update"
             echo "- Local update success: ${{ steps.refresh.outputs.local_update_success || 'unknown' }}"
             echo "- Publish requested: ${{ steps.refresh.outputs.publish || 'unknown' }}"
-            echo "- Release tag: market-data"
+            echo "- Release tag: ${RELEASE_TAG}"
             if [[ -f "$RUNNER_TEMP/release-publish-result.json" ]]; then
               uv run python -c "import json, os; p=json.load(open(os.environ['RUNNER_TEMP'] + '/release-publish-result.json')); print(f\"- Release publish success: {p['release_publish_success']}\")"
             else

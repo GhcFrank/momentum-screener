@@ -13,6 +13,7 @@ def test_daily_workflow_schedule_concurrency_and_permissions() -> None:
     assert "contents: write" in content
     assert "timeout-minutes: 45" in content
     assert "retention-days: 14" in content
+    assert content.count("RELEASE_TAG: marketData") == 1
 
 
 def test_daily_workflow_uses_release_commands_without_git_writes() -> None:
@@ -32,6 +33,10 @@ def test_daily_workflow_uses_release_commands_without_git_writes() -> None:
     assert "git add" not in content
     assert "git commit" not in content
     assert "git push" not in content
+    assert "market" + "-data" not in content
+    assert content.count('--repository "${{ github.repository }}"') == 4
+    assert content.count('--release-tag "${RELEASE_TAG}"') == 4
+    assert 'echo "- Release tag: ${RELEASE_TAG}"' in content
 
 
 def test_daily_workflow_checks_identity_before_pull_and_manifest_publish() -> None:
@@ -55,3 +60,9 @@ def test_daily_workflow_checks_identity_before_pull_and_manifest_publish() -> No
     assert "Expected requested start" in content
     assert "local_update_success" in content
     assert "release_publish_success" in content
+
+
+def test_production_documentation_uses_market_data_tag() -> None:
+    content = Path("docs/github-actions-data-bootstrap.md").read_text(encoding="utf-8")
+    assert "marketData" in content
+    assert "market" + "-data" not in content

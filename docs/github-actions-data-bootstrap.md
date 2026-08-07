@@ -1,6 +1,6 @@
 # GitHub Actions 行情数据迁移与 Bootstrap
 
-每日工作流把固定 GitHub Release `market-data` 作为行情数据的远端权威存储。源码
+每日工作流把固定 GitHub Release `marketData` 作为行情数据的远端权威存储。源码
 checkout 只提供代码、当前 Universe 和数据集身份；工作流不会把 Parquet 提交回源码
 分支，也不会把 Actions cache 或 workflow artifact 当作长期行情存储。
 
@@ -26,12 +26,16 @@ checkout 只提供代码、当前 Universe 和数据集身份；工作流不会�
 ```bash
 uv run python -m momentum_screener.universe validate
 
-uv run python -m momentum_screener.release_storage bootstrap --dry-run
+uv run python -m momentum_screener.release_storage bootstrap \
+  --release-tag marketData \
+  --dry-run
 
 uv run python -m momentum_screener.release_storage bootstrap \
+  --release-tag marketData \
   --confirm-replace-dataset
 
-uv run python -m momentum_screener.release_storage check
+uv run python -m momentum_screener.release_storage check \
+  --release-tag marketData
 ```
 
 `bootstrap --dry-run` 和没有确认参数的 `bootstrap` 只验证本地数据并生成
@@ -61,7 +65,8 @@ Bootstrap 成功后：
 4. 在另一台已更新代码和 Universe 的本地环境运行：
 
    ```bash
-   uv run python -m momentum_screener.release_storage pull
+   uv run python -m momentum_screener.release_storage pull \
+     --release-tag marketData
    ```
 
 5. 确认本地和远端 `latest_session` 一致。
@@ -100,20 +105,27 @@ Bootstrap 不会自动删除任何旧远端资产；成功后会生成
 ## 日常本地同步
 
 ```bash
-uv run python -m momentum_screener.release_storage check
-uv run python -m momentum_screener.release_storage pull
+uv run python -m momentum_screener.release_storage check \
+  --release-tag marketData
+uv run python -m momentum_screener.release_storage pull \
+  --release-tag marketData
 ```
 
 强制重新校验和下载全部受 manifest 管理的资产：
 
 ```bash
-uv run python -m momentum_screener.release_storage pull --force
+uv run python -m momentum_screener.release_storage pull \
+  --release-tag marketData \
+  --force
 ```
 
 只同步指定年份：
 
 ```bash
-uv run python -m momentum_screener.release_storage pull --year 2025 --year 2026
+uv run python -m momentum_screener.release_storage pull \
+  --release-tag marketData \
+  --year 2025 \
+  --year 2026
 ```
 
 Repository 解析优先级为 `--repository`、`GITHUB_REPOSITORY`、

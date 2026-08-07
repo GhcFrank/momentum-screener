@@ -59,7 +59,7 @@ MIGRATION_PLAN_NAME = "release_migration_plan.json"
 OBSOLETE_ASSETS_REPORT_NAME = "remote_obsolete_assets.json"
 REMOTE_IDENTITY_MISMATCH_MESSAGE = (
     "Remote Release dataset identity does not match the current local dataset. "
-    "The market-data Release must be bootstrapped or replaced with the new 2016+ "
+    "The marketData Release must be bootstrapped or replaced with the new 2016+ "
     "dataset."
 )
 
@@ -1794,6 +1794,14 @@ def _year(value: str) -> int:
     return parsed
 
 
+def _add_release_tag_argument(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--release-tag",
+        default=DEFAULT_RELEASE_TAG,
+        help="GitHub Release tag (default: %(default)s)",
+    )
+
+
 def _build_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m momentum_screener.release_storage",
@@ -1802,7 +1810,7 @@ def _build_argument_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
     pull = subparsers.add_parser("pull", help="synchronize the Release dataset")
     pull.add_argument("--repository")
-    pull.add_argument("--release-tag", default=DEFAULT_RELEASE_TAG)
+    _add_release_tag_argument(pull)
     pull.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
     pull.add_argument("--universe", type=Path, default=DEFAULT_UNIVERSE)
     pull.add_argument("--force", action="store_true")
@@ -1813,7 +1821,7 @@ def _build_argument_parser() -> argparse.ArgumentParser:
         "pull-update-inputs", help="restore only the next update's inputs"
     )
     inputs.add_argument("--repository")
-    inputs.add_argument("--release-tag", default=DEFAULT_RELEASE_TAG)
+    _add_release_tag_argument(inputs)
     inputs.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
     inputs.add_argument("--universe", type=Path, default=DEFAULT_UNIVERSE)
     inputs.add_argument(
@@ -1830,7 +1838,7 @@ def _build_argument_parser() -> argparse.ArgumentParser:
         "publish-update", help="publish a validated local update plan"
     )
     publish.add_argument("--repository")
-    publish.add_argument("--release-tag", default=DEFAULT_RELEASE_TAG)
+    _add_release_tag_argument(publish)
     publish.add_argument("--prices-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
     publish.add_argument("--universe", type=Path, default=DEFAULT_UNIVERSE)
     publish.add_argument("--dry-run", action="store_true")
@@ -1839,7 +1847,7 @@ def _build_argument_parser() -> argparse.ArgumentParser:
         "check", help="read only the remote manifest and verify dataset identity"
     )
     check.add_argument("--repository")
-    check.add_argument("--release-tag", default=DEFAULT_RELEASE_TAG)
+    _add_release_tag_argument(check)
     check.add_argument("--prices-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
     check.add_argument("--universe", type=Path, default=DEFAULT_UNIVERSE)
     check.add_argument("--result-json", type=Path)
@@ -1848,7 +1856,7 @@ def _build_argument_parser() -> argparse.ArgumentParser:
         help="plan or explicitly replace the authoritative Release dataset",
     )
     dataset_bootstrap.add_argument("--repository")
-    dataset_bootstrap.add_argument("--release-tag", default=DEFAULT_RELEASE_TAG)
+    _add_release_tag_argument(dataset_bootstrap)
     dataset_bootstrap.add_argument(
         "--prices-root", type=Path, default=DEFAULT_OUTPUT_ROOT
     )

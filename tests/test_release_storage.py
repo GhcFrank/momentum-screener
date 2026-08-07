@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import inspect
 import json
 from collections.abc import Mapping
 from datetime import date
@@ -15,6 +16,7 @@ import pytest
 
 import momentum_screener.release_storage as release_module
 import momentum_screener.storage_manifest as manifest_module
+from momentum_screener.dataset_config import DEFAULT_RELEASE_TAG
 from momentum_screener.prices import universe_sha256
 from momentum_screener.release_storage import (
     DatasetIdentity,
@@ -52,6 +54,31 @@ TEST_IDENTITY = DatasetIdentity(
     requested_start="2016-01-01",
     universe_ticker_count=1,
 )
+
+
+def test_all_release_operations_share_market_data_default_tag() -> None:
+    assert DEFAULT_RELEASE_TAG == "marketData"
+    for operation in (
+        pull_release_dataset,
+        pull_update_inputs,
+        publish_update,
+        check_release_dataset,
+        bootstrap_dataset,
+    ):
+        assert (
+            inspect.signature(operation).parameters["release_tag"].default
+            == "marketData"
+        )
+
+
+def test_release_storage_has_no_legacy_tag_fallback_or_case_normalization() -> None:
+    source = Path(release_module.__file__).read_text(encoding="utf-8")
+    config = Path("src/momentum_screener/dataset_config.py").read_text(encoding="utf-8")
+    legacy_tag = "market" + "-data"
+    assert legacy_tag not in source
+    assert legacy_tag not in config
+    assert "release_tag.lower" not in source
+    assert "release_tag.casefold" not in source
 
 
 def write_price_asset(path: Path, year: int = 2026) -> None:
@@ -193,7 +220,7 @@ def make_remote_dataset(
     ]
     release = {
         "id": 1,
-        "tag_name": "market-data",
+        "tag_name": "marketData",
         "upload_url": "https://uploads.example/releases/1/assets{?name,label}",
         "assets": release_assets,
     }
@@ -294,7 +321,7 @@ def make_release_for_manifest(
     return (
         {
             "id": 1,
-            "tag_name": "market-data",
+            "tag_name": "marketData",
             "upload_url": "https://uploads.example/releases/1/assets{?name,label}",
             "assets": assets,
         },
@@ -417,7 +444,7 @@ def test_release_lookup_failure_has_tag_and_repository_context(
 
     release, content, _ = make_remote_dataset(tmp_path)
     client = MissingReleaseClient(release, content)
-    with pytest.raises(ReleaseStorageError, match="market-data.*owner/repo"):
+    with pytest.raises(ReleaseStorageError, match="marketData.*owner/repo"):
         pull_release_dataset(
             repository="owner/repo",
             output_root=tmp_path / "output",
@@ -867,6 +894,7 @@ def test_check_is_read_only_ready_and_reports_obsolete_assets(tmp_path: Path) ->
     }
     assert result["workflow_ready"] is True
     assert result["dataset_identity_match"] is True
+    assert result["release_tag"] == "marketData"
     assert result["local_schema_version"] == "daily_prices_v1"
     assert result["remote_schema_version"] == "daily_prices_v1"
     assert result["local_universe_ticker_count"] == identity.universe_ticker_count
@@ -965,6 +993,7 @@ def test_bootstrap_default_only_writes_local_migration_plan(tmp_path: Path) -> N
     assert plan["identity_matches"] == "not_checked"
     assert plan["bootstrap_required"] is True
     assert plan["daily_workflow_ready"] is False
+    assert plan["remote_dataset"]["release_tag"] == "marketData"
     names = [item["asset_name"] for item in plan["assets_to_upload"]]
     assert names == [
         "prices-year-2016.parquet",
@@ -976,6 +1005,13 @@ def test_bootstrap_default_only_writes_local_migration_plan(tmp_path: Path) -> N
     assert (prices_root / "release_migration_plan.json").is_file()
     assert (prices_root / "manifest.json").read_bytes() == before_manifest
     assert not (prices_root / "remote_obsolete_assets.json").exists()
+    custom_plan = bootstrap_dataset(
+        prices_root=prices_root,
+        universe_path=universe,
+        release_tag="CuStOmTag",
+        expected_universe_size=1,
+    )
+    assert custom_plan["remote_dataset"]["release_tag"] == "CuStOmTag"
 
 
 def test_bootstrap_confirm_uploads_manifest_last_and_keeps_obsolete_assets(
@@ -1062,7 +1098,14 @@ def test_build_publish_plan_validates_hash_and_manifest_last(tmp_path: Path) -> 
     plan = build_publish_plan(root, repository="owner/repo")
     assert plan["assets"][-1]["asset_name"] == "prices-manifest.json"
     assert plan["repository"] == "owner/repo"
+    assert plan["release_tag"] == "marketData"
     assert (root / "release_publish_plan.json").is_file()
+    custom_plan = build_publish_plan(
+        root,
+        repository="owner/repo",
+        release_tag="CuStOmTag",
+    )
+    assert custom_plan["release_tag"] == "CuStOmTag"
     (root / "update_report.json").write_text("changed", encoding="utf-8")
     with pytest.raises(ManifestError, match="size mismatch|SHA-256 mismatch"):
         build_publish_plan(root, repository="owner/repo")
@@ -1184,6 +1227,93 @@ def test_github_api_retry_is_finite_and_token_not_in_error() -> None:
         client.request_json("GET", "https://api.example/test")
     assert calls == 3
     assert "super-secret" not in str(raised.value)
+
+
+def test_release_cli_defaults_and_case_preserving_override(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    observed: dict[str, list[str]] = {
+        command: []
+        for command in (
+            "pull",
+            "pull-update-inputs",
+            "publish-update",
+            "check",
+            "bootstrap",
+        )
+    }
+    monkeypatch.setattr(
+        release_module,
+        "runtime_dataset_identity",
+        lambda **kwargs: (TEST_IDENTITY, ("AAA",)),
+    )
+    monkeypatch.setattr(
+        release_module,
+        "pull_release_dataset",
+        lambda **kwargs: observed["pull"].append(str(kwargs["release_tag"])) or {},
+    )
+    monkeypatch.setattr(
+        release_module,
+        "pull_update_inputs",
+        lambda **kwargs: (
+            observed["pull-update-inputs"].append(str(kwargs["release_tag"])) or {}
+        ),
+    )
+    monkeypatch.setattr(
+        release_module,
+        "publish_update",
+        lambda **kwargs: (
+            observed["publish-update"].append(str(kwargs["release_tag"])) or {}
+        ),
+    )
+    monkeypatch.setattr(
+        release_module,
+        "check_release_dataset",
+        lambda **kwargs: (
+            observed["check"].append(str(kwargs["release_tag"]))
+            or {"workflow_ready": True}
+        ),
+    )
+    monkeypatch.setattr(
+        release_module,
+        "bootstrap_dataset",
+        lambda **kwargs: observed["bootstrap"].append(str(kwargs["release_tag"])) or {},
+    )
+
+    assert main(["pull", "--repository", "owner/repo", "--dry-run"]) == 0
+    assert main(["pull-update-inputs", "--repository", "owner/repo", "--dry-run"]) == 0
+    assert main(["publish-update", "--repository", "owner/repo", "--dry-run"]) == 0
+    assert main(["check", "--repository", "owner/repo"]) == 0
+    assert main(["bootstrap", "--dry-run"]) == 0
+    assert all(values == ["marketData"] for values in observed.values())
+
+    assert (
+        main(
+            [
+                "check",
+                "--repository",
+                "owner/repo",
+                "--release-tag",
+                "CuStOmTag",
+            ]
+        )
+        == 0
+    )
+    assert observed["check"][-1] == "CuStOmTag"
+
+
+@pytest.mark.parametrize(
+    "command",
+    ("check", "bootstrap", "pull", "pull-update-inputs", "publish-update"),
+)
+def test_release_cli_help_displays_market_data_default(
+    command: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    with pytest.raises(SystemExit) as raised:
+        main([command, "--help"])
+
+    assert raised.value.code == 0
+    assert "GitHub Release tag (default: marketData)" in capsys.readouterr().out
 
 
 def test_cli_success_failure_and_help_paths(monkeypatch: pytest.MonkeyPatch) -> None:
