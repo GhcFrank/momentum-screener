@@ -76,14 +76,14 @@ jobs:
             echo "publish=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Validate local data acceptance
+      - name: Validate incremental update acceptance
         if: steps.refresh.outputs.publish == 'true'
         run: >-
           uv run python -c
           "from pathlib import Path; from momentum_screener.release_storage import
-          validate_local_dataset_acceptance;
+          validate_local_incremental_update_acceptance;
           root=Path('data/processed/prices');
-          validate_local_dataset_acceptance(prices_root=root)"
+          validate_local_incremental_update_acceptance(prices_root=root)"
 
       - name: Publish update to Release
         if: steps.refresh.outputs.publish == 'true'
