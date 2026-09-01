@@ -893,8 +893,7 @@ def pull_update_inputs(
     )
 
     if expected_identity is None:
-        expected_identity, loaded_tickers, _ = load_local_dataset_identity(
-            prices_root=output_root,
+        expected_identity, loaded_tickers = runtime_dataset_identity(
             universe_path=universe_path,
             expected_universe_size=expected_universe_size,
         )
@@ -1162,13 +1161,17 @@ def check_release_dataset(
     """Read only the remote manifest and report whether daily workflow is safe."""
 
     if expected_identity is None:
-        expected_identity, _, local_manifest = load_local_dataset_identity(
-            prices_root=prices_root,
+        expected_identity, _ = runtime_dataset_identity(
             universe_path=universe_path,
             expected_universe_size=expected_universe_size,
         )
-    else:
+    local_manifest_path = prices_root / "manifest.json"
+    if local_manifest_path.exists():
+        # The local manifest is informational for this remote preflight, but an
+        # existing malformed manifest is still a real local-state error.
         local_manifest = load_manifest(prices_root / "manifest.json")
+    else:
+        local_manifest = {}
     resolved_repository = resolve_repository(repository, environ=environ)
     github = client or GitHubClient(token=resolve_github_token(environ))
     release = get_release_metadata(github, resolved_repository, release_tag)

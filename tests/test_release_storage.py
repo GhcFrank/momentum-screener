@@ -26,6 +26,7 @@ from momentum_screener.release_storage import (
     build_publish_plan,
     build_pull_plan,
     check_release_dataset,
+    load_local_dataset_identity,
     main,
     prepare_bootstrap_manifest,
     publish_update,
@@ -111,6 +112,7 @@ def make_remote_dataset(
     *,
     parquet_mode: str = "valid",
     coverage_columns: tuple[str, ...] = COVERAGE_COLUMNS,
+    identity: DatasetIdentity = TEST_IDENTITY,
 ) -> tuple[dict[str, Any], dict[str, bytes], dict[str, Any]]:
     source = root / "remote"
     source.mkdir(parents=True)
@@ -187,17 +189,14 @@ def make_remote_dataset(
         ),
     }
     manifest = {
-        "schema_version": "daily_prices_v1",
+        **identity.as_dict(),
         "source": "yahoo_finance_via_yfinance",
-        "requested_start": "2016-01-01",
         "latest_session": "2026-01-02",
         "actual_min_date": "2026-01-02",
         "actual_max_date": "2026-01-02",
         "last_successful_update_utc": "2026-01-03T00:00:00Z",
         "last_update_run_id": "run-1",
         "last_update_target_session": "2026-01-02",
-        "universe_sha256": "a" * 64,
-        "universe_ticker_count": 1,
         "successful_ticker_count": 1,
         "no_data_ticker_count": 0,
         "failed_ticker_count": 0,
@@ -225,6 +224,29 @@ def make_remote_dataset(
         "assets": release_assets,
     }
     return release, content, manifest
+
+
+def make_fresh_runner_remote(
+    root: Path,
+    *,
+    remote_universe_sha256: str | None = None,
+) -> tuple[Path, Path, dict[str, Any], dict[str, bytes], dict[str, Any]]:
+    universe = root / "universe.csv"
+    universe.parent.mkdir(parents=True, exist_ok=True)
+    universe.write_text(
+        "ticker,company_name,market_cap,market_cap_rank\nAAA,AAA Inc.,100,1\n",
+        encoding="utf-8",
+    )
+    identity = DatasetIdentity(
+        schema_version="daily_prices_v1",
+        universe_sha256=(remote_universe_sha256 or universe_sha256(("AAA",))),
+        requested_start="2016-01-01",
+        universe_ticker_count=1,
+    )
+    release, content, manifest = make_remote_dataset(
+        root / "release", identity=identity
+    )
+    return universe, root / "prices", release, content, manifest
 
 
 def make_local_2016_dataset(
@@ -1382,3 +1404,121 @@ def test_validate_managed_asset_rejects_unsorted_parquet(tmp_path: Path) -> None
     )
     with pytest.raises(ManifestError, match="not sorted"):
         validate_managed_asset(path, key="2026", asset=asset)
+
+
+def test_check_succeeds_on_fresh_runner_without_local_manifest(
+    tmp_path: Path,
+) -> None:
+    universe, prices_root, release, content, remote_manifest = make_fresh_runner_remote(
+        tmp_path
+    )
+
+    result = check_release_dataset(
+        repository="owner/repo",
+        prices_root=prices_root,
+        universe_path=universe,
+        client=cast(Any, FakeClient(release, content)),
+        expected_universe_size=1,
+    )
+
+    assert result["dataset_identity_match"] is True
+    assert result["workflow_ready"] is True
+    assert result["local_schema_version"] == "daily_prices_v1"
+    assert result["local_universe_sha256"] == universe_sha256(("AAA",))
+    assert result["local_universe_ticker_count"] == 1
+    assert result["local_requested_start"] == "2016-01-01"
+    assert result["local_latest_session"] is None
+    assert result["remote_schema_version"] == remote_manifest["schema_version"]
+    assert result["remote_universe_sha256"] == remote_manifest["universe_sha256"]
+    assert result["remote_universe_ticker_count"] == 1
+    assert result["remote_requested_start"] == "2016-01-01"
+    assert result["remote_latest_session"] == "2026-01-02"
+    assert not prices_root.exists()
+
+
+def test_pull_update_inputs_restores_fresh_runner_dataset(tmp_path: Path) -> None:
+    universe, prices_root, release, content, remote_manifest = make_fresh_runner_remote(
+        tmp_path
+    )
+
+    report = pull_update_inputs(
+        repository="owner/repo",
+        output_root=prices_root,
+        universe_path=universe,
+        target_date=date(2026, 1, 2),
+        client=cast(Any, FakeClient(release, content)),
+        expected_universe_size=1,
+    )
+
+    assert report["success"] is True
+    assert (prices_root / "daily/year=2026/prices.parquet").is_file()
+    assert (prices_root / "ticker_coverage.csv").is_file()
+    assert (
+        json.loads((prices_root / "manifest.json").read_text(encoding="utf-8"))
+        == remote_manifest
+    )
+
+
+def test_fresh_runner_identity_mismatch_stops_before_dataset_assets(
+    tmp_path: Path,
+) -> None:
+    universe, prices_root, release, content, _ = make_fresh_runner_remote(
+        tmp_path, remote_universe_sha256="b" * 64
+    )
+    check_client = FakeClient(release, content)
+
+    result = check_release_dataset(
+        repository="owner/repo",
+        prices_root=prices_root,
+        universe_path=universe,
+        client=cast(Any, check_client),
+        expected_universe_size=1,
+    )
+
+    assert result["dataset_identity_match"] is False
+    assert result["workflow_ready"] is False
+    assert "must be bootstrapped" in str(result["error"])
+    assert [path.name for path in check_client.destinations] == ["manifest.json"]
+    assert not prices_root.exists()
+
+    pull_client = FakeClient(release, content)
+    with pytest.raises(ReleaseStorageError, match="must be bootstrapped"):
+        pull_update_inputs(
+            repository="owner/repo",
+            output_root=prices_root,
+            universe_path=universe,
+            target_date=date(2026, 1, 2),
+            client=cast(Any, pull_client),
+            expected_universe_size=1,
+        )
+
+    assert [path.name for path in pull_client.destinations] == ["manifest.json"]
+    assert not prices_root.exists()
+
+
+def test_check_raises_on_corrupt_local_manifest(tmp_path: Path) -> None:
+    universe, prices_root, release, content, _ = make_fresh_runner_remote(tmp_path)
+    prices_root.mkdir(parents=True)
+    (prices_root / "manifest.json").write_bytes(b"{broken")
+
+    with pytest.raises(ManifestError):
+        check_release_dataset(
+            repository="owner/repo",
+            prices_root=prices_root,
+            universe_path=universe,
+            client=cast(Any, FakeClient(release, content)),
+            expected_universe_size=1,
+        )
+
+
+def test_load_local_dataset_identity_remains_strict_without_manifest(
+    tmp_path: Path,
+) -> None:
+    universe, prices_root, _, _, _ = make_fresh_runner_remote(tmp_path)
+
+    with pytest.raises(ManifestError, match="does not exist"):
+        load_local_dataset_identity(
+            prices_root=prices_root,
+            universe_path=universe,
+            expected_universe_size=1,
+        )
