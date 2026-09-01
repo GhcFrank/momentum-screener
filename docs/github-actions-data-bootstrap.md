@@ -76,7 +76,9 @@ Bootstrap 成功后：
 workflow 依次验证本地 Universe、运行只读 `release_storage check`、只拉取 refresh
 window 涉及的年份和 coverage、执行 update dry planning、执行正式增量更新、验证本地
 数据集、由 `release_storage publish-update` 构建发布计划并以 manifest 最后顺序发布，
-再次运行远端 check。身份不匹配时不会下载
+再次运行远端 check，最后计算并发送 RPS 邮件。RPS 邮件步骤是同一 job 中的普通后续
+步骤；任何 update、发布或复核步骤失败时都不会运行，也不会发送正常筛选结果。身份不
+匹配时不会下载
 2010–2015 分区、不会访问 Yahoo、不会上传任何资产。
 
 `momentum_screener.prices update` 是纯本地命令，不解析 repository、不读取 GitHub token，
@@ -85,6 +87,47 @@ manifest 后，以 `local_update_success=true` 报告本地状态。单独执行
 `momentum_screener.release_storage publish-update` 才解析 repository 和认证信息、从已
 提交的 update report 构建发布计划并上传，成功时报告
 `release_publish_success=true`。
+
+### 每日 RPS 邮件
+
+`momentum_screener.rps_notification` 从已验证的
+`data/processed/prices/manifest.json` 读取 `latest_session`，不使用系统日期，也不通过
+单只股票推断日期。随后调用完整 Universe 的 `calculate_rps_snapshot(latest_session)`，
+独立筛选 `rps120 > threshold` 与 `rps250 > threshold`，生成 plain text + HTML 邮件，
+并通过认证 STARTTLS SMTP 发送一次。默认 threshold 为 `87.0`；workflow 可通过
+Repository Variable `RPS_EMAIL_THRESHOLD` 覆盖。
+
+workflow 需要配置以下 GitHub Actions Secrets：
+
+- `RPS_SMTP_HOST`
+- `RPS_SMTP_PORT`（可留空，默认 `587`）
+- `RPS_SMTP_USERNAME`
+- `RPS_SMTP_PASSWORD`
+- `RPS_EMAIL_FROM`
+- `RPS_EMAIL_TO`（一个地址，或逗号分隔的多个地址）
+
+本地手动补发默认使用 dataset latest session：
+
+```bash
+RPS_SMTP_HOST=smtp.example.com \
+RPS_SMTP_USERNAME=user@example.com \
+RPS_SMTP_PASSWORD='app-password' \
+RPS_EMAIL_FROM=user@example.com \
+RPS_EMAIL_TO=recipient@example.com \
+uv run python -m momentum_screener.rps_notification
+```
+
+也可显式指定 session 和 threshold；计算仍然使用完整 Universe 的 RPS snapshot：
+
+```bash
+uv run python -m momentum_screener.rps_notification \
+  --as-of-date 2026-08-31 \
+  --threshold 90
+```
+
+命令会记录 latest session、snapshot ticker count、两个筛选数量、收件人及发送结果；
+不会记录 SMTP password。RPS 计算、渲染或发送失败都会返回非零退出码，已经成功落地
+或发布的行情数据不会被回滚。
 
 增量更新的 refresh 下限来自远端 manifest 的 `requested_start`：
 
