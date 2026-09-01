@@ -8,6 +8,7 @@ import csv
 import hashlib
 import json
 import logging
+import math
 import mimetypes
 import os
 import re
@@ -16,12 +17,15 @@ import time
 import uuid
 from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Protocol, Self
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode, urlparse
 from urllib.request import Request, urlopen
+
+import pyarrow.compute as pc  # type: ignore[import-untyped]
+import pyarrow.parquet as pq  # type: ignore[import-untyped]
 
 from momentum_screener.dataset_config import (
     DATASET_IDENTITY_FIELDS,
@@ -1503,14 +1507,33 @@ def _load_local_update_report(
         raise ReleaseStorageError(
             "Local update report does not record local_update_success=true"
         )
+    if report.get("success") is not True:
+        raise ReleaseStorageError("Local update report does not record success=true")
+    unresolved_failure_count = report.get("unresolved_failure_count")
+    if (
+        isinstance(unresolved_failure_count, bool)
+        or not isinstance(unresolved_failure_count, int)
+        or unresolved_failure_count != 0
+    ):
+        raise ReleaseStorageError(
+            "Local update report has unresolved download failures"
+        )
     run_id = report.get("run_id")
-    if not isinstance(run_id, str) or not run_id:
+    if not isinstance(run_id, str) or not run_id.strip():
         raise ReleaseStorageError("Local update report has no run_id")
     if manifest.get("last_update_run_id") != run_id:
         raise ReleaseStorageError(
             "Local update report run_id differs from the local manifest"
         )
     target_session = report.get("target_session")
+    if not isinstance(target_session, str) or not target_session:
+        raise ReleaseStorageError("Local update report has no target_session")
+    try:
+        date.fromisoformat(target_session)
+    except ValueError as exc:
+        raise ReleaseStorageError(
+            f"Local update report target_session is invalid: {target_session!r}"
+        ) from exc
     if target_session != manifest.get("latest_session"):
         raise ReleaseStorageError(
             "Local update report target_session differs from the local manifest"
@@ -1531,6 +1554,10 @@ def _load_local_update_report(
         raise ReleaseStorageError(
             "Local update report changed_partition_years must be unique and sorted"
         )
+    if report.get("affected_years") != years:
+        raise ReleaseStorageError(
+            "Local update report affected_years differs from changed_partition_years"
+        )
     requested_start = date.fromisoformat(str(manifest["requested_start"]))
     if any(year < requested_start.year or str(year) not in assets for year in years):
         raise ReleaseStorageError(
@@ -1548,6 +1575,263 @@ def _load_local_update_report(
             "Local update report changed_local_assets is inconsistent"
         )
     return report, years
+
+
+def _report_nonnegative_integer(report: Mapping[str, Any], key: str) -> int:
+    value = report.get(key)
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise ReleaseStorageError(
+            f"Local update report {key} must be a non-negative integer"
+        )
+    return value
+
+
+def _report_ratio(report: Mapping[str, Any], key: str) -> float:
+    value = report.get(key)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ReleaseStorageError(f"Local update report {key} must be numeric")
+    ratio = float(value)
+    if not math.isfinite(ratio) or not 0 <= ratio <= 1:
+        raise ReleaseStorageError(
+            f"Local update report {key} must be between zero and one"
+        )
+    return ratio
+
+
+def validate_local_incremental_update_acceptance(
+    *,
+    prices_root: Path = DEFAULT_OUTPUT_ROOT,
+    universe_path: Path = DEFAULT_UNIVERSE,
+    expected_universe_size: int = EXPECTED_UNIVERSE_SIZE,
+) -> dict[str, Any]:
+    """Validate one publishable update without requiring unchanged partitions."""
+
+    expected, tickers, manifest = load_local_dataset_identity(
+        prices_root=prices_root,
+        universe_path=universe_path,
+        expected_universe_size=expected_universe_size,
+    )
+    report, years = _load_local_update_report(prices_root, manifest)
+    assets = manifest["assets"]
+    partition_counts = manifest["partition_row_counts"]
+    try:
+        requested_start = date.fromisoformat(str(manifest["requested_start"]))
+        requested_end_exclusive = date.fromisoformat(
+            str(manifest["requested_end_exclusive"])
+        )
+        target_session = date.fromisoformat(str(report["target_session"]))
+    except (KeyError, ValueError) as exc:
+        raise ReleaseStorageError(
+            "Local incremental manifest contains invalid date bounds"
+        ) from exc
+    if requested_end_exclusive != target_session + timedelta(days=1):
+        raise ReleaseStorageError(
+            "Local manifest requested_end_exclusive must follow target_session"
+        )
+    if manifest.get("last_update_target_session") != report["target_session"]:
+        raise ReleaseStorageError(
+            "Local manifest last_update_target_session differs from update report"
+        )
+    if target_session.year not in years:
+        raise ReleaseStorageError(
+            "Local update report does not include the target-session partition"
+        )
+    if report.get("universe_ticker_count") != len(tickers):
+        raise ReleaseStorageError(
+            "Local update report Universe ticker count is inconsistent"
+        )
+
+    allowed_tickers = set(tickers)
+    validated_counts: dict[str, int] = {}
+    target_session_tickers: set[str] = set()
+    for year in years:
+        key = str(year)
+        asset = assets[key]
+        path = resolve_local_asset_path(prices_root, asset["local_path"])
+        validate_managed_asset(path, key=key, asset=asset)
+        table = pq.read_table(path, columns=["date", "ticker"])
+        expected_count = int(partition_counts[key])
+        if table.num_rows != expected_count:
+            raise ReleaseStorageError(
+                f"Changed partition {year} row count mismatch: expected "
+                f"{expected_count}, found {table.num_rows}"
+            )
+        if table.num_rows <= 0:
+            raise ReleaseStorageError(f"Changed partition {year} is empty")
+        partition_tickers = {
+            str(value) for value in pc.unique(table["ticker"]).to_pylist()
+        }
+        unexpected = sorted(partition_tickers - allowed_tickers)
+        if unexpected:
+            raise ReleaseStorageError(
+                f"Changed partition {year} contains non-Universe tickers: "
+                f"{unexpected[:5]}"
+            )
+        minimum_date = pc.min(table["date"]).as_py()
+        maximum_date = pc.max(table["date"]).as_py()
+        if (
+            minimum_date is None
+            or maximum_date is None
+            or minimum_date < requested_start
+            or maximum_date >= requested_end_exclusive
+        ):
+            raise ReleaseStorageError(
+                f"Changed partition {year} contains dates outside manifest bounds"
+            )
+        if year == target_session.year:
+            target_rows = table.filter(pc.equal(table["date"], target_session))
+            target_session_tickers.update(
+                str(value) for value in pc.unique(target_rows["ticker"]).to_pylist()
+            )
+        validated_counts[key] = table.num_rows
+
+    for key in ("ticker_coverage", "update_missing_tickers", "update_report"):
+        if key not in assets:
+            raise ReleaseStorageError(
+                f"Local manifest does not manage incremental asset {key!r}"
+            )
+        asset = assets[key]
+        path = resolve_local_asset_path(prices_root, asset["local_path"])
+        validate_managed_asset(path, key=key, asset=asset)
+
+    coverage_path = prices_root / "ticker_coverage.csv"
+    validate_coverage_ticker_set(coverage_path, tickers)
+    try:
+        with coverage_path.open(encoding="utf-8", newline="") as input_file:
+            coverage_rows = list(csv.DictReader(input_file))
+    except (OSError, UnicodeError, csv.Error) as exc:
+        raise ReleaseStorageError(
+            f"Unable to read ticker coverage {coverage_path}: {exc}"
+        ) from exc
+    coverage_total = 0
+    coverage_status_counts = {"success": 0, "no_data": 0, "failed": 0}
+    for row in coverage_rows:
+        ticker = str(row.get("ticker", ""))
+        status = str(row.get("status", ""))
+        if status not in coverage_status_counts:
+            raise ReleaseStorageError(
+                f"Ticker coverage status is invalid for {ticker}: {status!r}"
+            )
+        coverage_status_counts[status] += 1
+        try:
+            row_count = int(str(row.get("row_count", "")))
+            attempt_count = int(str(row.get("attempt_count", "")))
+        except ValueError as exc:
+            raise ReleaseStorageError(
+                f"Ticker coverage counts are invalid for {ticker}"
+            ) from exc
+        if row_count < 0 or attempt_count < 0:
+            raise ReleaseStorageError(
+                f"Ticker coverage counts are negative for {ticker}"
+            )
+        if status == "success" and (row_count <= 0 or bool(row.get("last_error"))):
+            raise ReleaseStorageError(
+                f"Successful ticker coverage is incomplete for {ticker}"
+            )
+        coverage_total += row_count
+        if row_count:
+            try:
+                first_date = date.fromisoformat(str(row.get("first_date", "")))
+                last_date = date.fromisoformat(str(row.get("last_date", "")))
+            except ValueError as exc:
+                raise ReleaseStorageError(
+                    f"Ticker coverage dates are invalid for {ticker}"
+                ) from exc
+            if (
+                first_date < requested_start
+                or first_date > last_date
+                or last_date > target_session
+            ):
+                raise ReleaseStorageError(
+                    f"Ticker coverage date range is invalid for {ticker}"
+                )
+    if coverage_total != manifest["total_row_count"]:
+        raise ReleaseStorageError(
+            "Ticker coverage row counts do not equal manifest total_row_count"
+        )
+    manifest_status_counts = {
+        "success": manifest.get("successful_ticker_count"),
+        "no_data": manifest.get("no_data_ticker_count"),
+        "failed": manifest.get("failed_ticker_count"),
+    }
+    if coverage_status_counts != manifest_status_counts:
+        raise ReleaseStorageError(
+            "Ticker coverage statuses do not match local manifest counts"
+        )
+    if coverage_status_counts["failed"] != 0:
+        raise ReleaseStorageError("Ticker coverage contains failed tickers")
+
+    missing_path = prices_root / "update_missing_tickers.csv"
+    try:
+        with missing_path.open(encoding="utf-8", newline="") as input_file:
+            missing_rows = list(csv.DictReader(input_file))
+    except (OSError, UnicodeError, csv.Error) as exc:
+        raise ReleaseStorageError(
+            f"Unable to read update missing tickers {missing_path}: {exc}"
+        ) from exc
+    missing_tickers = [str(row.get("ticker", "")) for row in missing_rows]
+    if len(missing_tickers) != len(set(missing_tickers)) or not set(
+        missing_tickers
+    ).issubset(allowed_tickers):
+        raise ReleaseStorageError(
+            "Update missing tickers do not form a unique Universe subset"
+        )
+    if any(ticker in target_session_tickers for ticker in missing_tickers):
+        raise ReleaseStorageError(
+            "Update missing tickers unexpectedly contain target-session data"
+        )
+
+    expected_active_count = _report_nonnegative_integer(
+        report, "expected_active_ticker_count"
+    )
+    target_count = _report_nonnegative_integer(report, "target_session_ticker_count")
+    missing_count = _report_nonnegative_integer(report, "missing_ticker_count")
+    if expected_active_count > len(tickers):
+        raise ReleaseStorageError(
+            "Local update report expected_active_ticker_count exceeds Universe"
+        )
+    if missing_count != len(missing_tickers):
+        raise ReleaseStorageError(
+            "Local update report missing_ticker_count differs from missing asset"
+        )
+    if target_count + missing_count != expected_active_count:
+        raise ReleaseStorageError(
+            "Local update report target coverage counts are inconsistent"
+        )
+    if target_count > len(target_session_tickers):
+        raise ReleaseStorageError(
+            "Local update report target count exceeds validated target rows"
+        )
+    target_ratio = _report_ratio(report, "target_session_coverage_ratio")
+    minimum_ratio = _report_ratio(report, "minimum_target_coverage_ratio")
+    calculated_ratio = (
+        target_count / expected_active_count if expected_active_count else 1.0
+    )
+    if not math.isclose(target_ratio, calculated_ratio, abs_tol=1e-12):
+        raise ReleaseStorageError(
+            "Local update report target coverage ratio is inconsistent"
+        )
+    if target_ratio < minimum_ratio and report.get("allow_partial_session") is not True:
+        raise ReleaseStorageError(
+            "Local update report target coverage is below the required minimum"
+        )
+    if manifest.get("last_update_target_coverage_ratio") != report.get(
+        "target_session_coverage_ratio"
+    ):
+        raise ReleaseStorageError(
+            "Local manifest target coverage ratio differs from update report"
+        )
+
+    return {
+        "dataset_identity": expected.as_dict(),
+        "run_id": report["run_id"],
+        "target_session": report["target_session"],
+        "changed_partition_years": years,
+        "validated_partition_row_counts": validated_counts,
+        "total_row_count": manifest["total_row_count"],
+        "unresolved_failure_count": 0,
+        "success": True,
+    }
 
 
 def build_publish_plan(
@@ -1644,6 +1928,57 @@ def upload_release_asset(
     return uploaded
 
 
+def _validate_unchanged_remote_metadata(
+    *,
+    local_manifest: Mapping[str, Any],
+    remote_manifest: Mapping[str, Any],
+    changed_partition_years: Collection[int],
+) -> None:
+    """Anchor every inherited asset record to the authoritative Release."""
+
+    changed_keys = {
+        *(str(year) for year in changed_partition_years),
+        "ticker_coverage",
+        "update_missing_tickers",
+        "update_report",
+    }
+    local_assets = local_manifest["assets"]
+    remote_assets = remote_manifest["assets"]
+    local_unchanged = set(local_assets) - changed_keys
+    remote_unchanged = set(remote_assets) - changed_keys
+    if local_unchanged != remote_unchanged:
+        raise ReleaseStorageError(
+            "Local manifest changed the set of inherited remote assets: "
+            f"local_only={sorted(local_unchanged - remote_unchanged)}, "
+            f"remote_only={sorted(remote_unchanged - local_unchanged)}"
+        )
+
+    local_counts = local_manifest["partition_row_counts"]
+    remote_counts = remote_manifest["partition_row_counts"]
+    metadata_fields = ("asset_name", "local_path", "size_bytes", "sha256")
+    for key in sorted(local_unchanged):
+        local_asset = local_assets[key]
+        remote_asset = remote_assets[key]
+        differences = {
+            field: {
+                "remote": remote_asset.get(field),
+                "local": local_asset.get(field),
+            }
+            for field in metadata_fields
+            if local_asset.get(field) != remote_asset.get(field)
+        }
+        if key.isdigit() and local_counts.get(key) != remote_counts.get(key):
+            differences["partition_row_count"] = {
+                "remote": remote_counts.get(key),
+                "local": local_counts.get(key),
+            }
+        if differences:
+            raise ReleaseStorageError(
+                f"Local manifest changed authoritative metadata for unchanged "
+                f"asset {key!r}: {json.dumps(differences, sort_keys=True)}"
+            )
+
+
 def publish_update(
     *,
     repository: str | None = None,
@@ -1659,7 +1994,7 @@ def publish_update(
     """Publish validated update assets in order, committing with manifest last."""
 
     if expected_identity is None:
-        expected_identity, _, _ = load_local_dataset_identity(
+        expected_identity, _, local_manifest = load_local_dataset_identity(
             prices_root=prices_root,
             universe_path=universe_path,
             expected_universe_size=expected_universe_size,
@@ -1704,12 +2039,17 @@ def publish_update(
     release = get_release_metadata(github, resolved_repository, release_tag)
     release_assets = _release_asset_index(release)
     with tempfile.TemporaryDirectory(prefix="momentum-publish-identity-") as temp_dir:
-        _download_and_validate_manifest(
+        remote_manifest = _download_and_validate_manifest(
             github,
             release_assets,
             Path(temp_dir) / "manifest.json",
             expected_identity=expected_identity,
         )
+    _validate_unchanged_remote_metadata(
+        local_manifest=local_manifest,
+        remote_manifest=remote_manifest,
+        changed_partition_years=plan["changed_partition_years"],
+    )
     uploaded_names: list[str] = []
     for item in plan["assets"]:
         asset_name = str(item["asset_name"])

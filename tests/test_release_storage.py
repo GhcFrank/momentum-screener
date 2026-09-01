@@ -17,7 +17,7 @@ import pytest
 import momentum_screener.release_storage as release_module
 import momentum_screener.storage_manifest as manifest_module
 from momentum_screener.dataset_config import DEFAULT_RELEASE_TAG
-from momentum_screener.prices import universe_sha256
+from momentum_screener.prices import DataValidationError, universe_sha256
 from momentum_screener.release_storage import (
     DatasetIdentity,
     GitHubClient,
@@ -35,6 +35,8 @@ from momentum_screener.release_storage import (
     require_remote_dataset_identity,
     resolve_github_token,
     resolve_repository,
+    validate_local_dataset_acceptance,
+    validate_local_incremental_update_acceptance,
     validate_remote_manifest,
 )
 from momentum_screener.storage_manifest import (
@@ -82,10 +84,10 @@ def test_release_storage_has_no_legacy_tag_fallback_or_case_normalization() -> N
     assert "release_tag.casefold" not in source
 
 
-def write_price_asset(path: Path, year: int = 2026) -> None:
+def write_price_asset(path: Path, year: int = 2026, day: int = 2) -> None:
     table = pa.Table.from_arrays(
         [
-            pa.array([date(year, 1, 2)], type=pa.date32()),
+            pa.array([date(year, 1, day)], type=pa.date32()),
             pa.array(["AAA"], type=pa.string()),
             pa.array([10.0], type=pa.float64()),
             pa.array([9.0], type=pa.float64()),
@@ -153,6 +155,8 @@ def make_remote_dataset(
         {
             "run_id": "run-1",
             "target_session": "2026-01-02",
+            "previous_latest_session": "2025-12-31",
+            "refresh_start": "2025-01-01",
             "affected_years": [2026],
             "changed_partition_years": [2026],
             "changed_local_assets": [
@@ -162,6 +166,14 @@ def make_remote_dataset(
                 "update_report.json",
                 "manifest.json",
             ],
+            "universe_ticker_count": 1,
+            "expected_active_ticker_count": 1,
+            "target_session_ticker_count": 1,
+            "target_session_coverage_ratio": 1.0,
+            "minimum_target_coverage_ratio": 0.95,
+            "missing_ticker_count": 0,
+            "unresolved_failure_count": 0,
+            "allow_partial_session": False,
             "local_update_success": True,
             "success": True,
         },
@@ -197,6 +209,8 @@ def make_remote_dataset(
         "last_successful_update_utc": "2026-01-03T00:00:00Z",
         "last_update_run_id": "run-1",
         "last_update_target_session": "2026-01-02",
+        "last_update_target_coverage_ratio": 1.0,
+        "requested_end_exclusive": "2026-01-03",
         "successful_ticker_count": 1,
         "no_data_ticker_count": 0,
         "failed_ticker_count": 0,
@@ -978,6 +992,215 @@ def materialize_publish_fixture(tmp_path: Path) -> Path:
     return root
 
 
+def make_partial_incremental_fixture(
+    root: Path,
+) -> tuple[Path, Path, DatasetIdentity, dict[str, Any]]:
+    universe = root / "universe.csv"
+    universe.parent.mkdir(parents=True, exist_ok=True)
+    universe.write_text(
+        "ticker,company_name,market_cap,market_cap_rank\nAAA,AAA Inc.,100,1\n",
+        encoding="utf-8",
+    )
+    prices_root = root / "prices"
+    changed_paths = {
+        2025: prices_root / "daily/year=2025/prices.parquet",
+        2026: prices_root / "daily/year=2026/prices.parquet",
+    }
+    write_price_asset(changed_paths[2025], 2025)
+    write_price_asset(changed_paths[2026], 2026, day=5)
+    coverage_path = prices_root / "ticker_coverage.csv"
+    write_csv(
+        coverage_path,
+        COVERAGE_COLUMNS,
+        [
+            {
+                "ticker": "AAA",
+                "status": "success",
+                "first_date": "2016-01-02",
+                "last_date": "2026-01-05",
+                "row_count": 11,
+                "attempt_count": 2,
+                "last_error": "",
+            }
+        ],
+    )
+    missing_path = prices_root / "update_missing_tickers.csv"
+    write_csv(missing_path, UPDATE_MISSING_COLUMNS, [])
+    report = {
+        "run_id": "partial-run-1",
+        "target_session": "2026-01-05",
+        "previous_latest_session": "2026-01-02",
+        "refresh_start": "2025-01-01",
+        "refresh_calendar_days": 550,
+        "affected_years": [2025, 2026],
+        "changed_partition_years": [2025, 2026],
+        "changed_local_assets": [
+            "daily/year=2025/prices.parquet",
+            "daily/year=2026/prices.parquet",
+            "ticker_coverage.csv",
+            "update_missing_tickers.csv",
+            "update_report.json",
+            "manifest.json",
+        ],
+        "universe_ticker_count": 1,
+        "expected_active_ticker_count": 1,
+        "target_session_ticker_count": 1,
+        "target_session_coverage_ratio": 1.0,
+        "minimum_target_coverage_ratio": 0.95,
+        "missing_ticker_count": 0,
+        "unresolved_failure_count": 0,
+        "allow_partial_session": False,
+        "local_update_success": True,
+        "success": True,
+    }
+    report_path = prices_root / "update_report.json"
+    write_json_atomically(report_path, report)
+
+    identity = DatasetIdentity(
+        schema_version="daily_prices_v1",
+        universe_sha256=universe_sha256(("AAA",)),
+        requested_start="2016-01-01",
+        universe_ticker_count=1,
+    )
+    partition_counts = {str(year): 1 for year in range(2016, 2027)}
+    assets: dict[str, dict[str, str | int]] = {
+        str(year): {
+            "asset_name": f"prices-year-{year}.parquet",
+            "local_path": f"daily/year={year}/prices.parquet",
+            "size_bytes": year,
+            "sha256": f"{year:064x}",
+        }
+        for year in range(2016, 2025)
+    }
+    for year, path in changed_paths.items():
+        assets[str(year)] = build_asset_record(
+            path,
+            asset_name=f"prices-year-{year}.parquet",
+            local_path=f"daily/year={year}/prices.parquet",
+        )
+    assets.update(
+        {
+            "ticker_coverage": build_asset_record(
+                coverage_path,
+                asset_name="prices-ticker-coverage.csv",
+                local_path="ticker_coverage.csv",
+            ),
+            "update_missing_tickers": build_asset_record(
+                missing_path,
+                asset_name="prices-update-missing-tickers.csv",
+                local_path="update_missing_tickers.csv",
+            ),
+            "update_report": build_asset_record(
+                report_path,
+                asset_name="prices-update-report.json",
+                local_path="update_report.json",
+            ),
+            "download_failures": {
+                "asset_name": "prices-download-failures.csv",
+                "local_path": "download_failures.csv",
+                "size_bytes": 37,
+                "sha256": "d" * 64,
+            },
+        }
+    )
+    manifest = {
+        **identity.as_dict(),
+        "source": "yahoo_finance_via_yfinance",
+        "requested_end_exclusive": "2026-01-06",
+        "actual_min_date": "2016-01-02",
+        "actual_max_date": "2026-01-05",
+        "latest_session": "2026-01-05",
+        "last_successful_update_utc": "2026-01-06T00:00:00+00:00",
+        "last_update_run_id": "partial-run-1",
+        "last_update_target_session": "2026-01-05",
+        "last_update_target_coverage_ratio": 1.0,
+        "successful_ticker_count": 1,
+        "no_data_ticker_count": 0,
+        "failed_ticker_count": 0,
+        "total_row_count": sum(partition_counts.values()),
+        "partition_row_counts": partition_counts,
+        "assets": assets,
+        "completed": True,
+    }
+    write_json_atomically(prices_root / "manifest.json", manifest)
+
+    remote_manifest = json.loads(json.dumps(manifest))
+    remote_manifest.update(
+        {
+            "requested_end_exclusive": "2026-01-03",
+            "actual_max_date": "2026-01-02",
+            "latest_session": "2026-01-02",
+            "last_successful_update_utc": "2026-01-03T00:00:00+00:00",
+            "last_update_run_id": "remote-run-0",
+            "last_update_target_session": "2026-01-02",
+        }
+    )
+    remote_manifest["partition_row_counts"]["2026"] = 2
+    remote_manifest["total_row_count"] = sum(
+        remote_manifest["partition_row_counts"].values()
+    )
+    for key in (
+        "2025",
+        "2026",
+        "ticker_coverage",
+        "update_missing_tickers",
+        "update_report",
+    ):
+        remote_manifest["assets"][key]["size_bytes"] = 10000 + len(key)
+        remote_manifest["assets"][key]["sha256"] = "e" * 64
+    return universe, prices_root, identity, remote_manifest
+
+
+def make_release_for_remote_manifest(
+    manifest: Mapping[str, Any],
+) -> tuple[dict[str, Any], dict[str, bytes]]:
+    manifest_bytes = (
+        json.dumps(dict(manifest), indent=2, sort_keys=True) + "\n"
+    ).encode()
+    assets = [
+        {
+            "id": index,
+            "name": str(asset["asset_name"]),
+            "size": int(asset["size_bytes"]),
+            "url": f"https://api.example/assets/{index}",
+        }
+        for index, asset in enumerate(manifest["assets"].values(), start=1)
+    ]
+    assets.append(
+        {
+            "id": len(assets) + 1,
+            "name": "prices-manifest.json",
+            "size": len(manifest_bytes),
+            "url": f"https://api.example/assets/{len(assets) + 1}",
+        }
+    )
+    release = {
+        "id": 1,
+        "tag_name": "marketData",
+        "upload_url": "https://uploads.example/releases/1/assets{?name,label}",
+        "assets": assets,
+    }
+    return release, {"prices-manifest.json": manifest_bytes}
+
+
+def rewrite_partial_update_report(
+    prices_root: Path,
+    mutation: Any,
+) -> None:
+    manifest_path = prices_root / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    report_path = prices_root / "update_report.json"
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    mutation(report, manifest)
+    write_json_atomically(report_path, report)
+    manifest["assets"]["update_report"] = build_asset_record(
+        report_path,
+        asset_name="prices-update-report.json",
+        local_path="update_report.json",
+    )
+    write_json_atomically(manifest_path, manifest)
+
+
 def test_prepare_bootstrap_indexes_existing_data_without_network(
     tmp_path: Path,
 ) -> None:
@@ -1522,3 +1745,182 @@ def test_load_local_dataset_identity_remains_strict_without_manifest(
             universe_path=universe,
             expected_universe_size=1,
         )
+
+
+def test_incremental_acceptance_allows_partial_daily_runner(tmp_path: Path) -> None:
+    universe, prices_root, _, _ = make_partial_incremental_fixture(tmp_path)
+
+    result = validate_local_incremental_update_acceptance(
+        prices_root=prices_root,
+        universe_path=universe,
+        expected_universe_size=1,
+    )
+
+    assert result["success"] is True
+    assert result["changed_partition_years"] == [2025, 2026]
+    assert result["validated_partition_row_counts"] == {"2025": 1, "2026": 1}
+    assert result["total_row_count"] == 11
+    for year in range(2016, 2025):
+        assert not (prices_root / f"daily/year={year}/prices.parquet").exists()
+
+
+def test_full_acceptance_remains_strict_for_partial_daily_runner(
+    tmp_path: Path,
+) -> None:
+    universe, prices_root, _, _ = make_partial_incremental_fixture(tmp_path)
+
+    with pytest.raises(DataValidationError, match="Partition counts mismatch"):
+        validate_local_dataset_acceptance(
+            prices_root=prices_root,
+            universe_path=universe,
+            expected_universe_size=1,
+        )
+
+
+def test_incremental_acceptance_rejects_missing_changed_partition(
+    tmp_path: Path,
+) -> None:
+    universe, prices_root, _, _ = make_partial_incremental_fixture(tmp_path)
+    (prices_root / "daily/year=2025/prices.parquet").unlink()
+
+    with pytest.raises(ManifestError, match="missing"):
+        validate_local_incremental_update_acceptance(
+            prices_root=prices_root,
+            universe_path=universe,
+            expected_universe_size=1,
+        )
+
+
+def test_incremental_acceptance_rejects_changed_partition_hash_mismatch(
+    tmp_path: Path,
+) -> None:
+    universe, prices_root, _, _ = make_partial_incremental_fixture(tmp_path)
+    path = prices_root / "daily/year=2025/prices.parquet"
+    path.write_bytes(path.read_bytes() + b"tampered")
+
+    with pytest.raises(ManifestError, match="size mismatch|SHA-256 mismatch"):
+        validate_local_incremental_update_acceptance(
+            prices_root=prices_root,
+            universe_path=universe,
+            expected_universe_size=1,
+        )
+
+
+def test_incremental_acceptance_rejects_changed_partition_row_count_mismatch(
+    tmp_path: Path,
+) -> None:
+    universe, prices_root, _, _ = make_partial_incremental_fixture(tmp_path)
+    manifest_path = prices_root / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["partition_row_counts"]["2025"] = 2
+    manifest["total_row_count"] += 1
+    write_json_atomically(manifest_path, manifest)
+
+    with pytest.raises(ReleaseStorageError, match="row count mismatch"):
+        validate_local_incremental_update_acceptance(
+            prices_root=prices_root,
+            universe_path=universe,
+            expected_universe_size=1,
+        )
+
+
+def test_incremental_acceptance_rejects_manifest_total_arithmetic(
+    tmp_path: Path,
+) -> None:
+    universe, prices_root, _, _ = make_partial_incremental_fixture(tmp_path)
+    manifest_path = prices_root / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["total_row_count"] += 1
+    write_json_atomically(manifest_path, manifest)
+
+    with pytest.raises(ManifestError, match="total_row_count"):
+        validate_local_incremental_update_acceptance(
+            prices_root=prices_root,
+            universe_path=universe,
+            expected_universe_size=1,
+        )
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda report, manifest: report.update(local_update_success=False),
+        lambda report, manifest: report.update(success=False),
+        lambda report, manifest: report.update(run_id="different-run"),
+        lambda report, manifest: report.update(target_session="2026-01-02"),
+        lambda report, manifest: report.update(changed_partition_years=[2026]),
+        lambda report, manifest: report.update(
+            changed_local_assets=report["changed_local_assets"][:-1]
+        ),
+    ],
+)
+def test_incremental_acceptance_rejects_update_report_inconsistency(
+    tmp_path: Path,
+    mutation: Any,
+) -> None:
+    universe, prices_root, _, _ = make_partial_incremental_fixture(tmp_path)
+    rewrite_partial_update_report(prices_root, mutation)
+
+    with pytest.raises(ReleaseStorageError):
+        validate_local_incremental_update_acceptance(
+            prices_root=prices_root,
+            universe_path=universe,
+            expected_universe_size=1,
+        )
+
+
+@pytest.mark.parametrize("field", ["sha256", "size_bytes", "partition_row_count"])
+def test_publish_rejects_changed_unaffected_remote_metadata_before_upload(
+    tmp_path: Path,
+    field: str,
+) -> None:
+    _, prices_root, identity, remote_manifest = make_partial_incremental_fixture(
+        tmp_path
+    )
+    manifest_path = prices_root / "manifest.json"
+    local_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if field == "sha256":
+        local_manifest["assets"]["2020"]["sha256"] = "c" * 64
+    elif field == "size_bytes":
+        local_manifest["assets"]["2020"]["size_bytes"] += 1
+    else:
+        local_manifest["partition_row_counts"]["2020"] += 1
+        local_manifest["total_row_count"] += 1
+    write_json_atomically(manifest_path, local_manifest)
+    release, content = make_release_for_remote_manifest(remote_manifest)
+    client = FakeClient(release, content)
+
+    with pytest.raises(ReleaseStorageError, match="unchanged asset '2020'"):
+        publish_update(
+            repository="owner/repo",
+            prices_root=prices_root,
+            client=cast(Any, client),
+            expected_identity=identity,
+        )
+
+    assert client.uploaded == []
+
+
+def test_publish_allows_valid_changed_partition_metadata(tmp_path: Path) -> None:
+    _, prices_root, identity, remote_manifest = make_partial_incremental_fixture(
+        tmp_path
+    )
+    release, content = make_release_for_remote_manifest(remote_manifest)
+    client = FakeClient(release, content)
+
+    result = publish_update(
+        repository="owner/repo",
+        prices_root=prices_root,
+        client=cast(Any, client),
+        expected_identity=identity,
+    )
+
+    assert result["success"] is True
+    assert client.uploaded == [
+        "prices-year-2025.parquet",
+        "prices-year-2026.parquet",
+        "prices-ticker-coverage.csv",
+        "prices-update-missing-tickers.csv",
+        "prices-update-report.json",
+        "prices-manifest.json",
+    ]

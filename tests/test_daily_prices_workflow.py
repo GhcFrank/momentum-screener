@@ -49,12 +49,24 @@ def test_daily_workflow_checks_identity_before_pull_and_manifest_publish() -> No
     pull = content.index("momentum_screener.release_storage pull-update-inputs")
     dry_plan = content.index("momentum_screener.prices update --dry-run")
     update = content.index('--result-json "$RUNNER_TEMP/price-update-result.json"')
+    incremental_acceptance = content.index(
+        "validate_local_incremental_update_acceptance"
+    )
     publish = content.index("momentum_screener.release_storage publish-update")
     final_check = content.rindex("momentum_screener.release_storage check")
 
-    assert validate < first_check < pull < dry_plan < update < publish < final_check
-    assert "Validate local data acceptance" in content
-    assert "validate_local_dataset_acceptance" in content
+    assert (
+        validate
+        < first_check
+        < pull
+        < dry_plan
+        < update
+        < incremental_acceptance
+        < publish
+        < final_check
+    )
+    assert "Validate incremental update acceptance" in content
+    assert "validate_local_dataset_acceptance" not in content
     assert "build_publish_plan" not in content
     assert "Local Universe ticker count" in content
     assert "Expected requested start" in content
