@@ -103,12 +103,12 @@ jobs:
 
       - name: Calculate and email daily RPS screen
         env:
-          RPS_SMTP_HOST: ${{ secrets.RPS_SMTP_HOST }}
-          RPS_SMTP_PORT: ${{ secrets.RPS_SMTP_PORT }}
-          RPS_SMTP_USERNAME: ${{ secrets.RPS_SMTP_USERNAME }}
-          RPS_SMTP_PASSWORD: ${{ secrets.RPS_SMTP_PASSWORD }}
-          RPS_EMAIL_FROM: ${{ secrets.RPS_EMAIL_FROM }}
-          RPS_EMAIL_TO: ${{ secrets.RPS_EMAIL_TO }}
+          RPS_SMTP_HOST: smtp.gmail.com
+          RPS_SMTP_PORT: "587"
+          RPS_SMTP_USERNAME: ${{ secrets.GMAIL_USER }}
+          RPS_SMTP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          RPS_EMAIL_FROM: ${{ secrets.GMAIL_USER }}
+          RPS_EMAIL_TO: ${{ secrets.EMAIL_TO }}
         run: >-
           uv run python -m momentum_screener.rps_notification
           --threshold "${RPS_EMAIL_THRESHOLD}"

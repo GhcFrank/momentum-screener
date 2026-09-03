@@ -3,6 +3,7 @@ from __future__ import annotations
 import smtplib
 from datetime import date
 from email.message import EmailMessage
+from io import StringIO
 from pathlib import Path
 from typing import Any, Self
 
@@ -169,7 +170,9 @@ def test_latest_session_comes_from_validated_manifest(
 
 
 def test_orchestration_reuses_full_snapshot_latest_session_and_sends_once(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     universe_path = tmp_path / "universe.csv"
     snapshot_calls: list[tuple[date, Path, Path]] = []
@@ -196,6 +199,7 @@ def test_orchestration_reuses_full_snapshot_latest_session_and_sends_once(
         notification, "calculate_rps_snapshot", fake_calculate_rps_snapshot
     )
     monkeypatch.setattr(notification, "send_rps_email", fake_send)
+    caplog.set_level("INFO")
 
     result = run_daily_rps_notification(
         prices_root=tmp_path,
@@ -209,6 +213,9 @@ def test_orchestration_reuses_full_snapshot_latest_session_and_sends_once(
     assert result.snapshot_ticker_count == 3
     assert result.rps120_candidate_count == 2
     assert result.rps250_candidate_count == 2
+    assert "first@example.com" not in caplog.text
+    assert "second@example.com" not in caplog.text
+    assert "f***@example.com, s***@example.com" in caplog.text
 
 
 def test_manual_date_still_calls_complete_snapshot_api(
@@ -271,15 +278,118 @@ def test_email_configuration_supports_multiple_recipients_and_default_port() -> 
     assert config.recipients == ("first@example.com", "second@example.com")
 
 
-def test_email_configuration_rejects_missing_secrets() -> None:
-    with pytest.raises(EmailConfigurationError, match="RPS_SMTP_PASSWORD"):
-        SmtpEmailConfig.from_environment(
-            {
-                key: value
-                for key, value in _email_environment().items()
-                if key != "RPS_SMTP_PASSWORD"
-            }
+def test_email_configuration_accepts_local_gmail_names() -> None:
+    config = SmtpEmailConfig.from_environment(
+        {
+            "GMAIL_USER": "sender@example.com",
+            "GMAIL_APP_PASSWORD": "test-app-password",
+            "EMAIL_TO": "recipient@example.com",
+        }
+    )
+
+    assert config.host == "smtp.gmail.com"
+    assert config.port == 587
+    assert config.username == "sender@example.com"
+    assert config.sender == "sender@example.com"
+    assert config.recipients == ("recipient@example.com",)
+
+
+@pytest.mark.parametrize(
+    ("missing_key", "expected_name"),
+    [
+        ("RPS_SMTP_USERNAME", "RPS_SMTP_USERNAME"),
+        ("RPS_SMTP_PASSWORD", "RPS_SMTP_PASSWORD"),
+        ("RPS_EMAIL_TO", "RPS_EMAIL_TO"),
+    ],
+)
+def test_email_configuration_rejects_missing_required_values_without_secrets(
+    missing_key: str, expected_name: str
+) -> None:
+    environment = _email_environment()
+    secret_value = environment["RPS_SMTP_PASSWORD"]
+    del environment[missing_key]
+
+    with pytest.raises(EmailConfigurationError) as raised:
+        SmtpEmailConfig.from_environment(environment)
+
+    assert expected_name in str(raised.value)
+    assert secret_value not in str(raised.value)
+
+
+def test_live_orchestration_validates_config_before_calculating(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    calculated = False
+
+    def fake_calculate(*args: object, **kwargs: object) -> pd.DataFrame:
+        nonlocal calculated
+        calculated = True
+        return _snapshot([])
+
+    monkeypatch.setattr(notification, "calculate_rps_snapshot", fake_calculate)
+
+    with pytest.raises(EmailConfigurationError, match="RPS_SMTP_USERNAME"):
+        run_daily_rps_notification(
+            as_of_date=date(2026, 8, 31),
+            prices_root=tmp_path,
+            universe_path=tmp_path / "universe.csv",
+            environ={},
         )
+
+    assert calculated is False
+
+
+def test_dry_run_renders_preview_without_loading_config_or_sending(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    output = StringIO()
+    monkeypatch.setattr(
+        notification,
+        "calculate_rps_snapshot",
+        lambda as_of_date, **kwargs: _snapshot([("AAA", 95.0, 96.0)]),
+    )
+
+    def unexpected_send(*args: object, **kwargs: object) -> None:
+        raise AssertionError("dry-run must not send")
+
+    monkeypatch.setattr(notification, "send_rps_email", unexpected_send)
+
+    result = run_daily_rps_notification(
+        as_of_date=date(2026, 8, 31),
+        prices_root=tmp_path,
+        universe_path=tmp_path / "universe.csv",
+        environ={},
+        dry_run=True,
+        preview_stream=output,
+    )
+
+    assert result.rps120_candidate_count == 1
+    assert result.rps250_candidate_count == 1
+    assert "Subject: Momentum Screener - RPS - 2026-08-31" in output.getvalue()
+    assert "RPS120 > 87: 1 stocks" in output.getvalue()
+    assert "RPS250 > 87: 1 stocks" in output.getvalue()
+
+
+def test_cli_loads_root_dotenv_without_overriding_existing_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dotenv_calls: list[tuple[Path, bool]] = []
+    run_calls: list[dict[str, object]] = []
+
+    def fake_load_dotenv(*, dotenv_path: Path, override: bool) -> bool:
+        dotenv_calls.append((dotenv_path, override))
+        return True
+
+    def fake_run(**kwargs: object) -> object:
+        run_calls.append(kwargs)
+        return object()
+
+    monkeypatch.setattr(notification, "load_dotenv", fake_load_dotenv)
+    monkeypatch.setattr(notification, "run_daily_rps_notification", fake_run)
+
+    assert notification.main(["--dry-run"]) == 0
+    assert dotenv_calls == [(Path(".env"), False)]
+    assert run_calls[0]["dry_run"] is True
 
 
 def test_smtp_sender_uses_starttls_auth_and_one_message() -> None:
@@ -325,6 +435,45 @@ def test_smtp_sender_uses_starttls_auth_and_one_message() -> None:
         "ehlo",
         ("login", "sender@example.com", "test-password"),
     ]
+
+
+@pytest.mark.parametrize("failure_stage", ["login", "send"])
+def test_smtp_sender_propagates_authentication_and_send_failures(
+    failure_stage: str,
+) -> None:
+    class FailingSmtp:
+        def __init__(self, host: str, port: int, *, timeout: float) -> None:
+            pass
+
+        def __enter__(self) -> Self:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            pass
+
+        def ehlo(self) -> None:
+            pass
+
+        def starttls(self, *, context: object) -> None:
+            pass
+
+        def login(self, username: str, password: str) -> None:
+            if failure_stage == "login":
+                raise smtplib.SMTPAuthenticationError(535, b"authentication failed")
+
+        def send_message(self, message: EmailMessage) -> None:
+            if failure_stage == "send":
+                raise smtplib.SMTPException("send failed")
+
+    config = SmtpEmailConfig.from_environment(_email_environment())
+    rendered = RenderedRpsEmail("Subject", "plain", "<p>html</p>")
+
+    with pytest.raises(smtplib.SMTPException):
+        send_rps_email(
+            rendered,
+            config,
+            smtp_factory=FailingSmtp,  # type: ignore[arg-type]
+        )
 
 
 def test_default_threshold_is_defined_once_for_public_apis() -> None:

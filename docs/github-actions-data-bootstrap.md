@@ -99,22 +99,36 @@ Repository Variable `RPS_EMAIL_THRESHOLD` 覆盖。
 
 workflow 需要配置以下 GitHub Actions Secrets：
 
-- `RPS_SMTP_HOST`
-- `RPS_SMTP_PORT`（可留空，默认 `587`）
-- `RPS_SMTP_USERNAME`
-- `RPS_SMTP_PASSWORD`
-- `RPS_EMAIL_FROM`
-- `RPS_EMAIL_TO`（一个地址，或逗号分隔的多个地址）
+- `GMAIL_USER`
+- `GMAIL_APP_PASSWORD`
+- `EMAIL_TO`（一个地址，或逗号分隔的多个地址）
+
+workflow 把这些 Secrets 映射为 notification 模块使用的 `RPS_*` 环境变量，并固定使用
+Gmail 的 `smtp.gmail.com:587` + STARTTLS。`GMAIL_APP_PASSWORD` 应使用启用两步验证后
+生成的 Google App Password，不应使用或提交普通 Google account password。
+
+本地 CLI 会从 repository root 的 `.env` 加载配置，但不会覆盖 shell 中已经存在的环境
+变量。它支持与 workflow 相同的 `RPS_*` 名称，也兼容本地已有的 Gmail 配置名：
+
+```text
+GMAIL_USER
+GMAIL_APP_PASSWORD
+EMAIL_TO
+```
+
+在 Gmail 配置模式下，host 默认为 `smtp.gmail.com`，port 默认为 `587`，From 默认为
+`GMAIL_USER`。`.env` 必须保持未跟踪，并由 `.gitignore` 排除。
 
 本地手动补发默认使用 dataset latest session：
 
 ```bash
-RPS_SMTP_HOST=smtp.example.com \
-RPS_SMTP_USERNAME=user@example.com \
-RPS_SMTP_PASSWORD='app-password' \
-RPS_EMAIL_FROM=user@example.com \
-RPS_EMAIL_TO=recipient@example.com \
 uv run python -m momentum_screener.rps_notification
+```
+
+先进行不连接 SMTP、不发送邮件的完整计算和渲染检查：
+
+```bash
+uv run python -m momentum_screener.rps_notification --dry-run
 ```
 
 也可显式指定 session 和 threshold；计算仍然使用完整 Universe 的 RPS snapshot：
@@ -122,12 +136,13 @@ uv run python -m momentum_screener.rps_notification
 ```bash
 uv run python -m momentum_screener.rps_notification \
   --as-of-date 2026-08-31 \
-  --threshold 90
+  --threshold 90 \
+  --dry-run
 ```
 
 命令会记录 latest session、snapshot ticker count、两个筛选数量、收件人及发送结果；
-不会记录 SMTP password。RPS 计算、渲染或发送失败都会返回非零退出码，已经成功落地
-或发布的行情数据不会被回滚。
+不会记录 SMTP password。非 dry-run 会在计算 RPS 前验证完整邮件配置；RPS 计算、渲染
+或发送失败都会返回非零退出码，已经成功落地或发布的行情数据不会被回滚。
 
 增量更新的 refresh 下限来自远端 manifest 的 `requested_start`：
 

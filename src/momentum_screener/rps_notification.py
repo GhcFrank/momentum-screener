@@ -8,15 +8,17 @@ import math
 import os
 import smtplib
 import ssl
+import sys
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from email.message import EmailMessage
 from html import escape
 from pathlib import Path
-from typing import Any, Final
+from typing import Any, Final, TextIO
 
 import pandas as pd  # type: ignore[import-untyped]
+from dotenv import load_dotenv
 
 from momentum_screener.prices import DEFAULT_OUTPUT_ROOT, DEFAULT_UNIVERSE
 from momentum_screener.rps import calculate_rps_snapshot
@@ -25,6 +27,7 @@ from momentum_screener.storage_manifest import load_manifest
 LOGGER = logging.getLogger(__name__)
 
 DEFAULT_RPS_EMAIL_THRESHOLD: Final[float] = 87.0
+DEFAULT_GMAIL_SMTP_HOST: Final[str] = "smtp.gmail.com"
 DEFAULT_SMTP_PORT: Final[int] = 587
 DEFAULT_SMTP_TIMEOUT_SECONDS: Final[float] = 30.0
 
@@ -70,25 +73,53 @@ class SmtpEmailConfig:
     def from_environment(
         cls, environ: Mapping[str, str] | None = None
     ) -> SmtpEmailConfig:
-        """Load required SMTP settings without logging any credential values."""
+        """Load canonical settings, with compatibility for local Gmail names."""
 
         environment = os.environ if environ is None else environ
-        required_names = (
-            "RPS_SMTP_HOST",
+        gmail_username = _first_configured(environment, "GMAIL_USER")
+        gmail_password = _first_configured(environment, "GMAIL_APP_PASSWORD")
+        username = _first_configured(
+            environment,
             "RPS_SMTP_USERNAME",
-            "RPS_SMTP_PASSWORD",
-            "RPS_EMAIL_FROM",
-            "RPS_EMAIL_TO",
+            "SMTP_USERNAME",
+            "GMAIL_USER",
         )
-        missing = [
-            name for name in required_names if not environment.get(name, "").strip()
-        ]
+        password = _first_configured(
+            environment,
+            "RPS_SMTP_PASSWORD",
+            "SMTP_PASSWORD",
+            "GMAIL_APP_PASSWORD",
+        )
+        sender = _first_configured(
+            environment,
+            "RPS_EMAIL_FROM",
+            "EMAIL_FROM",
+        )
+        if not sender and gmail_username:
+            sender = gmail_username
+        recipient_value = _first_configured(
+            environment,
+            "RPS_EMAIL_TO",
+            "EMAIL_TO",
+        )
+        host = _first_configured(environment, "RPS_SMTP_HOST", "SMTP_HOST")
+        if not host and (gmail_username or gmail_password):
+            host = DEFAULT_GMAIL_SMTP_HOST
+
+        required_values = (
+            ("RPS_SMTP_HOST", host),
+            ("RPS_SMTP_USERNAME", username),
+            ("RPS_SMTP_PASSWORD", password),
+            ("RPS_EMAIL_FROM", sender),
+            ("RPS_EMAIL_TO", recipient_value),
+        )
+        missing = [name for name, value in required_values if not value]
         if missing:
             raise EmailConfigurationError(
-                "Missing required email environment variables: " + ", ".join(missing)
+                "Missing required email configuration: " + ", ".join(missing)
             )
 
-        raw_port = environment.get("RPS_SMTP_PORT", "").strip()
+        raw_port = _first_configured(environment, "RPS_SMTP_PORT", "SMTP_PORT")
         try:
             port = int(raw_port) if raw_port else DEFAULT_SMTP_PORT
         except ValueError as exc:
@@ -96,11 +127,8 @@ class SmtpEmailConfig:
         if not 1 <= port <= 65535:
             raise EmailConfigurationError("RPS_SMTP_PORT must be between 1 and 65535")
 
-        sender = environment["RPS_EMAIL_FROM"].strip()
         recipients = tuple(
-            value.strip()
-            for value in environment["RPS_EMAIL_TO"].split(",")
-            if value.strip()
+            value.strip() for value in recipient_value.split(",") if value.strip()
         )
         if not recipients:
             raise EmailConfigurationError(
@@ -111,10 +139,10 @@ class SmtpEmailConfig:
             raise EmailConfigurationError("Email addresses cannot contain newlines")
 
         return cls(
-            host=environment["RPS_SMTP_HOST"].strip(),
+            host=host,
             port=port,
-            username=environment["RPS_SMTP_USERNAME"].strip(),
-            password=environment["RPS_SMTP_PASSWORD"],
+            username=username,
+            password=password,
             sender=sender,
             recipients=recipients,
         )
@@ -129,6 +157,21 @@ class RpsNotificationResult:
     rps120_candidate_count: int
     rps250_candidate_count: int
     subject: str
+
+
+def _first_configured(environment: Mapping[str, str], *names: str) -> str:
+    for name in names:
+        value = environment.get(name, "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _mask_recipient(value: str) -> str:
+    local_part, separator, domain = value.partition("@")
+    if separator and local_part and domain:
+        return f"{local_part[0]}***@{domain}"
+    return "<configured-recipient>"
 
 
 def _validate_threshold(threshold: float) -> float:
@@ -331,8 +374,12 @@ def run_daily_rps_notification(
     prices_root: Path = DEFAULT_OUTPUT_ROOT,
     universe_path: Path = DEFAULT_UNIVERSE,
     environ: Mapping[str, str] | None = None,
+    dry_run: bool = False,
+    preview_stream: TextIO | None = None,
 ) -> RpsNotificationResult:
-    """Calculate the latest full-Universe RPS screen and send exactly one email."""
+    """Calculate the latest RPS screen and optionally send exactly one email."""
+
+    config = None if dry_run else SmtpEmailConfig.from_environment(environ)
 
     latest_session = (
         get_latest_dataset_session(prices_root)
@@ -366,8 +413,28 @@ def run_daily_rps_notification(
         rps250_candidates=screen.rps250_candidates,
         threshold=screen.threshold,
     )
-    config = SmtpEmailConfig.from_environment(environ)
-    recipient_summary = ", ".join(config.recipients)
+    result = RpsNotificationResult(
+        latest_session=latest_session,
+        snapshot_ticker_count=len(snapshot),
+        rps120_candidate_count=len(screen.rps120_candidates),
+        rps250_candidate_count=len(screen.rps250_candidates),
+        subject=rendered.subject,
+    )
+    if dry_run:
+        LOGGER.info(
+            "RPS notification dry run complete; SMTP was not contacted and no email "
+            "was sent"
+        )
+        if preview_stream is not None:
+            preview_stream.write(f"Subject: {rendered.subject}\n\n")
+            preview_stream.write(rendered.text_body)
+        return result
+
+    if config is None:
+        raise AssertionError("SMTP config must be available for a live send")
+    recipient_summary = ", ".join(
+        _mask_recipient(recipient) for recipient in config.recipients
+    )
     LOGGER.info("Sending RPS email to %s", recipient_summary)
     try:
         send_rps_email(rendered, config)
@@ -383,13 +450,7 @@ def run_daily_rps_notification(
         latest_session.isoformat(),
         recipient_summary,
     )
-    return RpsNotificationResult(
-        latest_session=latest_session,
-        snapshot_ticker_count=len(snapshot),
-        rps120_candidate_count=len(screen.rps120_candidates),
-        rps250_candidate_count=len(screen.rps250_candidates),
-        subject=rendered.subject,
-    )
+    return result
 
 
 def _parse_date(value: str) -> date:
@@ -426,6 +487,11 @@ def _build_argument_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--prices-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
     parser.add_argument("--universe", type=Path, default=DEFAULT_UNIVERSE)
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="calculate and render the email without connecting to SMTP",
+    )
     return parser
 
 
@@ -434,6 +500,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     parser = _build_argument_parser()
     args = parser.parse_args(argv)
+    load_dotenv(dotenv_path=Path(".env"), override=False)
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
@@ -444,6 +511,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             threshold=args.threshold,
             prices_root=args.prices_root,
             universe_path=args.universe,
+            dry_run=args.dry_run,
+            preview_stream=sys.stdout if args.dry_run else None,
         )
     except Exception:
         LOGGER.exception("Daily RPS notification failed")

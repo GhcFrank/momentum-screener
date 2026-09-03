@@ -99,15 +99,12 @@ def test_daily_rps_notification_uses_secrets_without_hardcoded_credentials() -> 
         encoding="utf-8"
     )
 
-    for name in (
-        "RPS_SMTP_HOST",
-        "RPS_SMTP_PORT",
-        "RPS_SMTP_USERNAME",
-        "RPS_SMTP_PASSWORD",
-        "RPS_EMAIL_FROM",
-        "RPS_EMAIL_TO",
-    ):
-        assert f"{name}: ${{{{ secrets.{name} }}}}" in content
+    assert "RPS_SMTP_HOST: smtp.gmail.com" in content
+    assert 'RPS_SMTP_PORT: "587"' in content
+    assert "RPS_SMTP_USERNAME: ${{ secrets.GMAIL_USER }}" in content
+    assert "RPS_SMTP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}" in content
+    assert "RPS_EMAIL_FROM: ${{ secrets.GMAIL_USER }}" in content
+    assert "RPS_EMAIL_TO: ${{ secrets.EMAIL_TO }}" in content
     assert "RPS_EMAIL_THRESHOLD: ${{ vars.RPS_EMAIL_THRESHOLD || '87' }}" in content
 
 
