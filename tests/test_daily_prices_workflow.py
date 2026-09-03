@@ -54,6 +54,7 @@ def test_daily_workflow_checks_identity_before_pull_and_manifest_publish() -> No
     )
     publish = content.index("momentum_screener.release_storage publish-update")
     final_check = content.rindex("momentum_screener.release_storage check")
+    notification = content.index("momentum_screener.rps_notification")
 
     assert (
         validate
@@ -64,6 +65,7 @@ def test_daily_workflow_checks_identity_before_pull_and_manifest_publish() -> No
         < incremental_acceptance
         < publish
         < final_check
+        < notification
     )
     assert "Validate incremental update acceptance" in content
     assert "validate_local_dataset_acceptance" not in content
@@ -72,6 +74,38 @@ def test_daily_workflow_checks_identity_before_pull_and_manifest_publish() -> No
     assert "Expected requested start" in content
     assert "local_update_success" in content
     assert "release_publish_success" in content
+
+
+def test_daily_rps_notification_is_a_success_only_downstream_step() -> None:
+    content = Path(".github/workflows/update-daily-prices.yml").read_text(
+        encoding="utf-8"
+    )
+
+    refresh = content.index("- name: Refresh daily prices")
+    final_check = content.index("- name: Verify remote manifest after update")
+    notification = content.index("- name: Calculate and email daily RPS screen")
+    summary = content.index("- name: Write job summary")
+    notification_step = content[notification:summary]
+
+    assert refresh < final_check < notification < summary
+    assert "if:" not in notification_step
+    assert content.count("momentum_screener.rps_notification") == 1
+    assert '--threshold "${RPS_EMAIL_THRESHOLD}"' in notification_step
+    assert "calculate_rps_snapshot" not in content
+
+
+def test_daily_rps_notification_uses_secrets_without_hardcoded_credentials() -> None:
+    content = Path(".github/workflows/update-daily-prices.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert "RPS_SMTP_HOST: smtp.gmail.com" in content
+    assert 'RPS_SMTP_PORT: "587"' in content
+    assert "RPS_SMTP_USERNAME: ${{ secrets.GMAIL_USER }}" in content
+    assert "RPS_SMTP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}" in content
+    assert "RPS_EMAIL_FROM: ${{ secrets.GMAIL_USER }}" in content
+    assert "RPS_EMAIL_TO: ${{ secrets.EMAIL_TO }}" in content
+    assert "RPS_EMAIL_THRESHOLD: ${{ vars.RPS_EMAIL_THRESHOLD || '87' }}" in content
 
 
 def test_production_documentation_uses_market_data_tag() -> None:

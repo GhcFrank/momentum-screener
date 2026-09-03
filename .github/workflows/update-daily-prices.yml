@@ -21,6 +21,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       PYTHONUNBUFFERED: "1"
       RELEASE_TAG: marketData
+      RPS_EMAIL_THRESHOLD: ${{ vars.RPS_EMAIL_THRESHOLD || '87' }}
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -100,6 +101,18 @@ jobs:
           --release-tag "${RELEASE_TAG}"
           --result-json "$RUNNER_TEMP/dataset-check-after.json"
 
+      - name: Calculate and email daily RPS screen
+        env:
+          RPS_SMTP_HOST: smtp.gmail.com
+          RPS_SMTP_PORT: "587"
+          RPS_SMTP_USERNAME: ${{ secrets.GMAIL_USER }}
+          RPS_SMTP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          RPS_EMAIL_FROM: ${{ secrets.GMAIL_USER }}
+          RPS_EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: >-
+          uv run python -m momentum_screener.rps_notification
+          --threshold "${RPS_EMAIL_THRESHOLD}"
+
       - name: Write job summary
         if: always()
         shell: bash
@@ -109,6 +122,7 @@ jobs:
             echo "- Local update success: ${{ steps.refresh.outputs.local_update_success || 'unknown' }}"
             echo "- Publish requested: ${{ steps.refresh.outputs.publish || 'unknown' }}"
             echo "- Release tag: ${RELEASE_TAG}"
+            echo "- RPS email threshold: > ${RPS_EMAIL_THRESHOLD}"
             if [[ -f "$RUNNER_TEMP/release-publish-result.json" ]]; then
               uv run python -c "import json, os; p=json.load(open(os.environ['RUNNER_TEMP'] + '/release-publish-result.json')); print(f\"- Release publish success: {p['release_publish_success']}\")"
             else
