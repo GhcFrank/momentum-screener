@@ -10,6 +10,7 @@ import pyarrow as pa  # type: ignore[import-untyped]
 import pyarrow.parquet as pq  # type: ignore[import-untyped]
 import pytest
 
+import momentum_screener.monthly_reversal as monthly_reversal_module
 from momentum_screener.monthly_reversal import (
     MONTHLY_REVERSAL_REQUIRED_SIGNAL_ROWS,
     calculate_monthly_reversal_features,
@@ -415,6 +416,7 @@ def test_screen_and_evaluate_share_formula_and_reuse_injected_rps(
     strategy_dataset: tuple[Path, Path, date, pd.DataFrame],
 ) -> None:
     universe_path, prices_root, as_of, rps_rows = strategy_dataset
+    rps_rows = rps_rows.set_index("ticker", drop=False)
 
     screen = screen_monthly_reversal(
         as_of,
@@ -470,3 +472,112 @@ def test_missing_rps_is_explainable_and_cannot_satisfy_fyx1(
     assert not bool(explanation["fyx1"])
     assert not bool(explanation["fyx130"])
     assert explanation["status"] == "rps_unavailable"
+
+
+def _minimal_rps_rows(
+    sessions: tuple[date, ...],
+    tickers: tuple[str, ...],
+    *,
+    value: float,
+) -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            {
+                "date": session,
+                "ticker": ticker,
+                "rps50": value,
+                "rps120": value,
+            }
+            for session in sessions
+            for ticker in tickers
+        ]
+    )
+
+
+def test_get_rps_rows_prefers_persisted_history_and_injected_current_snapshot(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sessions = (date(2026, 8, 27), date(2026, 8, 28), date(2026, 8, 31))
+    universe = ("AAA", "BBB")
+    rps_root = tmp_path / "rps"
+    rps_root.mkdir()
+    (rps_root / "manifest.json").write_text("{}", encoding="utf-8")
+    persisted = _minimal_rps_rows(sessions, universe, value=40.0)
+    injected = _minimal_rps_rows((sessions[-1],), universe, value=90.0)
+
+    monkeypatch.setattr(
+        monthly_reversal_module,
+        "read_rps_history",
+        lambda **_kwargs: persisted,
+    )
+
+    def unexpected_calculation(*_args: object, **_kwargs: object) -> pd.DataFrame:
+        raise AssertionError("complete persisted/injected RPS must not be recalculated")
+
+    monkeypatch.setattr(
+        monthly_reversal_module,
+        "calculate_rps_snapshots",
+        unexpected_calculation,
+    )
+
+    result = monthly_reversal_module._get_rps_rows(
+        sessions,
+        prices_root=tmp_path / "prices",
+        universe_path=tmp_path / "universe.csv",
+        price_rows=pd.DataFrame(),
+        universe=universe,
+        rps_root=rps_root,
+        rps_snapshots=injected.set_index("ticker", drop=False),
+    )
+
+    assert len(result) == len(sessions) * len(universe)
+    assert set(result.loc[result["date"].eq(sessions[-1]), "rps50"]) == {90.0}
+    assert set(result.loc[result["date"].ne(sessions[-1]), "rps50"]) == {40.0}
+
+
+def test_get_rps_rows_calculates_only_missing_historical_sessions(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sessions = (date(2026, 8, 27), date(2026, 8, 28), date(2026, 8, 31))
+    universe = ("AAA", "BBB")
+    rps_root = tmp_path / "rps"
+    rps_root.mkdir()
+    (rps_root / "manifest.json").write_text("{}", encoding="utf-8")
+    persisted = _minimal_rps_rows((sessions[0],), universe, value=40.0)
+    injected = _minimal_rps_rows((sessions[-1],), universe, value=90.0)
+    calculated_sessions: list[tuple[date, ...]] = []
+
+    monkeypatch.setattr(
+        monthly_reversal_module,
+        "read_rps_history",
+        lambda **_kwargs: persisted,
+    )
+
+    def calculate_missing(
+        requested: tuple[date, ...],
+        **_kwargs: object,
+    ) -> pd.DataFrame:
+        calculated_sessions.append(requested)
+        return _minimal_rps_rows(requested, universe, value=60.0)
+
+    monkeypatch.setattr(
+        monthly_reversal_module,
+        "calculate_rps_snapshots",
+        calculate_missing,
+    )
+
+    result = monthly_reversal_module._get_rps_rows(
+        sessions,
+        prices_root=tmp_path / "prices",
+        universe_path=tmp_path / "universe.csv",
+        price_rows=pd.DataFrame(),
+        universe=universe,
+        rps_root=rps_root,
+        rps_snapshots=injected,
+    )
+
+    assert calculated_sessions == [(sessions[1],)]
+    assert len(result) == len(sessions) * len(universe)
+    assert set(result.loc[result["date"].eq(sessions[1]), "rps50"]) == {60.0}

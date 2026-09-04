@@ -60,9 +60,11 @@ yxfz_candidates = screen_monthly_reversal("2026-09-03", signal_only=False)
 
 日期必须是有效 XNYS session，与 RPS API 一样不会自动回退到上一交易日。
 
-全市场 screen 一次批量计算当前及前 14 个 session 的 RPS50/RPS120，所有横截面共享
-同一批价格 rows；随后用当日 `RPS50 > 87 OR RPS120 > 90` 做严格等价的 FYX1
-预筛选。单股票 evaluate 不做该预筛选，所以即使 FYX1=False 也能返回完整诊断。
+全市场 screen 优先从 `data/processed/rps/` 读取当前及前 14 个 session 的
+RPS50/RPS120。调用方可注入已经计算好的当日 snapshot；持久化历史或注入数据已完整的
+session 不会重复计算，只有缺失 session 才使用 generic RPS engine 基于同一批价格 rows
+回退计算。随后用当日 `RPS50 > 87 OR RPS120 > 90` 做严格等价的 FYX1 预筛选。单股票
+evaluate 不做该预筛选，所以即使 FYX1=False 也能返回完整诊断。
 
 screen 返回 DataFrame，并在 `DataFrame.attrs` 提供 `universe_count`、
 `fyx1_candidate_count`、`yxfz_count`、`signal_count`、

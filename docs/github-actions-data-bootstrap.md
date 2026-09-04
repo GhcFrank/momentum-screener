@@ -30,8 +30,8 @@ price dataset 中把 OHLC 转成 adjusted OHLC。后续技术分析可以在 fea
 full backfill 与 daily incremental update 共用相同的 Yahoo downloader、normalizer 和
 OHLC validation。on-demand RPS engine 的默认 horizons 是 50、120、250 个 XNYS 交易
 session；lookback 不是自然日。RPS50/RPS120/RPS250 都只读取 `adj_close`，其公式不因 v2
-增加 OHLC 而改变。daily RPS email 为保持现有通知契约，仍然只筛选和展示 RPS120 与
-RPS250，不增加 RPS50 section。
+增加 OHLC 而改变。生产 daily email 使用月线反转 6.2 的最终 `signal=True` 结果；它不再
+发送 RPS120/RPS250 threshold list，但三个 RPS horizon 仍会每天计算并持久化。
 
 ## 当前迁移场景
 
@@ -124,13 +124,20 @@ Bootstrap 成功后：
 
 ## 每日工作流
 
-workflow 依次验证本地 Universe、运行只读 `release_storage check`、只拉取 refresh
-window 涉及的年份和 coverage、执行 update dry planning、执行正式增量更新、验证本地
-数据集、由 `release_storage publish-update` 构建发布计划并以 manifest 最后顺序发布，
-再次运行远端 check，最后计算并发送 RPS 邮件。RPS 邮件步骤是同一 job 中的普通后续
-步骤；任何 update、发布或复核步骤失败时都不会运行，也不会发送正常筛选结果。身份不
-匹配时不会下载
-2010–2015 分区、不会访问 Yahoo、不会上传任何资产。
+workflow 先验证 Universe 及两个远端数据集，恢复 price update inputs 和独立的 RPS
+history，然后按以下生产顺序运行：
+
+1. 增量更新并验证本地 `daily_prices_v2`；
+2. 对最新完整 session 一次计算全 Universe 的 RPS50/RPS120/RPS250；
+3. 以 `(date, ticker)` 幂等写入本地 RPS 年度分区；
+4. 把同一个当日 snapshot 注入月线反转 6.2，并优先读取已持久化的前 14 个 session；
+5. 只选择 `signal=True`，渲染并发送一次邮件；
+6. 发布 price update（若有变化）并复核 `marketData`；
+7. 发布 RPS 年度分区并最后上传 RPS manifest，再复核 `rpsData`。
+
+任何 price update、RPS calculation/persistence 或 monthly reversal 失败都会中止后续
+正常邮件/发布步骤。`signal_count=0` 是成功结果，仍发送明确的空结果邮件。price 数据集
+身份不匹配时不会下载旧分区、访问 Yahoo 或上传资产。
 
 `momentum_screener.prices update` 是纯本地命令，不解析 repository、不读取 GitHub token，
 也不构建 `release_publish_plan.json`。它成功提交 Parquet、coverage、update report 和
@@ -139,14 +146,25 @@ manifest 后，以 `local_update_success=true` 报告本地状态。单独执行
 提交的 update report 构建发布计划并上传，成功时报告
 `release_publish_success=true`。
 
-### 每日 RPS 邮件
+### 每日月线反转邮件
 
-`momentum_screener.rps_notification` 从已验证的
+生产入口 `momentum_screener.monthly_reversal_notification` 从已验证的
 `data/processed/prices/manifest.json` 读取 `latest_session`，不使用系统日期，也不通过
-单只股票推断日期。随后调用完整 Universe 的 `calculate_rps_snapshot(latest_session)`，
-独立筛选 `rps120 > threshold` 与 `rps250 > threshold`，生成 plain text + HTML 邮件，
-并通过认证 STARTTLS SMTP 发送一次。默认 threshold 为 `87.0`；workflow 可通过
-Repository Variable `RPS_EMAIL_THRESHOLD` 覆盖。
+单只股票推断日期。它只调用一次完整 Universe 的
+`calculate_rps_snapshot(latest_session, lookbacks=(50, 120, 250))`，先持久化同一对象，
+再注入 `screen_monthly_reversal()`。邮件候选严格为 `signal=True`，不会把仅
+`YXFZ=True` 或仅 RPS120/RPS250 很高的股票加入正文。
+
+主题格式为：
+
+```text
+Momentum Screener — Monthly Reversal — YYYY-MM-DD — N signals
+```
+
+正文表格只显示 `Ticker | RPS50 | RPS120 | Adj Close`。零信号日仍发送一次，并明确写出
+`No new monthly reversal signals for YYYY-MM-DD.`。旧的
+`momentum_screener.rps_notification` 保留为手工诊断 API，但 production workflow 不再
+调用它。
 
 workflow 需要配置以下 GitHub Actions Secrets：
 
@@ -170,30 +188,123 @@ EMAIL_TO
 在 Gmail 配置模式下，host 默认为 `smtp.gmail.com`，port 默认为 `587`，From 默认为
 `GMAIL_USER`。`.env` 必须保持未跟踪，并由 `.gitignore` 排除。
 
-本地手动补发默认使用 dataset latest session：
+本地手动运行默认使用 price dataset latest session：
 
 ```bash
-uv run python -m momentum_screener.rps_notification
+uv run python -m momentum_screener.monthly_reversal_notification
 ```
 
-先进行不连接 SMTP、不发送邮件的完整计算和渲染检查：
+先进行不写入 RPS dataset、不连接 SMTP、不发送邮件的完整计算和渲染检查：
 
 ```bash
-uv run python -m momentum_screener.rps_notification --dry-run
+uv run python -m momentum_screener.monthly_reversal_notification --dry-run
 ```
 
-也可显式指定 session 和 threshold；计算仍然使用完整 Universe 的 RPS snapshot：
+也可显式指定有效 XNYS session；计算仍使用完整 Universe 的三个 RPS horizon：
 
 ```bash
-uv run python -m momentum_screener.rps_notification \
+uv run python -m momentum_screener.monthly_reversal_notification \
   --as-of-date 2026-08-31 \
-  --threshold 90 \
   --dry-run
 ```
 
-命令会记录 latest session、snapshot ticker count、两个筛选数量、收件人及发送结果；
-不会记录 SMTP password。非 dry-run 会在计算 RPS 前验证完整邮件配置；RPS 计算、渲染
-或发送失败都会返回非零退出码，已经成功落地或发布的行情数据不会被回滚。
+命令会记录 session、Universe/RPS rows、FYX1/YXFZ/signal 数量、候选、收件人及发送
+结果；不会记录 SMTP password。非 dry-run 会在计算 RPS 前验证完整邮件配置；RPS
+计算、持久化、策略、渲染或发送失败都会返回非零退出码。
+
+## RPS history dataset
+
+RPS 与价格数据逻辑和物理分离：
+
+```text
+data/processed/rps/
+    manifest.json
+    daily/
+        year=2016/rps.parquet
+        ...
+        year=2026/rps.parquet
+```
+
+schema version 为 `rps_v1`。每个 `(date, ticker)` 唯一行按 `date,ticker` 稳定排序，列为：
+
+```text
+date, ticker,
+rps50, rps120, rps250,
+return_50, return_120, return_250,
+rps50_base_date, rps120_base_date, rps250_base_date
+```
+
+manifest 记录 `schema_version/latest_session/actual_min_date`、Universe SHA-256 与 ticker
+count、`lookbacks=[50,120,250]`、`price_field=adj_close`、逐年 row count、文件 size 和
+SHA-256。daily upsert 只重写当前年份分区；重复运行同一个 session 会替换该日完整
+Universe，不会追加重复键。
+
+读取 API 隐藏了年度物理布局：
+
+```python
+from momentum_screener.rps_storage import (
+    read_rps_history,
+    read_rps_snapshot,
+    read_stock_rps_history,
+)
+```
+
+首次历史 backfill 一次读取价格分区的 `date/ticker/adj_close`，构造一个 session panel，
+用 vectorized shift/return 和逐日横截面 rank 生成全部 horizon，不逐日重复读取 Parquet。
+最早不足 lookback 的结果沿用 `INVALID_RPS`/null return，不伪造历史。实际命令为：
+
+```bash
+UV_CACHE_DIR=/tmp/momentum-uv-cache uv run python \
+  -m momentum_screener.rps_storage backfill --start 2016-01-01
+
+UV_CACHE_DIR=/tmp/momentum-uv-cache uv run python \
+  -m momentum_screener.rps_storage validate
+
+UV_CACHE_DIR=/tmp/momentum-uv-cache uv run python \
+  -m momentum_screener.rps_storage update
+```
+
+最后一条是 daily persistence 的独立手工入口；正常 workflow 由 notification
+orchestrator 计算一次并写入，避免重复 cross-section calculation。
+
+### 独立 `rpsData` Release
+
+RPS history 使用独立、大小写敏感的 Release tag `rpsData`，manifest asset 为
+`rps-manifest.json`；不会改变 `marketData` 的 price identity/check/bootstrap/publish
+流程。RPS 发布同样先上传有变化的年度 Parquet，最后上传 manifest。首次上线顺序：
+
+1. 运行完整本地 tests；
+2. 执行上述 2016+ RPS backfill 和 validate；
+3. commit/merge 本次代码（由维护者执行）；
+4. 在 GitHub 创建独立的 `rpsData` Release（只需一次）；
+5. 先预览再显式确认 bootstrap；
+6. 运行远端 check，并在需要时从另一环境 pull 验证；
+7. 运行 monthly reversal notification dry-run；
+8. 手动触发并确认 production workflow 后，再保留 schedule 正常运行。
+
+对应命令：
+
+```bash
+gh release create rpsData --title "RPS data" --notes "Managed RPS history"
+
+uv run python -m momentum_screener.rps_release_storage bootstrap \
+  --repository OWNER/REPOSITORY --release-tag rpsData --dry-run
+
+uv run python -m momentum_screener.rps_release_storage bootstrap \
+  --repository OWNER/REPOSITORY --release-tag rpsData --confirm-bootstrap
+
+uv run python -m momentum_screener.rps_release_storage check \
+  --repository OWNER/REPOSITORY --release-tag rpsData
+
+uv run python -m momentum_screener.rps_release_storage pull \
+  --repository OWNER/REPOSITORY --release-tag rpsData
+
+uv run python -m momentum_screener.monthly_reversal_notification --dry-run
+```
+
+这些远端命令都必须由维护者显式运行；代码实现不会创建 Release，也不会自动覆盖首次
+production dataset。`rpsData` 未完成 bootstrap 前不要启用新版 workflow，否则远端
+RPS check 会按 fail-closed 语义失败。
 
 增量更新的 refresh 下限来自远端 manifest 的 `requested_start`：
 

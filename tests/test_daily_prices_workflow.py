@@ -14,6 +14,7 @@ def test_daily_workflow_schedule_concurrency_and_permissions() -> None:
     assert "timeout-minutes: 45" in content
     assert "retention-days: 14" in content
     assert content.count("RELEASE_TAG: marketData") == 1
+    assert content.count("RPS_RELEASE_TAG: rpsData") == 1
 
 
 def test_daily_workflow_uses_release_commands_without_git_writes() -> None:
@@ -24,6 +25,9 @@ def test_daily_workflow_uses_release_commands_without_git_writes() -> None:
     assert "momentum_screener.prices update" in content
     assert "momentum_screener.release_storage publish-update" in content
     assert content.count("momentum_screener.release_storage check") == 2
+    assert "momentum_screener.rps_release_storage pull" in content
+    assert "momentum_screener.rps_release_storage publish" in content
+    assert content.count("momentum_screener.rps_release_storage check") == 2
     assert "momentum_screener.universe validate" in content
     assert "momentum_screener.prices update --dry-run" in content
     assert "--allow-partial-session" not in content
@@ -34,8 +38,9 @@ def test_daily_workflow_uses_release_commands_without_git_writes() -> None:
     assert "git commit" not in content
     assert "git push" not in content
     assert "market" + "-data" not in content
-    assert content.count('--repository "${{ github.repository }}"') == 4
+    assert content.count('--repository "${{ github.repository }}"') == 8
     assert content.count('--release-tag "${RELEASE_TAG}"') == 4
+    assert content.count('--release-tag "${RPS_RELEASE_TAG}"') == 4
     assert 'echo "- Release tag: ${RELEASE_TAG}"' in content
 
 
@@ -47,25 +52,33 @@ def test_daily_workflow_checks_identity_before_pull_and_manifest_publish() -> No
     validate = content.index("momentum_screener.universe validate")
     first_check = content.index("momentum_screener.release_storage check")
     pull = content.index("momentum_screener.release_storage pull-update-inputs")
+    rps_check = content.index("momentum_screener.rps_release_storage check")
+    rps_pull = content.index("momentum_screener.rps_release_storage pull")
     dry_plan = content.index("momentum_screener.prices update --dry-run")
     update = content.index('--result-json "$RUNNER_TEMP/price-update-result.json"')
     incremental_acceptance = content.index(
         "validate_local_incremental_update_acceptance"
     )
+    notification = content.index("momentum_screener.monthly_reversal_notification")
     publish = content.index("momentum_screener.release_storage publish-update")
     final_check = content.rindex("momentum_screener.release_storage check")
-    notification = content.index("momentum_screener.rps_notification")
+    rps_publish = content.index("momentum_screener.rps_release_storage publish")
+    final_rps_check = content.rindex("momentum_screener.rps_release_storage check")
 
     assert (
         validate
         < first_check
         < pull
+        < rps_check
+        < rps_pull
         < dry_plan
         < update
         < incremental_acceptance
+        < notification
         < publish
         < final_check
-        < notification
+        < rps_publish
+        < final_rps_check
     )
     assert "Validate incremental update acceptance" in content
     assert "validate_local_dataset_acceptance" not in content
@@ -76,25 +89,30 @@ def test_daily_workflow_checks_identity_before_pull_and_manifest_publish() -> No
     assert "release_publish_success" in content
 
 
-def test_daily_rps_notification_is_a_success_only_downstream_step() -> None:
+def test_monthly_reversal_notification_is_success_only_before_publication() -> None:
     content = Path(".github/workflows/update-daily-prices.yml").read_text(
         encoding="utf-8"
     )
 
     refresh = content.index("- name: Refresh daily prices")
-    final_check = content.index("- name: Verify remote manifest after update")
-    notification = content.index("- name: Calculate and email daily RPS screen")
-    summary = content.index("- name: Write job summary")
-    notification_step = content[notification:summary]
+    acceptance = content.index("- name: Validate incremental update acceptance")
+    notification = content.index(
+        "- name: Persist RPS and email Monthly Reversal signals"
+    )
+    price_publish = content.index("- name: Publish update to Release")
+    notification_step = content[notification:price_publish]
 
-    assert refresh < final_check < notification < summary
+    assert refresh < acceptance < notification < price_publish
     assert "if:" not in notification_step
-    assert content.count("momentum_screener.rps_notification") == 1
-    assert '--threshold "${RPS_EMAIL_THRESHOLD}"' in notification_step
+    assert content.count("momentum_screener.monthly_reversal_notification") == 1
+    assert "momentum_screener.rps_notification" not in content
+    assert "RPS_EMAIL_THRESHOLD" not in content
+    assert "RPS120 >" not in content
+    assert "RPS250 >" not in content
     assert "calculate_rps_snapshot" not in content
 
 
-def test_daily_rps_notification_uses_secrets_without_hardcoded_credentials() -> None:
+def test_monthly_reversal_notification_reuses_email_secrets() -> None:
     content = Path(".github/workflows/update-daily-prices.yml").read_text(
         encoding="utf-8"
     )
@@ -105,7 +123,19 @@ def test_daily_rps_notification_uses_secrets_without_hardcoded_credentials() -> 
     assert "RPS_SMTP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}" in content
     assert "RPS_EMAIL_FROM: ${{ secrets.GMAIL_USER }}" in content
     assert "RPS_EMAIL_TO: ${{ secrets.EMAIL_TO }}" in content
-    assert "RPS_EMAIL_THRESHOLD: ${{ vars.RPS_EMAIL_THRESHOLD || '87' }}" in content
+
+
+def test_rps_publish_and_summary_include_persisted_dataset_results() -> None:
+    content = Path(".github/workflows/update-daily-prices.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert "data/processed/rps/manifest.json" in content
+    assert "monthly-reversal-notification.json" in content
+    assert "rps-publish-result.json" in content
+    assert "rps-check-after.json" in content
+    assert "RPS rows persisted" in content
+    assert "Monthly Reversal signal count" in content
 
 
 def test_production_documentation_uses_market_data_tag() -> None:

@@ -25,6 +25,12 @@ from momentum_screener.rps import (
     calculate_rps_snapshots,
     resolve_rps_session_dates,
 )
+from momentum_screener.rps_storage import (
+    DEFAULT_RPS_ROOT,
+    RPS_MANIFEST_NAME,
+    RpsStorageError,
+    read_rps_history,
+)
 from momentum_screener.storage_manifest import load_manifest
 from momentum_screener.technical_features import (
     add_adjusted_ohlc,
@@ -94,6 +100,7 @@ SCREEN_COLUMNS: Final[tuple[str, ...]] = (
     "ticker",
     "rps50",
     "rps120",
+    "adj_close",
     "fyx1",
     "fyx2",
     "fyx3",
@@ -313,6 +320,7 @@ def calculate_monthly_reversal_history(
     *,
     prices_root: Path = DEFAULT_OUTPUT_ROOT,
     universe_path: Path = DEFAULT_UNIVERSE,
+    rps_root: Path | None = DEFAULT_RPS_ROOT,
     rps_snapshots: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """Return complete explainable strategy rows for one ticker and date range.
@@ -350,6 +358,7 @@ def calculate_monthly_reversal_history(
         universe_path=universe_path,
         price_rows=price_rows,
         universe=universe,
+        rps_root=rps_root,
         rps_snapshots=rps_snapshots,
         result_tickers=(normalized_ticker,),
     )
@@ -379,6 +388,7 @@ def evaluate_monthly_reversal(
     *,
     prices_root: Path = DEFAULT_OUTPUT_ROOT,
     universe_path: Path = DEFAULT_UNIVERSE,
+    rps_root: Path | None = DEFAULT_RPS_ROOT,
     rps_snapshots: pd.DataFrame | None = None,
 ) -> pd.Series:
     """Return one stock's full Monthly Reversal diagnosis on one session."""
@@ -390,6 +400,7 @@ def evaluate_monthly_reversal(
         end_date=requested,
         prices_root=prices_root,
         universe_path=universe_path,
+        rps_root=rps_root,
         rps_snapshots=rps_snapshots,
     )
     matching = history.loc[history["date"].eq(requested)]
@@ -405,6 +416,7 @@ def screen_monthly_reversal(
     signal_only: bool = True,
     prices_root: Path = DEFAULT_OUTPUT_ROOT,
     universe_path: Path = DEFAULT_UNIVERSE,
+    rps_root: Path | None = DEFAULT_RPS_ROOT,
     rps_snapshots: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """Screen the complete Universe, using current FYX1 as a safe prefilter."""
@@ -427,6 +439,7 @@ def screen_monthly_reversal(
         universe_path=universe_path,
         price_rows=price_rows,
         universe=universe,
+        rps_root=rps_root,
         rps_snapshots=rps_snapshots,
     )
     current_rps = rps_rows.loc[rps_rows["date"].eq(requested)].set_index("ticker")
@@ -493,26 +506,81 @@ def _get_rps_rows(
     universe_path: Path,
     price_rows: pd.DataFrame,
     universe: tuple[str, ...],
+    rps_root: Path | None,
     rps_snapshots: pd.DataFrame | None,
     result_tickers: tuple[str, ...] | None = None,
 ) -> pd.DataFrame:
     session_tuple = tuple(sessions)
-    if rps_snapshots is None:
-        snapshots = calculate_rps_snapshots(
-            session_tuple,
-            lookbacks=MONTHLY_REVERSAL_RPS_LOOKBACKS,
-            prices_root=prices_root,
-            universe_path=universe_path,
-            price_rows=price_rows,
-            universe=universe,
-            result_tickers=result_tickers,
+    requested_tickers = result_tickers or universe
+    stored_frames: list[pd.DataFrame] = []
+    if rps_root is not None:
+        manifest_path = rps_root / RPS_MANIFEST_NAME
+        if manifest_path.is_file():
+            stored_frames.append(
+                read_rps_history(
+                    tickers=requested_tickers,
+                    start_date=session_tuple[0],
+                    end_date=session_tuple[-1],
+                    root=rps_root,
+                )
+            )
+        elif rps_root.exists() and any(rps_root.iterdir()):
+            raise RpsStorageError(
+                f"Non-empty RPS root has no valid manifest: {rps_root}"
+            )
+    if rps_snapshots is not None:
+        stored_frames.append(rps_snapshots.copy())
+
+    if stored_frames:
+        normalized_stored = [
+            _normalize_rps_rows(
+                frame,
+                requested_sessions=session_tuple,
+                result_tickers=result_tickers,
+            )
+            for frame in stored_frames
+        ]
+        stored = pd.concat(normalized_stored, ignore_index=True).drop_duplicates(
+            ["date", "ticker"], keep="last", ignore_index=True
         )
     else:
-        snapshots = rps_snapshots.copy()
-    return _normalize_rps_rows(
-        snapshots,
-        requested_sessions=session_tuple,
-        result_tickers=result_tickers,
+        stored = pd.DataFrame(columns=["date", "ticker", "rps50", "rps120"])
+
+    expected_tickers = set(requested_tickers)
+    complete_dates = {
+        session_date
+        for session_date, rows in stored.groupby("date", sort=False)
+        if len(rows) == len(expected_tickers)
+        and set(rows["ticker"]) == expected_tickers
+    }
+    missing_sessions = tuple(
+        session_date
+        for session_date in session_tuple
+        if session_date not in complete_dates
+    )
+    frames = [stored]
+    if missing_sessions:
+        frames.insert(
+            0,
+            _normalize_rps_rows(
+                calculate_rps_snapshots(
+                    missing_sessions,
+                    lookbacks=MONTHLY_REVERSAL_RPS_LOOKBACKS,
+                    prices_root=prices_root,
+                    universe_path=universe_path,
+                    price_rows=price_rows,
+                    universe=universe,
+                    result_tickers=result_tickers,
+                ),
+                requested_sessions=missing_sessions,
+                result_tickers=result_tickers,
+            ),
+        )
+    combined = pd.concat(frames, ignore_index=True).drop_duplicates(
+        ["date", "ticker"], keep="last", ignore_index=True
+    )
+    return combined.sort_values(["date", "ticker"], kind="mergesort").reset_index(
+        drop=True
     )
 
 
@@ -522,12 +590,13 @@ def _normalize_rps_rows(
     requested_sessions: tuple[date, ...],
     result_tickers: tuple[str, ...] | None,
 ) -> pd.DataFrame:
-    date_column = "as_of_date" if "as_of_date" in snapshots else "date"
+    source = snapshots.reset_index(drop=True)
+    date_column = "as_of_date" if "as_of_date" in source else "date"
     required = {date_column, "ticker", "rps50", "rps120"}
-    missing = sorted(required.difference(snapshots.columns))
+    missing = sorted(required.difference(source.columns))
     if missing:
         raise ValueError(f"RPS snapshots are missing columns: {missing}")
-    result = snapshots.loc[:, [date_column, "ticker", "rps50", "rps120"]].copy()
+    result = source.loc[:, [date_column, "ticker", "rps50", "rps120"]].copy()
     result = result.rename(columns={date_column: "date"})
     result["date"] = _normalize_date_values(result["date"])
     result["ticker"] = result["ticker"].astype(str)

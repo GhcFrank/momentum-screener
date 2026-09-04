@@ -21,7 +21,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       PYTHONUNBUFFERED: "1"
       RELEASE_TAG: marketData
-      RPS_EMAIL_THRESHOLD: ${{ vars.RPS_EMAIL_THRESHOLD || '87' }}
+      RPS_RELEASE_TAG: rpsData
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -57,6 +57,19 @@ jobs:
           --repository "${{ github.repository }}"
           --release-tag "${RELEASE_TAG}"
 
+      - name: Verify remote RPS dataset
+        run: >-
+          uv run python -m momentum_screener.rps_release_storage check
+          --repository "${{ github.repository }}"
+          --release-tag "${RPS_RELEASE_TAG}"
+          --result-json "$RUNNER_TEMP/rps-check-before.json"
+
+      - name: Restore RPS history from Release
+        run: >-
+          uv run python -m momentum_screener.rps_release_storage pull
+          --repository "${{ github.repository }}"
+          --release-tag "${RPS_RELEASE_TAG}"
+
       - name: Plan daily refresh without Yahoo access
         run: >-
           uv run python -m momentum_screener.prices update --dry-run
@@ -86,6 +99,18 @@ jobs:
           root=Path('data/processed/prices');
           validate_local_incremental_update_acceptance(prices_root=root)"
 
+      - name: Persist RPS and email Monthly Reversal signals
+        env:
+          RPS_SMTP_HOST: smtp.gmail.com
+          RPS_SMTP_PORT: "587"
+          RPS_SMTP_USERNAME: ${{ secrets.GMAIL_USER }}
+          RPS_SMTP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          RPS_EMAIL_FROM: ${{ secrets.GMAIL_USER }}
+          RPS_EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: >-
+          uv run python -m momentum_screener.monthly_reversal_notification
+          --result-json "$RUNNER_TEMP/monthly-reversal-notification.json"
+
       - name: Publish update to Release
         if: steps.refresh.outputs.publish == 'true'
         run: >-
@@ -101,17 +126,19 @@ jobs:
           --release-tag "${RELEASE_TAG}"
           --result-json "$RUNNER_TEMP/dataset-check-after.json"
 
-      - name: Calculate and email daily RPS screen
-        env:
-          RPS_SMTP_HOST: smtp.gmail.com
-          RPS_SMTP_PORT: "587"
-          RPS_SMTP_USERNAME: ${{ secrets.GMAIL_USER }}
-          RPS_SMTP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-          RPS_EMAIL_FROM: ${{ secrets.GMAIL_USER }}
-          RPS_EMAIL_TO: ${{ secrets.EMAIL_TO }}
+      - name: Publish RPS history to Release
         run: >-
-          uv run python -m momentum_screener.rps_notification
-          --threshold "${RPS_EMAIL_THRESHOLD}"
+          uv run python -m momentum_screener.rps_release_storage publish
+          --repository "${{ github.repository }}"
+          --release-tag "${RPS_RELEASE_TAG}"
+          --result-json "$RUNNER_TEMP/rps-publish-result.json"
+
+      - name: Verify remote RPS manifest after update
+        run: >-
+          uv run python -m momentum_screener.rps_release_storage check
+          --repository "${{ github.repository }}"
+          --release-tag "${RPS_RELEASE_TAG}"
+          --result-json "$RUNNER_TEMP/rps-check-after.json"
 
       - name: Write job summary
         if: always()
@@ -122,7 +149,7 @@ jobs:
             echo "- Local update success: ${{ steps.refresh.outputs.local_update_success || 'unknown' }}"
             echo "- Publish requested: ${{ steps.refresh.outputs.publish || 'unknown' }}"
             echo "- Release tag: ${RELEASE_TAG}"
-            echo "- RPS email threshold: > ${RPS_EMAIL_THRESHOLD}"
+            echo "- RPS Release tag: ${RPS_RELEASE_TAG}"
             if [[ -f "$RUNNER_TEMP/release-publish-result.json" ]]; then
               uv run python -c "import json, os; p=json.load(open(os.environ['RUNNER_TEMP'] + '/release-publish-result.json')); print(f\"- Release publish success: {p['release_publish_success']}\")"
             else
@@ -130,6 +157,14 @@ jobs:
             fi
             if [[ -f "$RUNNER_TEMP/dataset-check-after.json" ]]; then
               uv run python -c "import json, os; p=json.load(open(os.environ['RUNNER_TEMP'] + '/dataset-check-after.json')); print(f\"- Local Universe ticker count: {p['local_universe_ticker_count']}\"); print(f\"- Local Universe SHA-256: {p['local_universe_sha256']}\"); print(f\"- Expected requested start: {p['local_requested_start']}\"); print(f\"- Remote Universe SHA-256: {p['remote_universe_sha256']}\"); print(f\"- Remote requested start: {p['remote_requested_start']}\"); print(f\"- Remote latest session: {p['remote_latest_session']}\"); print(f\"- Dataset identity match: {p['dataset_identity_match']}\"); print(f\"- Workflow ready: {p['workflow_ready']}\")"
+            fi
+            if [[ -f "$RUNNER_TEMP/monthly-reversal-notification.json" ]]; then
+              uv run python -c "import json, os; p=json.load(open(os.environ['RUNNER_TEMP'] + '/monthly-reversal-notification.json')); print(f\"- RPS rows persisted: {p['rps_rows_persisted']}\"); print(f\"- Monthly Reversal FYX1 count: {p['fyx1_candidate_count']}\"); print(f\"- Monthly Reversal YXFZ count: {p['yxfz_count']}\"); print(f\"- Monthly Reversal signal count: {p['signal_count']}\")"
+            else
+              echo "- Monthly Reversal notification: not_completed"
+            fi
+            if [[ -f "$RUNNER_TEMP/rps-check-after.json" ]]; then
+              uv run python -c "import json, os; p=json.load(open(os.environ['RUNNER_TEMP'] + '/rps-check-after.json')); print(f\"- Remote RPS latest session: {p['latest_session']}\"); print(f\"- Remote RPS rows: {p['total_row_count']}\")"
             fi
             echo "- Data is persisted as Release assets; the source checkout is read-only."
           } >> "$GITHUB_STEP_SUMMARY"
@@ -149,8 +184,13 @@ jobs:
             data/processed/prices/sync_report.json
             data/processed/prices/manifest.json
             data/processed/prices/.update_diagnostics/**
+            data/processed/rps/manifest.json
             ${{ runner.temp }}/dataset-check-before.json
             ${{ runner.temp }}/dataset-check-after.json
             ${{ runner.temp }}/price-update-plan.json
             ${{ runner.temp }}/price-update-result.json
             ${{ runner.temp }}/release-publish-result.json
+            ${{ runner.temp }}/rps-check-before.json
+            ${{ runner.temp }}/monthly-reversal-notification.json
+            ${{ runner.temp }}/rps-publish-result.json
+            ${{ runner.temp }}/rps-check-after.json
