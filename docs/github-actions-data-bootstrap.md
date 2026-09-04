@@ -28,7 +28,10 @@ price dataset 中把 OHLC 转成 adjusted OHLC。后续技术分析可以在 fea
 计算 adjusted OHLC。
 
 full backfill 与 daily incremental update 共用相同的 Yahoo downloader、normalizer 和
-OHLC validation。RPS120/RPS250 继续只读取 `adj_close`，其公式不因 v2 增加 OHLC 而改变。
+OHLC validation。on-demand RPS engine 的默认 horizons 是 50、120、250 个 XNYS 交易
+session；lookback 不是自然日。RPS50/RPS120/RPS250 都只读取 `adj_close`，其公式不因 v2
+增加 OHLC 而改变。daily RPS email 为保持现有通知契约，仍然只筛选和展示 RPS120 与
+RPS250，不增加 RPS50 section。
 
 ## 当前迁移场景
 

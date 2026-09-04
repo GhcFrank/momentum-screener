@@ -93,6 +93,25 @@ def test_two_screens_are_independent_and_sorted_by_their_own_metric() -> None:
     assert list(screen.rps250_candidates["ticker"]) == ["CCC", "BBB"]
 
 
+def test_screen_ignores_rps50_and_keeps_only_existing_email_sections() -> None:
+    snapshot = _snapshot(
+        [("ONLY50", 10.0, 20.0), ("RPS120", 95.0, 20.0), ("RPS250", 10.0, 96.0)]
+    )
+    snapshot["rps50"] = [100.0, 0.0, 0.0]
+
+    screen = build_rps_screen(snapshot)
+    rendered = render_rps_email(
+        as_of_date=date(2026, 8, 31),
+        rps120_candidates=screen.rps120_candidates,
+        rps250_candidates=screen.rps250_candidates,
+    )
+
+    assert list(screen.rps120_candidates["ticker"]) == ["RPS120"]
+    assert list(screen.rps250_candidates["ticker"]) == ["RPS250"]
+    assert "RPS50" not in rendered.text_body
+    assert "RPS50" not in rendered.html_body
+
+
 def test_screen_accepts_production_snapshot_ticker_index_and_column() -> None:
     snapshot = _snapshot([("BBB", 95.0, 96.0), ("AAA", 95.0, 96.0)]).set_index(
         "ticker", drop=False

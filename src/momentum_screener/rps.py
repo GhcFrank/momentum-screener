@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
+from types import MappingProxyType
 from typing import Final
 
 import exchange_calendars as xcals  # type: ignore[import-untyped]
@@ -19,7 +21,7 @@ from momentum_screener.prices import (
 )
 from momentum_screener.universe import normalize_ticker
 
-RPS_LOOKBACKS: Final[tuple[int, int]] = (120, 250)
+RPS_LOOKBACKS: Final[tuple[int, ...]] = (50, 120, 250)
 RPS_CALENDAR_NAME: Final[str] = "XNYS"
 RPS_PRICE_FIELD: Final[str] = "adj_close"
 INVALID_RPS: Final[float] = -1.0
@@ -37,6 +39,10 @@ class InsufficientRpsHistoryError(RpsError):
     """Raised when the shared market calendar cannot provide every lookback."""
 
 
+class InvalidRpsLookbackError(RpsError):
+    """Raised when configured RPS lookbacks are empty, invalid, or duplicated."""
+
+
 class RpsTickerNotFoundError(RpsError):
     """Raised when a single-stock query is outside the requested Universe."""
 
@@ -46,8 +52,46 @@ class RpsSessionDates:
     """One shared set of market-session dates for an RPS cross section."""
 
     as_of_date: date
-    rps120_base_date: date
-    rps250_base_date: date
+    base_dates: Mapping[int, date]
+
+    @property
+    def rps120_base_date(self) -> date:
+        """Return the requested 120-session base date for compatibility."""
+
+        return self.base_dates[120]
+
+    @property
+    def rps250_base_date(self) -> date:
+        """Return the requested 250-session base date for compatibility."""
+
+        return self.base_dates[250]
+
+
+def _normalize_lookbacks(lookbacks: Iterable[int]) -> tuple[int, ...]:
+    """Validate configured horizons and return them in deterministic order."""
+
+    try:
+        values = tuple(lookbacks)
+    except TypeError as exc:
+        raise InvalidRpsLookbackError(
+            "RPS lookbacks must be an iterable of positive integers"
+        ) from exc
+    if not values:
+        raise InvalidRpsLookbackError("RPS lookbacks must contain at least one horizon")
+    for value in values:
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise InvalidRpsLookbackError(
+                "RPS lookbacks must contain only integers, excluding bool"
+            )
+        if value <= 0:
+            raise InvalidRpsLookbackError(
+                "RPS lookbacks must contain only positive integers"
+            )
+    if len(set(values)) != len(values):
+        raise InvalidRpsLookbackError(
+            "RPS lookbacks must not contain duplicate horizons"
+        )
+    return tuple(sorted(values))
 
 
 def _coerce_date(value: date | str) -> date:
@@ -69,9 +113,13 @@ def _coerce_date(value: date | str) -> date:
     )
 
 
-def resolve_rps_session_dates(as_of_date: date | str) -> RpsSessionDates:
-    """Resolve exact t-120 and t-250 dates from the shared XNYS session index."""
+def resolve_rps_session_dates(
+    as_of_date: date | str,
+    lookbacks: Iterable[int] = RPS_LOOKBACKS,
+) -> RpsSessionDates:
+    """Resolve requested trading-session base dates from the XNYS index."""
 
+    normalized_lookbacks = _normalize_lookbacks(lookbacks)
     requested = _coerce_date(as_of_date)
     calendar = xcals.get_calendar(RPS_CALENDAR_NAME)
     try:
@@ -82,16 +130,18 @@ def resolve_rps_session_dates(as_of_date: date | str) -> RpsSessionDates:
             f"{requested.isoformat()}"
         ) from exc
     current_index = int(calendar.sessions.get_loc(session))
-    longest_lookback = max(RPS_LOOKBACKS)
+    longest_lookback = max(normalized_lookbacks)
     if current_index < longest_lookback:
         raise InsufficientRpsHistoryError(
             f"Insufficient {RPS_CALENDAR_NAME} session history before "
             f"{requested.isoformat()}: need {longest_lookback} prior sessions"
         )
+    base_dates = {
+        lookback: calendar.sessions[current_index - lookback].date()
+        for lookback in normalized_lookbacks
+    }
     return RpsSessionDates(
-        as_of_date=session.date(),
-        rps120_base_date=calendar.sessions[current_index - 120].date(),
-        rps250_base_date=calendar.sessions[current_index - 250].date(),
+        as_of_date=session.date(), base_dates=MappingProxyType(base_dates)
     )
 
 
@@ -143,45 +193,44 @@ def _prices_on_date(prices: pd.DataFrame, session_date: date) -> pd.Series:
 def calculate_rps_snapshot(
     as_of_date: date | str,
     *,
+    lookbacks: Iterable[int] = RPS_LOOKBACKS,
     prices_root: Path = DEFAULT_OUTPUT_ROOT,
     universe_path: Path = DEFAULT_UNIVERSE,
 ) -> pd.DataFrame:
-    """Calculate RPS120 and RPS250 for the complete Universe on one session."""
+    """Calculate cross-sectional RPS for configured session lookbacks."""
 
-    session_dates = resolve_rps_session_dates(as_of_date)
+    session_dates = resolve_rps_session_dates(as_of_date, lookbacks=lookbacks)
+    normalized_lookbacks = tuple(session_dates.base_dates)
     universe = load_universe(universe_path)
     years = tuple(
         sorted(
             {
                 session_dates.as_of_date.year,
-                session_dates.rps120_base_date.year,
-                session_dates.rps250_base_date.year,
+                *(base_date.year for base_date in session_dates.base_dates.values()),
             }
         )
     )
     prices = read_affected_partitions(prices_root, years, tickers=universe)
     current_prices = _prices_on_date(prices, session_dates.as_of_date)
-    metrics_120 = calculate_cross_sectional_rps(
-        current_prices=current_prices,
-        base_prices=_prices_on_date(prices, session_dates.rps120_base_date),
-        universe=universe,
-    )
-    metrics_250 = calculate_cross_sectional_rps(
-        current_prices=current_prices,
-        base_prices=_prices_on_date(prices, session_dates.rps250_base_date),
-        universe=universe,
-    )
+    metrics_by_lookback = {
+        lookback: calculate_cross_sectional_rps(
+            current_prices=current_prices,
+            base_prices=_prices_on_date(prices, base_date),
+            universe=universe,
+        )
+        for lookback, base_date in session_dates.base_dates.items()
+    }
 
     index = pd.Index(universe, name="ticker")
     snapshot = pd.DataFrame(index=index)
     snapshot["ticker"] = index
     snapshot["as_of_date"] = session_dates.as_of_date
-    snapshot["rps120"] = metrics_120["rps"]
-    snapshot["rps250"] = metrics_250["rps"]
-    snapshot["return_120"] = metrics_120["return"]
-    snapshot["return_250"] = metrics_250["return"]
-    snapshot["rps120_base_date"] = session_dates.rps120_base_date
-    snapshot["rps250_base_date"] = session_dates.rps250_base_date
+    for lookback in normalized_lookbacks:
+        snapshot[f"rps{lookback}"] = metrics_by_lookback[lookback]["rps"]
+    for lookback in normalized_lookbacks:
+        snapshot[f"return_{lookback}"] = metrics_by_lookback[lookback]["return"]
+    for lookback in normalized_lookbacks:
+        snapshot[f"rps{lookback}_base_date"] = session_dates.base_dates[lookback]
     return snapshot
 
 
@@ -189,6 +238,7 @@ def get_stock_rps(
     ticker: str,
     as_of_date: date | str,
     *,
+    lookbacks: Iterable[int] = RPS_LOOKBACKS,
     prices_root: Path = DEFAULT_OUTPUT_ROOT,
     universe_path: Path = DEFAULT_UNIVERSE,
 ) -> pd.Series:
@@ -199,6 +249,7 @@ def get_stock_rps(
         raise RpsTickerNotFoundError(f"Invalid ticker for RPS query: {ticker!r}")
     snapshot = calculate_rps_snapshot(
         as_of_date,
+        lookbacks=lookbacks,
         prices_root=prices_root,
         universe_path=universe_path,
     )
