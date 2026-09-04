@@ -64,19 +64,24 @@ FIXED_NOW = datetime(2020, 12, 31, 17, 0, tzinfo=UTC)
 def ordinary_frame(
     dates: Sequence[str] = ("2020-01-02",),
     *,
+    open_: Sequence[object] | None = None,
+    high: Sequence[object] | None = None,
+    low: Sequence[object] | None = None,
     close: Sequence[object] = (10.0,),
     adj_close: Sequence[object] = (9.0,),
     volume: Sequence[object] = (100,),
     extra: bool = False,
 ) -> pd.DataFrame:
     values: dict[str, Sequence[object]] = {
+        "Open": open_ if open_ is not None else close,
+        "High": high if high is not None else close,
+        "Low": low if low is not None else close,
         "Close": close,
         "Adj Close": adj_close,
         "Volume": volume,
     }
     if extra:
         values["Repaired?"] = [True] * len(dates)
-        values["Open"] = close
     return pd.DataFrame(values, index=pd.to_datetime(list(dates)))
 
 
@@ -91,6 +96,9 @@ def multi_frame(
     values: list[list[object]] = []
     for ticker, (close, adjusted, volume) in ticker_values.items():
         for field, value in (
+            ("Open", close),
+            ("High", close),
+            ("Low", close),
             ("Close", close),
             ("Adj Close", adjusted),
             ("Volume", volume),
@@ -163,6 +171,8 @@ def test_load_universe_missing_ticker_column_or_invalid_ticker_fails(
 
 
 def test_default_start_and_new_york_end_exclusive() -> None:
+    assert prices_module.SCHEMA_VERSION == "daily_prices_v2"
+    assert manifest_module.SCHEMA_VERSION == "daily_prices_v2"
     assert DEFAULT_START == date(2016, 1, 1)
     before_midnight_new_york = datetime(2026, 2, 1, 4, 30, tzinfo=UTC)
     assert calculate_end_exclusive(before_midnight_new_york) == date(2026, 2, 1)
@@ -282,6 +292,9 @@ def test_multiindex_both_level_orders_are_normalized(field_first: bool) -> None:
         {
             "date": date(2020, 1, 2),
             "ticker": "AAA",
+            "open": 10.0,
+            "high": 10.0,
+            "low": 10.0,
             "close": 10.0,
             "adj_close": 9.0,
             "volume": 100,
@@ -289,6 +302,9 @@ def test_multiindex_both_level_orders_are_normalized(field_first: bool) -> None:
         {
             "date": date(2020, 1, 2),
             "ticker": "BBB",
+            "open": 20.0,
+            "high": 20.0,
+            "low": 20.0,
             "close": 20.0,
             "adj_close": 18.0,
             "volume": 200,
@@ -298,7 +314,14 @@ def test_multiindex_both_level_orders_are_normalized(field_first: bool) -> None:
 
 def test_single_ticker_ordinary_columns_and_extra_fields() -> None:
     result = normalize_download_frame(
-        ordinary_frame(extra=True),
+        ordinary_frame(
+            open_=(10.25,),
+            high=(11.0,),
+            low=(9.5,),
+            close=(10.5,),
+            adj_close=(9.75,),
+            extra=True,
+        ),
         ("AAA",),
         start_date=START,
         end_exclusive=END,
@@ -306,7 +329,29 @@ def test_single_ticker_ordinary_columns_and_extra_fields() -> None:
 
     assert result.successful_tickers == frozenset({"AAA"})
     assert tuple(result.rows.columns) == PRICE_COLUMNS
+    assert result.rows.iloc[0].to_dict() == {
+        "date": date(2020, 1, 2),
+        "ticker": "AAA",
+        "open": 10.25,
+        "high": 11.0,
+        "low": 9.5,
+        "close": 10.5,
+        "adj_close": 9.75,
+        "volume": 100,
+    }
     assert "Repaired?" not in result.rows.columns
+
+
+def test_multiindex_ticker_named_low_is_not_confused_with_low_field() -> None:
+    result = normalize_download_frame(
+        multi_frame({"LOW": (10.0, 9.0, 100)}, field_first=False),
+        ("LOW",),
+        start_date=START,
+        end_exclusive=END,
+    )
+
+    assert result.successful_tickers == frozenset({"LOW"})
+    assert result.rows["low"].tolist() == [10.0]
 
 
 def test_partial_batch_and_empty_frame_are_no_data() -> None:
@@ -341,8 +386,9 @@ def test_2017_listing_is_success_without_synthetic_2016_rows() -> None:
     assert len(result.rows) == 1
 
 
-def test_missing_required_field_is_failed() -> None:
-    frame = ordinary_frame().drop(columns=["Adj Close"])
+@pytest.mark.parametrize("field", ["Open", "High", "Low", "Adj Close"])
+def test_missing_required_field_is_failed(field: str) -> None:
+    frame = ordinary_frame().drop(columns=[field])
     result = normalize_download_frame(
         frame,
         ("AAA",),
@@ -352,6 +398,34 @@ def test_missing_required_field_is_failed() -> None:
 
     assert result.successful_tickers == frozenset()
     assert result.failed_tickers["AAA"].error_type == "MissingFields"
+
+
+@pytest.mark.parametrize(
+    ("open_", "high", "low", "close"),
+    [
+        ((8.0,), (11.0,), (9.0,), (10.0,)),
+        ((12.0,), (11.0,), (9.0,), (10.0,)),
+        ((10.0,), (11.0,), (9.0,), (12.0,)),
+        ((10.0,), (11.0,), (10.5,), (10.0,)),
+    ],
+)
+def test_invalid_ohlc_candles_are_reported_and_removed(
+    open_: Sequence[object],
+    high: Sequence[object],
+    low: Sequence[object],
+    close: Sequence[object],
+) -> None:
+    result = normalize_download_frame(
+        ordinary_frame(open_=open_, high=high, low=low, close=close),
+        ("AAA",),
+        start_date=START,
+        end_exclusive=END,
+    )
+
+    assert result.rows.empty
+    assert result.invalid_rows_removed == 1
+    assert result.failed_tickers["AAA"].error_type == "InvalidData"
+    assert "OHLC candle" in result.failed_tickers["AAA"].message
 
 
 def test_price_volume_and_range_cleaning_counts_invalid_rows() -> None:
@@ -381,6 +455,9 @@ def test_price_volume_and_range_cleaning_counts_invalid_rows() -> None:
         {
             "date": date(2020, 1, 6),
             "ticker": "AAA",
+            "open": 10.0,
+            "high": 10.0,
+            "low": 10.0,
             "close": 10.0,
             "adj_close": 9.0,
             "volume": 0,
@@ -407,6 +484,7 @@ def test_identical_duplicate_is_removed_and_conflict_fails() -> None:
 
     conflict = identical.copy()
     conflict.iloc[1, conflict.columns.get_loc("Close")] = 11.0
+    conflict.iloc[1, conflict.columns.get_loc("High")] = 11.0
     with pytest.raises(DataConflictError, match="Conflicting duplicate"):
         normalize_download_frame(
             conflict,
@@ -518,6 +596,11 @@ def test_staging_parquet_schema_sorting_and_zstd(tmp_path: Path) -> None:
     assert table.schema.equals(PRICE_SCHEMA)
     assert table.column_names == list(PRICE_COLUMNS)
     assert table["date"].type == pa.date32()
+    assert table["open"].type == pa.float64()
+    assert table["high"].type == pa.float64()
+    assert table["low"].type == pa.float64()
+    assert table["close"].type == pa.float64()
+    assert table["adj_close"].type == pa.float64()
     assert table["volume"].type == pa.int64()
     assert table["date"].to_pylist() == [date(2020, 1, 2), date(2020, 1, 3)]
     metadata = pq.ParquetFile(path).metadata
@@ -597,6 +680,7 @@ def test_run_backfill_publishes_manifest_coverage_and_empty_failures(
 
     assert calls == [("AAA", "BBB"), ("CCC",)]
     assert manifest["completed"] is True
+    assert manifest["schema_version"] == "daily_prices_v2"
     assert manifest["requested_start"] == "2016-01-01"
     assert manifest["universe_sha256"] == universe_sha256(("AAA", "BBB", "CCC"))
     assert manifest["universe_ticker_count"] == 3
@@ -608,6 +692,9 @@ def test_run_backfill_publishes_manifest_coverage_and_empty_failures(
     assert all(int(year) >= 2016 for year in manifest["partition_row_counts"])
     persisted = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
     assert persisted == manifest
+    persisted_table = pq.read_table(output / "daily/year=2020/prices.parquet")
+    assert persisted_table.schema.equals(PRICE_SCHEMA)
+    assert persisted_table.column_names == list(PRICE_COLUMNS)
 
     with (output / "ticker_coverage.csv").open(
         encoding="utf-8", newline=""
@@ -1134,6 +1221,9 @@ def canonical_price_rows(
         {
             "date": [record[0] for record in records],
             "ticker": pd.Series([record[1] for record in records], dtype="string"),
+            "open": pd.Series([record[2] for record in records], dtype="float64"),
+            "high": pd.Series([record[2] for record in records], dtype="float64"),
+            "low": pd.Series([record[2] for record in records], dtype="float64"),
             "close": pd.Series([record[2] for record in records], dtype="float64"),
             "adj_close": pd.Series([record[3] for record in records], dtype="float64"),
             "volume": pd.Series([record[4] for record in records], dtype="int64"),
@@ -1247,6 +1337,37 @@ def test_read_affected_partitions_reads_only_requested_years(
     assert {value.year for value in rows["date"]} == {2025, 2026}
 
 
+def test_v1_five_column_partition_is_rejected_as_v2(tmp_path: Path) -> None:
+    path = tmp_path / "daily/year=2026/prices.parquet"
+    path.parent.mkdir(parents=True)
+    v1_schema = pa.schema(
+        [
+            pa.field("date", pa.date32(), nullable=False),
+            pa.field("ticker", pa.string(), nullable=False),
+            pa.field("close", pa.float64(), nullable=False),
+            pa.field("adj_close", pa.float64(), nullable=False),
+            pa.field("volume", pa.int64(), nullable=False),
+        ]
+    )
+    pq.write_table(
+        pa.Table.from_arrays(
+            [
+                pa.array([date(2026, 1, 2)], type=pa.date32()),
+                pa.array(["AAA"], type=pa.string()),
+                pa.array([10.0], type=pa.float64()),
+                pa.array([9.0], type=pa.float64()),
+                pa.array([100], type=pa.int64()),
+            ],
+            schema=v1_schema,
+        ),
+        path,
+        compression="zstd",
+    )
+
+    with pytest.raises(DataValidationError, match="unexpected schema"):
+        read_affected_partitions(tmp_path, (2026,), tickers=("AAA",))
+
+
 def write_incremental_fixture(root: Path) -> tuple[Path, Path]:
     universe = root / "universe.csv"
     prices_root = root / "prices"
@@ -1273,7 +1394,7 @@ def write_incremental_fixture(root: Path) -> tuple[Path, Path]:
     (prices_root / "manifest.json").write_text(
         json.dumps(
             {
-                "schema_version": "daily_prices_v1",
+                "schema_version": "daily_prices_v2",
                 "source": "yahoo_finance_via_yfinance",
                 "requested_start": "2016-01-01",
                 "actual_min_date": "2025-12-31",
@@ -1315,6 +1436,7 @@ def test_run_update_writes_partitions_manifest_coverage_and_reports(
 ) -> None:
     universe, prices_root = write_incremental_fixture(tmp_path)
     replacement_order: list[str] = []
+    download_calls: list[dict[str, object]] = []
     real_replace = prices_module.replace_files_transactionally
 
     def record_replacement_order(
@@ -1331,6 +1453,7 @@ def test_run_update_writes_partitions_manifest_coverage_and_reports(
     )
 
     def fake_download(**kwargs: object) -> pd.DataFrame:
+        download_calls.append(dict(kwargs))
         requested = tuple(
             str(value) for value in cast(Sequence[Any], kwargs["tickers"])
         )
@@ -1357,6 +1480,7 @@ def test_run_update_writes_partitions_manifest_coverage_and_reports(
     assert result["changed_local_assets"][-1] == "manifest.json"
     manifest = json.loads((prices_root / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["latest_session"] == "2026-01-05"
+    assert manifest["schema_version"] == "daily_prices_v2"
     assert manifest["requested_end_exclusive"] == "2026-01-06"
     assert manifest["requested_start"] == "2016-01-01"
     assert manifest["universe_sha256"] == universe_sha256(("AAA", "BBB"))
@@ -1373,9 +1497,19 @@ def test_run_update_writes_partitions_manifest_coverage_and_reports(
         "update_report",
     }
     assert manifest["assets"]["2026"]["asset_name"] == "prices-year-2026.parquet"
-    updated = pq.read_table(prices_root / "daily/year=2026/prices.parquet").to_pandas()
+    updated_table = pq.read_table(prices_root / "daily/year=2026/prices.parquet")
+    assert updated_table.schema.equals(PRICE_SCHEMA)
+    updated = updated_table.to_pandas()
     assert len(updated) == 4
     assert not updated.duplicated(["date", "ticker"]).any()
+    assert updated.loc[updated["date"].eq(date(2026, 1, 5)), "open"].tolist() == [
+        30.0,
+        30.0,
+    ]
+    assert download_calls
+    assert all(call["auto_adjust"] is False for call in download_calls)
+    assert all(call["actions"] is False for call in download_calls)
+    assert all(call["repair"] is True for call in download_calls)
     report = json.loads(
         (prices_root / "update_report.json").read_text(encoding="utf-8")
     )
@@ -1559,6 +1693,31 @@ def test_run_update_identity_mismatch_fails_before_yahoo(tmp_path: Path) -> None
         raise AssertionError("identity mismatch must fail before Yahoo")
 
     with pytest.raises(PriceUpdateError, match="different static Universe"):
+        run_update(
+            universe_path=universe,
+            prices_root=prices_root,
+            target_date=date(2026, 1, 5),
+            allow_partial_session=True,
+            download_func=forbidden_download,
+        )
+
+
+def test_run_update_rejects_v1_manifest_with_full_rebuild_guidance(
+    tmp_path: Path,
+) -> None:
+    universe, prices_root = write_incremental_fixture(tmp_path)
+    manifest_path = prices_root / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["schema_version"] = "daily_prices_v1"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    def forbidden_download(**kwargs: object) -> pd.DataFrame:
+        raise AssertionError("v1 must fail before Yahoo")
+
+    with pytest.raises(
+        PriceUpdateError,
+        match="daily_prices_v1.*incompatible.*daily_prices_v2.*full.*backfill",
+    ):
         run_update(
             universe_path=universe,
             prices_root=prices_root,

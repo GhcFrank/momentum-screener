@@ -22,3 +22,4 @@ data/processed/prices_bad_universe_*/
 # Yahoo temporary and historical staging
 data/raw/yahoo_daily/.staging/
 data/raw/yahoo_daily/staging_legacy_*/
+data/processed/

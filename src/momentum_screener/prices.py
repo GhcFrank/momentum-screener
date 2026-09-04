@@ -1,4 +1,4 @@
-"""Backfill validated daily Yahoo prices for the static stock universe."""
+"""Backfill validated unadjusted Yahoo OHLC plus Adj Close for the Universe."""
 
 from __future__ import annotations
 
@@ -151,6 +151,9 @@ def _empty_price_frame() -> pd.DataFrame:
         {
             "date": pd.Series(dtype="object"),
             "ticker": pd.Series(dtype="string"),
+            "open": pd.Series(dtype="float64"),
+            "high": pd.Series(dtype="float64"),
+            "low": pd.Series(dtype="float64"),
             "close": pd.Series(dtype="float64"),
             "adj_close": pd.Series(dtype="float64"),
             "volume": pd.Series(dtype="int64"),
@@ -269,27 +272,42 @@ def _normalize_field_name(value: object) -> str:
 def _resolve_download_columns(
     frame: pd.DataFrame, requested_tickers: Sequence[str]
 ) -> dict[str, dict[str, int]]:
-    required_fields = {"close", "adj close", "volume"}
+    required_fields = {"open", "high", "low", "close", "adj close", "volume"}
     requested_set = set(requested_tickers)
     resolved: dict[str, dict[str, int]] = {}
 
     if isinstance(frame.columns, pd.MultiIndex):
+        candidates: list[tuple[int, int, int]] = []
+        for field_level in range(frame.columns.nlevels):
+            for ticker_level in range(frame.columns.nlevels):
+                if field_level == ticker_level:
+                    continue
+                score = sum(
+                    _normalize_field_name(column[field_level]) in required_fields
+                    and normalize_ticker(column[ticker_level]) in requested_set
+                    for column in frame.columns
+                )
+                if score:
+                    candidates.append((score, field_level, ticker_level))
+        if not candidates:
+            return resolved
+        best_score = max(score for score, _, _ in candidates)
+        best_levels = {
+            (field_level, ticker_level)
+            for score, field_level, ticker_level in candidates
+            if score == best_score
+        }
+        if len(best_levels) != 1:
+            raise DataValidationError(
+                "Yahoo response MultiIndex field/ticker levels are ambiguous"
+            )
+        field_level, ticker_level = best_levels.pop()
         for position, column in enumerate(frame.columns):
             parts = tuple(column) if isinstance(column, tuple) else (column,)
-            field_parts = [
-                _normalize_field_name(part)
-                for part in parts
-                if _normalize_field_name(part) in required_fields
-            ]
-            ticker_parts = []
-            for part in parts:
-                candidate = normalize_ticker(part)
-                if candidate in requested_set:
-                    ticker_parts.append(candidate)
-            if len(field_parts) != 1 or len(ticker_parts) != 1:
+            field_name = _normalize_field_name(parts[field_level])
+            ticker = normalize_ticker(parts[ticker_level])
+            if field_name not in required_fields or ticker not in requested_set:
                 continue
-            ticker = ticker_parts[0]
-            field_name = field_parts[0]
             multi_ticker_fields = resolved.setdefault(ticker, {})
             if field_name in multi_ticker_fields:
                 raise DataValidationError(
@@ -359,7 +377,7 @@ def _deduplicate_normalized_rows(
     for (row_date, ticker), group in ordered.loc[duplicated].groupby(
         ["date", "ticker"], sort=False, dropna=False
     ):
-        values = group.loc[:, ["close", "adj_close", "volume"]]
+        values = group.loc[:, ["open", "high", "low", "close", "adj_close", "volume"]]
         if any(values[column].nunique(dropna=False) != 1 for column in values):
             raise DataConflictError(
                 f"Conflicting duplicate rows for ticker {ticker} on {row_date}"
@@ -386,16 +404,26 @@ def validate_normalized_rows(
         )
     if rows.isna().any(axis=None):
         raise DataValidationError("Normalized price rows contain null values")
-    if not pd.api.types.is_float_dtype(rows["close"].dtype):
-        raise DataValidationError("close must use a floating-point dtype")
-    if not pd.api.types.is_float_dtype(rows["adj_close"].dtype):
-        raise DataValidationError("adj_close must use a floating-point dtype")
+    for column in ("open", "high", "low", "close", "adj_close"):
+        if not pd.api.types.is_float_dtype(rows[column].dtype):
+            raise DataValidationError(f"{column} must use a floating-point dtype")
     if rows["volume"].dtype != np.dtype("int64"):
         raise DataValidationError("volume must use int64 dtype")
-    if not bool((rows["close"] > 0).all()):
-        raise DataValidationError("close must be positive")
-    if not bool((rows["adj_close"] > 0).all()):
-        raise DataValidationError("adj_close must be positive")
+    for column in ("open", "high", "low", "close", "adj_close"):
+        if not bool(np.isfinite(rows[column].to_numpy(dtype="float64")).all()):
+            raise DataValidationError(f"{column} must be finite")
+        if not bool((rows[column] > 0).all()):
+            raise DataValidationError(f"{column} must be positive")
+    if not bool(
+        (
+            (rows["low"] <= rows["high"])
+            & (rows["low"] <= rows["open"])
+            & (rows["open"] <= rows["high"])
+            & (rows["low"] <= rows["close"])
+            & (rows["close"] <= rows["high"])
+        ).all()
+    ):
+        raise DataValidationError("Price rows violate OHLC candle invariants")
     if not bool((rows["volume"] >= 0).all()):
         raise DataValidationError("volume cannot be negative")
     if not rows.empty:
@@ -465,7 +493,7 @@ def normalize_download_frame(
     failed: dict[str, ErrorSummary] = {}
     invalid_rows_removed = 0
     duplicate_rows_removed = 0
-    required_fields = {"close", "adj close", "volume"}
+    required_fields = {"open", "high", "low", "close", "adj close", "volume"}
 
     for ticker in normalized_requested:
         fields = resolved.get(ticker)
@@ -480,18 +508,21 @@ def normalize_download_frame(
             )
             continue
 
-        close_values = pd.to_numeric(
-            frame.iloc[:, fields["close"]].reset_index(drop=True), errors="coerce"
-        )
-        adjusted_values = pd.to_numeric(
-            frame.iloc[:, fields["adj close"]].reset_index(drop=True), errors="coerce"
-        )
+        price_arrays = {
+            field: pd.to_numeric(
+                frame.iloc[:, fields[field]].reset_index(drop=True), errors="coerce"
+            ).to_numpy(dtype="float64", na_value=np.nan)
+            for field in ("open", "high", "low", "close", "adj close")
+        }
         volume_values = pd.to_numeric(
             frame.iloc[:, fields["volume"]].reset_index(drop=True), errors="coerce"
         )
 
-        close_array = close_values.to_numpy(dtype="float64", na_value=np.nan)
-        adjusted_array = adjusted_values.to_numpy(dtype="float64", na_value=np.nan)
+        open_array = price_arrays["open"]
+        high_array = price_arrays["high"]
+        low_array = price_arrays["low"]
+        close_array = price_arrays["close"]
+        adjusted_array = price_arrays["adj close"]
         volume_array = volume_values.to_numpy(dtype="float64", na_value=np.nan)
         finite_volume = np.isfinite(volume_array)
         integral_volume = finite_volume & np.isclose(
@@ -505,10 +536,21 @@ def normalize_download_frame(
         ).to_numpy(dtype="bool")
         valid = (
             in_date_range
+            & np.isfinite(open_array)
+            & (open_array > 0)
+            & np.isfinite(high_array)
+            & (high_array > 0)
+            & np.isfinite(low_array)
+            & (low_array > 0)
             & np.isfinite(close_array)
             & (close_array > 0)
             & np.isfinite(adjusted_array)
             & (adjusted_array > 0)
+            & (low_array <= high_array)
+            & (low_array <= open_array)
+            & (open_array <= high_array)
+            & (low_array <= close_array)
+            & (close_array <= high_array)
             & integral_volume
             & (volume_array >= 0)
         )
@@ -517,7 +559,8 @@ def normalize_download_frame(
         if not bool(valid.any()):
             failed[ticker] = ErrorSummary(
                 "InvalidData",
-                "Yahoo returned rows, but none passed date, price, and volume validation",
+                "Yahoo returned rows, but none passed date, OHLC candle, adjusted "
+                "close, and volume validation",
             )
             continue
 
@@ -525,6 +568,9 @@ def normalize_download_frame(
             {
                 "date": calendar_dates.loc[valid].reset_index(drop=True),
                 "ticker": pd.Series([ticker] * int(valid.sum()), dtype="string"),
+                "open": open_array[valid].astype("float64"),
+                "high": high_array[valid].astype("float64"),
+                "low": low_array[valid].astype("float64"),
                 "close": close_array[valid].astype("float64"),
                 "adj_close": adjusted_array[valid].astype("float64"),
                 "volume": np.rint(volume_array[valid]).astype("int64"),
@@ -838,10 +884,30 @@ def _validate_arrow_table(
         raise DataValidationError("Arrow price table contains null values")
     if table.num_rows == 0:
         return
-    if pc.any(pc.less_equal(table["close"], pa.scalar(0.0))).as_py():
-        raise DataValidationError("Arrow table contains non-positive close values")
-    if pc.any(pc.less_equal(table["adj_close"], pa.scalar(0.0))).as_py():
-        raise DataValidationError("Arrow table contains non-positive adj_close values")
+    for column in ("open", "high", "low", "close", "adj_close"):
+        if pc.any(pc.invert(pc.is_finite(table[column]))).as_py():
+            raise DataValidationError(
+                f"Arrow table contains non-finite {column} values"
+            )
+        if pc.any(pc.less_equal(table[column], pa.scalar(0.0))).as_py():
+            raise DataValidationError(
+                f"Arrow table contains non-positive {column} values"
+            )
+    invalid_candle = pc.or_(
+        pc.or_(
+            pc.greater(table["low"], table["high"]),
+            pc.less(table["open"], table["low"]),
+        ),
+        pc.or_(
+            pc.greater(table["open"], table["high"]),
+            pc.or_(
+                pc.less(table["close"], table["low"]),
+                pc.greater(table["close"], table["high"]),
+            ),
+        ),
+    )
+    if pc.any(invalid_candle).as_py():
+        raise DataValidationError("Arrow table violates OHLC candle invariants")
     if pc.any(pc.less(table["volume"], pa.scalar(0, pa.int64()))).as_py():
         raise DataValidationError("Arrow table contains negative volume values")
     minimum_date = pc.min(table["date"]).as_py()
@@ -939,8 +1005,8 @@ def _read_staging_batch(
             lambda value: value.date() if isinstance(value, pd.Timestamp) else value
         )
         rows["ticker"] = rows["ticker"].astype("string")
-        rows["close"] = rows["close"].astype("float64")
-        rows["adj_close"] = rows["adj_close"].astype("float64")
+        for column in ("open", "high", "low", "close", "adj_close"):
+            rows[column] = rows[column].astype("float64")
         rows["volume"] = rows["volume"].astype("int64")
         rows = rows.loc[:, PRICE_COLUMNS].sort_values(
             ["date", "ticker"], kind="mergesort", ignore_index=True
@@ -1352,8 +1418,8 @@ def combine_staging_batches(
             lambda value: value.date() if isinstance(value, pd.Timestamp) else value
         )
         rows["ticker"] = rows["ticker"].astype("string")
-        rows["close"] = rows["close"].astype("float64")
-        rows["adj_close"] = rows["adj_close"].astype("float64")
+        for column in ("open", "high", "low", "close", "adj_close"):
+            rows[column] = rows[column].astype("float64")
         rows["volume"] = rows["volume"].astype("int64")
         rows, duplicate_rows_removed = _deduplicate_normalized_rows(rows)
         validate_normalized_rows(
@@ -1883,6 +1949,10 @@ def validate_backfill_dataset(
         "null_count": 0,
         "nonpositive_close_count": 0,
         "nonpositive_adj_close_count": 0,
+        "nonpositive_open_count": 0,
+        "nonpositive_high_count": 0,
+        "nonpositive_low_count": 0,
+        "invalid_ohlc_candle_count": 0,
         "negative_volume_count": 0,
         "target_session": target_session.isoformat() if target_session else None,
         "target_session_ticker_count": target_count,
@@ -2261,6 +2331,8 @@ def read_affected_partitions(
                 )
         frame = table.to_pandas()
         frame["ticker"] = frame["ticker"].astype("string")
+        for column in ("open", "high", "low", "close", "adj_close"):
+            frame[column] = frame[column].astype("float64")
         frame["volume"] = frame["volume"].astype("int64")
         frame = frame.loc[:, PRICE_COLUMNS]
         if not frame.empty:
@@ -2373,8 +2445,8 @@ def upsert_refresh_window(
         ["date", "ticker"], kind="mergesort", ignore_index=True
     )
     combined["ticker"] = combined["ticker"].astype("string")
-    combined["close"] = combined["close"].astype("float64")
-    combined["adj_close"] = combined["adj_close"].astype("float64")
+    for column in ("open", "high", "low", "close", "adj_close"):
+        combined[column] = combined[column].astype("float64")
     combined["volume"] = combined["volume"].astype("int64")
     first_year = min(
         (value.year for value in combined["date"]), default=refresh_start.year
@@ -2454,7 +2526,9 @@ def _load_existing_manifest_payload(prices_root: Path) -> dict[str, Any]:
         raise PriceUpdateError(f"Existing price manifest must be an object: {path}")
     if payload.get("schema_version") != SCHEMA_VERSION:
         raise PriceUpdateError(
-            f"Unsupported existing manifest schema: {payload.get('schema_version')!r}"
+            f"Existing price dataset schema {payload.get('schema_version')!r} is "
+            f"incompatible with {SCHEMA_VERSION!r}; archive the existing dataset "
+            "and run a full `python -m momentum_screener.prices backfill` rebuild"
         )
     if payload.get("completed") is not True:
         raise PriceUpdateError("Existing price manifest is not completed")

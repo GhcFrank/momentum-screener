@@ -24,7 +24,16 @@ TICKER_COVERAGE_ASSET_NAME = "prices-ticker-coverage.csv"
 DOWNLOAD_FAILURES_ASSET_NAME = "prices-download-failures.csv"
 UPDATE_REPORT_ASSET_NAME = "prices-update-report.json"
 UPDATE_MISSING_ASSET_NAME = "prices-update-missing-tickers.csv"
-PRICE_COLUMNS = ("date", "ticker", "close", "adj_close", "volume")
+PRICE_COLUMNS = (
+    "date",
+    "ticker",
+    "open",
+    "high",
+    "low",
+    "close",
+    "adj_close",
+    "volume",
+)
 COVERAGE_COLUMNS = (
     "ticker",
     "status",
@@ -51,6 +60,9 @@ PRICE_SCHEMA = pa.schema(
     [
         pa.field("date", pa.date32(), nullable=False),
         pa.field("ticker", pa.string(), nullable=False),
+        pa.field("open", pa.float64(), nullable=False),
+        pa.field("high", pa.float64(), nullable=False),
+        pa.field("low", pa.float64(), nullable=False),
         pa.field("close", pa.float64(), nullable=False),
         pa.field("adj_close", pa.float64(), nullable=False),
         pa.field("volume", pa.int64(), nullable=False),
@@ -393,16 +405,30 @@ def _validate_parquet(path: Path, year: int) -> None:
     if table.num_rows:
         if any(column.null_count for column in table.columns):
             raise ManifestError(f"Parquet asset contains null values: {path}")
-        if bool(pc.any(pc.invert(pc.is_finite(table["close"]))).as_py()):
-            raise ManifestError(f"Parquet asset contains non-finite close: {path}")
-        if bool(pc.any(pc.invert(pc.is_finite(table["adj_close"]))).as_py()):
-            raise ManifestError(f"Parquet asset contains non-finite adj_close: {path}")
-        if bool(pc.any(pc.less_equal(table["close"], 0)).as_py()):
-            raise ManifestError(f"Parquet asset contains non-positive close: {path}")
-        if bool(pc.any(pc.less_equal(table["adj_close"], 0)).as_py()):
-            raise ManifestError(
-                f"Parquet asset contains non-positive adj_close: {path}"
-            )
+        for price_field in ("open", "high", "low", "close", "adj_close"):
+            if bool(pc.any(pc.invert(pc.is_finite(table[price_field]))).as_py()):
+                raise ManifestError(
+                    f"Parquet asset contains non-finite {price_field}: {path}"
+                )
+            if bool(pc.any(pc.less_equal(table[price_field], 0)).as_py()):
+                raise ManifestError(
+                    f"Parquet asset contains non-positive {price_field}: {path}"
+                )
+        invalid_candle = pc.or_(
+            pc.or_(
+                pc.greater(table["low"], table["high"]),
+                pc.less(table["open"], table["low"]),
+            ),
+            pc.or_(
+                pc.greater(table["open"], table["high"]),
+                pc.or_(
+                    pc.less(table["close"], table["low"]),
+                    pc.greater(table["close"], table["high"]),
+                ),
+            ),
+        )
+        if bool(pc.any(invalid_candle).as_py()):
+            raise ManifestError(f"Parquet asset violates OHLC invariants: {path}")
         if bool(pc.any(pc.less(table["volume"], 0)).as_py()):
             raise ManifestError(f"Parquet asset contains negative volume: {path}")
         years = {int(value) for value in pc.unique(pc.year(table["date"])).to_pylist()}

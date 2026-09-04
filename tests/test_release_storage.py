@@ -52,7 +52,7 @@ from momentum_screener.storage_manifest import (
 )
 
 TEST_IDENTITY = DatasetIdentity(
-    schema_version="daily_prices_v1",
+    schema_version="daily_prices_v2",
     universe_sha256="a" * 64,
     requested_start="2016-01-01",
     universe_ticker_count=1,
@@ -89,6 +89,9 @@ def write_price_asset(path: Path, year: int = 2026, day: int = 2) -> None:
         [
             pa.array([date(year, 1, day)], type=pa.date32()),
             pa.array(["AAA"], type=pa.string()),
+            pa.array([10.0], type=pa.float64()),
+            pa.array([10.0], type=pa.float64()),
+            pa.array([10.0], type=pa.float64()),
             pa.array([10.0], type=pa.float64()),
             pa.array([9.0], type=pa.float64()),
             pa.array([100], type=pa.int64()),
@@ -252,7 +255,7 @@ def make_fresh_runner_remote(
         encoding="utf-8",
     )
     identity = DatasetIdentity(
-        schema_version="daily_prices_v1",
+        schema_version="daily_prices_v2",
         universe_sha256=(remote_universe_sha256 or universe_sha256(("AAA",))),
         requested_start="2016-01-01",
         universe_ticker_count=1,
@@ -293,7 +296,7 @@ def make_local_2016_dataset(
     )
     write_csv(prices_root / "download_failures.csv", FAILURE_COLUMNS, [])
     identity = DatasetIdentity(
-        schema_version="daily_prices_v1",
+        schema_version="daily_prices_v2",
         universe_sha256=universe_sha256(("AAA",)),
         requested_start="2016-01-01",
         universe_ticker_count=1,
@@ -516,7 +519,10 @@ def test_pull_rejects_missing_or_corrupt_manifest_asset(
 @pytest.mark.parametrize(
     ("mutation", "message"),
     [
-        (lambda value: value.update(schema_version="future"), "schema_version"),
+        (
+            lambda value: value.update(schema_version="daily_prices_v1"),
+            "schema_version",
+        ),
         (lambda value: value.update(completed=False), "completed"),
         (
             lambda value: value["assets"]["2026"].update(
@@ -548,7 +554,7 @@ def test_validate_remote_manifest_rejects_unsafe_or_unsupported_values(
     [
         lambda value: value.update(universe_sha256="b" * 64),
         lambda value: value.update(requested_start="2010-01-01"),
-        lambda value: value.update(schema_version="future"),
+        lambda value: value.update(schema_version="daily_prices_v1"),
         lambda value: value.update(universe_ticker_count=2000),
         lambda value: value.update(completed=False),
     ],
@@ -931,8 +937,8 @@ def test_check_is_read_only_ready_and_reports_obsolete_assets(tmp_path: Path) ->
     assert result["workflow_ready"] is True
     assert result["dataset_identity_match"] is True
     assert result["release_tag"] == "marketData"
-    assert result["local_schema_version"] == "daily_prices_v1"
-    assert result["remote_schema_version"] == "daily_prices_v1"
+    assert result["local_schema_version"] == "daily_prices_v2"
+    assert result["remote_schema_version"] == "daily_prices_v2"
     assert result["local_universe_ticker_count"] == identity.universe_ticker_count
     assert result["remote_universe_ticker_count"] == identity.universe_ticker_count
     assert result["obsolete_remote_assets"] == ["prices-year-2010.parquet"]
@@ -1057,7 +1063,7 @@ def make_partial_incremental_fixture(
     write_json_atomically(report_path, report)
 
     identity = DatasetIdentity(
-        schema_version="daily_prices_v1",
+        schema_version="daily_prices_v2",
         universe_sha256=universe_sha256(("AAA",)),
         requested_start="2016-01-01",
         universe_ticker_count=1,
@@ -1615,6 +1621,9 @@ def test_validate_managed_asset_rejects_unsorted_parquet(tmp_path: Path) -> None
             pa.array(["AAA", "AAA"]),
             pa.array([10.0, 9.0]),
             pa.array([10.0, 9.0]),
+            pa.array([10.0, 9.0]),
+            pa.array([10.0, 9.0]),
+            pa.array([10.0, 9.0]),
             pa.array([100, 90], type=pa.int64()),
         ],
         schema=PRICE_SCHEMA,
@@ -1626,6 +1635,32 @@ def test_validate_managed_asset_rejects_unsorted_parquet(tmp_path: Path) -> None
         local_path="daily/year=2026/prices.parquet",
     )
     with pytest.raises(ManifestError, match="not sorted"):
+        validate_managed_asset(path, key="2026", asset=asset)
+
+
+def test_validate_managed_asset_rejects_invalid_ohlc_candle(tmp_path: Path) -> None:
+    path = tmp_path / "prices.parquet"
+    table = pa.Table.from_arrays(
+        [
+            pa.array([date(2026, 1, 2)], type=pa.date32()),
+            pa.array(["AAA"]),
+            pa.array([12.0]),
+            pa.array([11.0]),
+            pa.array([9.0]),
+            pa.array([10.0]),
+            pa.array([9.0]),
+            pa.array([100], type=pa.int64()),
+        ],
+        schema=PRICE_SCHEMA,
+    )
+    pq.write_table(table, path, compression="zstd")
+    asset = build_asset_record(
+        path,
+        asset_name="prices-year-2026.parquet",
+        local_path="daily/year=2026/prices.parquet",
+    )
+
+    with pytest.raises(ManifestError, match="OHLC invariants"):
         validate_managed_asset(path, key="2026", asset=asset)
 
 
@@ -1646,7 +1681,7 @@ def test_check_succeeds_on_fresh_runner_without_local_manifest(
 
     assert result["dataset_identity_match"] is True
     assert result["workflow_ready"] is True
-    assert result["local_schema_version"] == "daily_prices_v1"
+    assert result["local_schema_version"] == "daily_prices_v2"
     assert result["local_universe_sha256"] == universe_sha256(("AAA",))
     assert result["local_universe_ticker_count"] == 1
     assert result["local_requested_start"] == "2016-01-01"

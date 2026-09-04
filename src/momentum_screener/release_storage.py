@@ -63,8 +63,8 @@ MIGRATION_PLAN_NAME = "release_migration_plan.json"
 OBSOLETE_ASSETS_REPORT_NAME = "remote_obsolete_assets.json"
 REMOTE_IDENTITY_MISMATCH_MESSAGE = (
     "Remote Release dataset identity does not match the current local dataset. "
-    "The marketData Release must be bootstrapped or replaced with the new 2016+ "
-    "dataset."
+    "The marketData Release must be bootstrapped or replaced with the "
+    "daily_prices_v2 2016+ dataset."
 )
 
 

@@ -2,7 +2,7 @@
 
 from datetime import date
 
-DATASET_SCHEMA_VERSION = "daily_prices_v1"
+DATASET_SCHEMA_VERSION = "daily_prices_v2"
 DEFAULT_BACKFILL_START = date(2016, 1, 1)
 EXPECTED_UNIVERSE_SIZE = 2000
 DEFAULT_RELEASE_TAG = "marketData"
