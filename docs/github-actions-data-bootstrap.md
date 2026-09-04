@@ -4,11 +4,59 @@
 checkout 只提供代码、当前 Universe 和数据集身份；工作流不会把 Parquet 提交回源码
 分支，也不会把 Actions cache 或 workflow artifact 当作长期行情存储。
 
+## `daily_prices_v2` 字段与来源语义
+
+当前 canonical dataset schema version 是 `daily_prices_v2`，年度 Parquet 严格按以下
+顺序持久化字段：
+
+```text
+date        date32
+ticker      string
+open        float64
+high        float64
+low         float64
+close       float64
+adj_close   float64
+volume      int64
+```
+
+数据源是 Yahoo Finance，通过 `yfinance.download` 获取。下载明确使用
+`auto_adjust=False`、`actions=False`、`repair=True`，因此 `open/high/low/close` 分别
+保存 Yahoo 返回的 `Open/High/Low/Close` 原始价格语义，`adj_close` 单独保存 Yahoo 的
+`Adj Close`，`volume` 保存 `Volume`。`close` 与 `adj_close` 不是同一字段，也不会在
+price dataset 中把 OHLC 转成 adjusted OHLC。后续技术分析可以在 feature layer 统一
+计算 adjusted OHLC。
+
+full backfill 与 daily incremental update 共用相同的 Yahoo downloader、normalizer 和
+OHLC validation。RPS120/RPS250 继续只读取 `adj_close`，其公式不因 v2 增加 OHLC 而改变。
+
 ## 当前迁移场景
 
-旧 Release 对应错误 Universe 及 2010 年开始的数据集。当前本地权威数据集使用重新验证
-的 2,000 个普通股 Universe，`requested_start` 为 `2016-01-01`，正式年份从 2016
-开始。旧 Release 不能直接供每日更新继续使用，否则会混合两个不同的数据集。
+旧的 `daily_prices_v1` 只有 `date/ticker/close/adj_close/volume`，没有真实历史
+`Open/High/Low`，因此不能无损转换为 v2，也不能与 v2 增量数据混合。不要用 close 伪造
+OHLC；必须从 Yahoo 重新下载 `2016-01-01` 至最新已完成交易日的完整历史。旧 Release
+或本地 v1 dataset 不能直接供每日更新继续使用，schema identity mismatch 会在访问
+Yahoo 或替换本地文件前失败。
+
+本地完整 rebuild 的安全顺序如下。第一条命令先把现有正式目录原子重命名为带时间戳的
+`data/processed/prices_legacy_YYYYmmdd_HHMMSS` 备份，并重新创建空的正式目录；它不会删除
+旧数据：
+
+```bash
+uv run python -c 'from momentum_screener.prices import rotate_price_output_to_legacy; print(rotate_price_output_to_legacy())'
+
+uv run python -m momentum_screener.prices backfill \
+  --start 2016-01-01
+
+uv run python -m momentum_screener.release_storage bootstrap \
+  --release-tag marketData \
+  --dry-run
+```
+
+`prices backfill` 保持 `daily/year=YYYY/prices.parquet`、ZSTD、`date,ticker` 排序和
+transactional publish。`bootstrap --dry-run` 会重新读取并严格验证 Universe、v2 manifest、
+coverage、全部年度 Parquet、文件大小和 SHA-256，只生成本地 migration plan，不连接或
+修改 GitHub Release。
 
 每日 workflow 和普通 `pull-update-inputs` 会比较以下身份字段：
 
