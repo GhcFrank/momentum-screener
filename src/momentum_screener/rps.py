@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
@@ -190,27 +190,15 @@ def _prices_on_date(prices: pd.DataFrame, session_date: date) -> pd.Series:
     return rows.set_index("ticker")[RPS_PRICE_FIELD]
 
 
-def calculate_rps_snapshot(
-    as_of_date: date | str,
+def _calculate_snapshot_from_prices(
     *,
-    lookbacks: Iterable[int] = RPS_LOOKBACKS,
-    prices_root: Path = DEFAULT_OUTPUT_ROOT,
-    universe_path: Path = DEFAULT_UNIVERSE,
+    session_dates: RpsSessionDates,
+    prices: pd.DataFrame,
+    universe: tuple[str, ...],
 ) -> pd.DataFrame:
-    """Calculate cross-sectional RPS for configured session lookbacks."""
+    """Build one snapshot from an already loaded, validated price frame."""
 
-    session_dates = resolve_rps_session_dates(as_of_date, lookbacks=lookbacks)
     normalized_lookbacks = tuple(session_dates.base_dates)
-    universe = load_universe(universe_path)
-    years = tuple(
-        sorted(
-            {
-                session_dates.as_of_date.year,
-                *(base_date.year for base_date in session_dates.base_dates.values()),
-            }
-        )
-    )
-    prices = read_affected_partitions(prices_root, years, tickers=universe)
     current_prices = _prices_on_date(prices, session_dates.as_of_date)
     metrics_by_lookback = {
         lookback: calculate_cross_sectional_rps(
@@ -232,6 +220,115 @@ def calculate_rps_snapshot(
     for lookback in normalized_lookbacks:
         snapshot[f"rps{lookback}_base_date"] = session_dates.base_dates[lookback]
     return snapshot
+
+
+def calculate_rps_snapshot(
+    as_of_date: date | str,
+    *,
+    lookbacks: Iterable[int] = RPS_LOOKBACKS,
+    prices_root: Path = DEFAULT_OUTPUT_ROOT,
+    universe_path: Path = DEFAULT_UNIVERSE,
+) -> pd.DataFrame:
+    """Calculate cross-sectional RPS for configured session lookbacks."""
+
+    session_dates = resolve_rps_session_dates(as_of_date, lookbacks=lookbacks)
+    universe = load_universe(universe_path)
+    years = tuple(
+        sorted(
+            {
+                session_dates.as_of_date.year,
+                *(base_date.year for base_date in session_dates.base_dates.values()),
+            }
+        )
+    )
+    prices = read_affected_partitions(prices_root, years, tickers=universe)
+    return _calculate_snapshot_from_prices(
+        session_dates=session_dates,
+        prices=prices,
+        universe=universe,
+    )
+
+
+def calculate_rps_snapshots(
+    as_of_dates: Iterable[date | str],
+    *,
+    lookbacks: Iterable[int] = RPS_LOOKBACKS,
+    prices_root: Path = DEFAULT_OUTPUT_ROOT,
+    universe_path: Path = DEFAULT_UNIVERSE,
+    price_rows: pd.DataFrame | None = None,
+    universe: tuple[str, ...] | None = None,
+    result_tickers: Sequence[str] | None = None,
+) -> pd.DataFrame:
+    """Calculate several RPS cross sections with one shared price read.
+
+    ``price_rows`` and ``universe`` allow an orchestrator that already loaded
+    validated v2 partitions to reuse those rows.  Rankings always use the
+    complete Universe; ``result_tickers`` only projects the returned rows.
+    """
+
+    normalized_lookbacks = _normalize_lookbacks(lookbacks)
+    requested_dates = tuple(as_of_dates)
+    if not requested_dates:
+        raise InvalidRpsSessionError("as_of_dates must contain at least one session")
+    resolved_dates = tuple(
+        resolve_rps_session_dates(value, lookbacks=normalized_lookbacks)
+        for value in requested_dates
+    )
+    canonical_dates = tuple(item.as_of_date for item in resolved_dates)
+    if len(set(canonical_dates)) != len(canonical_dates):
+        raise InvalidRpsSessionError("as_of_dates must not contain duplicates")
+    if canonical_dates != tuple(sorted(canonical_dates)):
+        order = np.argsort(np.asarray(canonical_dates, dtype="datetime64[D]"))
+        resolved_dates = tuple(resolved_dates[int(index)] for index in order)
+
+    complete_universe = (
+        universe if universe is not None else load_universe(universe_path)
+    )
+    if not complete_universe:
+        raise RpsError("RPS Universe must contain at least one ticker")
+    if price_rows is None:
+        years = tuple(
+            sorted(
+                {item.as_of_date.year for item in resolved_dates}
+                | {
+                    base_date.year
+                    for item in resolved_dates
+                    for base_date in item.base_dates.values()
+                }
+            )
+        )
+        prices = read_affected_partitions(
+            prices_root,
+            years,
+            tickers=complete_universe,
+        )
+    else:
+        required = {"date", "ticker", RPS_PRICE_FIELD}
+        missing = sorted(required.difference(price_rows.columns))
+        if missing:
+            raise RpsError(f"Preloaded RPS price rows are missing columns: {missing}")
+        prices = price_rows
+
+    projection: tuple[str, ...] | None = None
+    if result_tickers is not None:
+        projection = tuple(result_tickers)
+        unknown = sorted(set(projection).difference(complete_universe))
+        if unknown:
+            raise RpsTickerNotFoundError(
+                f"Requested result tickers are outside the Universe: {unknown}"
+            )
+
+    frames: list[pd.DataFrame] = []
+    for session_dates in resolved_dates:
+        snapshot = _calculate_snapshot_from_prices(
+            session_dates=session_dates,
+            prices=prices,
+            universe=complete_universe,
+        )
+        if projection is not None:
+            snapshot = snapshot.loc[list(projection)]
+        frames.append(snapshot.reset_index(drop=True))
+    return pd.concat(frames, ignore_index=True)
 
 
 def get_stock_rps(

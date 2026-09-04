@@ -21,6 +21,7 @@ from momentum_screener.rps import (
     RpsTickerNotFoundError,
     calculate_cross_sectional_rps,
     calculate_rps_snapshot,
+    calculate_rps_snapshots,
     get_stock_rps,
     resolve_rps_session_dates,
 )
@@ -318,6 +319,59 @@ def test_custom_lookbacks_are_sorted_read_once_and_rank_rps50(
     )
     assert stock["rps50"] == snapshot.loc["HIGH", "rps50"]
     assert "rps120" not in stock.index
+
+
+def test_batch_snapshots_share_one_price_read_and_can_project_result_tickers(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calendar = xcals.get_calendar(RPS_CALENDAR_NAME)
+    as_of_session = calendar.date_to_session(pd.Timestamp(AS_OF_DATE), direction="none")
+    as_of_index = int(calendar.sessions.get_loc(as_of_session))
+    requested_dates = (
+        calendar.sessions[as_of_index - 1].date(),
+        calendar.sessions[as_of_index].date(),
+    )
+    tickers = ("LOW", "HIGH")
+    universe_path = tmp_path / "universe.csv"
+    prices_root = tmp_path / "prices"
+    _write_universe(universe_path, tickers)
+    records: list[tuple[date, str, float, float]] = []
+    for requested in requested_dates:
+        requested_index = int(calendar.sessions.get_loc(pd.Timestamp(requested)))
+        base = calendar.sessions[requested_index - 50].date()
+        records.extend(
+            [
+                (base, "LOW", 10.0, 10.0),
+                (base, "HIGH", 10.0, 10.0),
+                (requested, "LOW", 11.0, 11.0),
+                (requested, "HIGH", 20.0, 20.0),
+            ]
+        )
+    _write_price_partitions(prices_root, records)
+    real_read = rps_module.read_affected_partitions
+    reads = 0
+
+    def observed_read(
+        root: Path, years: tuple[int, ...], *, tickers: tuple[str, ...]
+    ) -> pd.DataFrame:
+        nonlocal reads
+        reads += 1
+        return real_read(root, years, tickers=tickers)
+
+    monkeypatch.setattr(rps_module, "read_affected_partitions", observed_read)
+
+    result = calculate_rps_snapshots(
+        requested_dates,
+        lookbacks=(50,),
+        prices_root=prices_root,
+        universe_path=universe_path,
+        result_tickers=("HIGH",),
+    )
+
+    assert reads == 1
+    assert result["as_of_date"].tolist() == list(requested_dates)
+    assert result["ticker"].tolist() == ["HIGH", "HIGH"]
+    assert result["rps50"].tolist() == [100.0, 100.0]
 
 
 def test_snapshot_uses_exact_t_minus_120_and_t_minus_250_sessions(
