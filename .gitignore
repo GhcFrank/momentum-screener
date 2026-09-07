@@ -23,3 +23,6 @@ data/processed/prices_bad_universe_*/
 data/raw/yahoo_daily/.staging/
 data/raw/yahoo_daily/staging_legacy_*/
 data/processed/
+
+# Rebuildable historical signal results and coverage
+data/signals/
