@@ -27,6 +27,7 @@ def render_app() -> None:
         LocalFile,
         clip_price_window,
         combine_signals,
+        discover_signal_csvs,
         local_price_files,
         read_local_prices,
         read_signal_csv,
@@ -42,18 +43,24 @@ def render_app() -> None:
     cached_prices = st.cache_data(read_local_prices, show_spinner=False, max_entries=64)
 
     with st.sidebar:
-        with st.form("signal_paths"):
-            paths_text = st.text_area(
-                "Signal CSV files",
-                height=160,
-                placeholder="/path/to/first_signals.csv\n/path/to/second_signals.csv",
-                help="One local CSV path per line. Relative paths use the launch directory.",
-            )
-            load = st.form_submit_button("Load Signals")
+        paths_text = st.text_area(
+            "Signal CSV files or folders",
+            key="signal_paths_input",
+            height=160,
+            placeholder="/path/to/signals_folder\n/path/to/signal.csv",
+            help=(
+                "One local CSV file or directory per line. Directories load only their "
+                "immediate CSV files; subdirectories are not scanned. "
+                "Relative paths use the launch directory."
+            ),
+        )
+        load = st.button("Load Signals", type="primary")
         if load:
             paths = [line.strip() for line in paths_text.splitlines() if line.strip()]
-            frames, reports, metadata = [], [], []
-            for path in paths:
+            csv_paths, discovery_warnings = discover_signal_csvs(paths)
+            frames, metadata = [], []
+            reports = [("warning", warning) for warning in discovery_warnings]
+            for path in csv_paths:
                 try:
                     source = LocalFile.inspect(path)
                     frame, warnings = cached_csv(source)
@@ -68,8 +75,11 @@ def render_app() -> None:
                     reports.append(("error", f"Error: {path}: {exc}"))
             combined, warnings = combine_signals(frames)
             reports.extend(("warning", warning) for warning in warnings)
+            reports.insert(0, ("info", f"Loaded {len(metadata)} CSV files"))
             if not paths:
-                reports.append(("warning", "Enter at least one local CSV path."))
+                reports.append(
+                    ("warning", "Enter at least one local CSV file or directory path.")
+                )
             st.session_state["signals"] = combined
             st.session_state["signal_files"] = metadata
             st.session_state["load_reports"] = reports

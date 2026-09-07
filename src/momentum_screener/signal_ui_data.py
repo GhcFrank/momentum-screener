@@ -7,10 +7,11 @@ later supply the same normalized frame.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from stat import S_ISREG
+from stat import S_ISDIR, S_ISREG
 
 import numpy as np
 import pandas as pd
@@ -20,6 +21,63 @@ from momentum_screener.prices import DEFAULT_OUTPUT_ROOT
 from momentum_screener.storage_manifest import load_manifest, resolve_local_asset_path
 
 SIGNAL_KEY = ["session", "strategy_id", "ticker"]
+
+
+def discover_signal_csvs(paths: Sequence[str]) -> tuple[list[Path], list[str]]:
+    """Discover local CSV files without reading contents or recursing into folders.
+
+    Preserve input order; sort each directory's immediate entries by filename.
+    Return resolved paths only once, plus warnings for unusable inputs. A bad
+    path or directory entry does not block discovery from the remaining paths.
+    """
+
+    discovered: list[Path] = []
+    warnings: list[str] = []
+    seen: set[Path] = set()
+
+    def add_csv(path: Path) -> bool:
+        try:
+            if not S_ISREG(path.stat().st_mode):
+                return False
+            resolved = path.resolve()
+        except (OSError, ValueError, RuntimeError) as exc:
+            warnings.append(f"Unable to inspect CSV: {path}: {exc}")
+            return False
+        if resolved not in seen:
+            seen.add(resolved)
+            discovered.append(resolved)
+        return True
+
+    for raw_path in paths:
+        text = raw_path.strip()
+        if not text:
+            continue
+        try:
+            path = Path(text).expanduser()
+            mode = path.stat().st_mode
+            if S_ISDIR(mode):
+                # Only immediate children; directories (including *.csv folders)
+                # are never traversed, even when they contain more signal files.
+                entries = sorted(path.iterdir())
+                count = sum(
+                    add_csv(entry)
+                    for entry in entries
+                    if entry.suffix.lower() == ".csv"
+                )
+                if not count:
+                    warnings.append(f"No CSV files found in: {path}")
+            elif S_ISREG(mode):
+                if path.suffix.lower() == ".csv":
+                    add_csv(path)
+                else:
+                    warnings.append(f"Unsupported file type: {path}")
+            else:
+                warnings.append(f"Not a regular file or directory: {path}")
+        except FileNotFoundError:
+            warnings.append(f"Path does not exist: {text}")
+        except (OSError, ValueError, RuntimeError) as exc:
+            warnings.append(f"Unable to inspect path: {text}: {exc}")
+    return discovered, warnings
 
 
 @dataclass(frozen=True)

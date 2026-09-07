@@ -13,6 +13,7 @@ from momentum_screener.signal_ui_data import (
     LocalFile,
     clip_price_window,
     combine_signals,
+    discover_signal_csvs,
     local_price_files,
     maximum_price_window,
     read_local_prices,
@@ -23,6 +24,79 @@ from momentum_screener.storage_manifest import (
     SCHEMA_VERSION,
     build_asset_record,
 )
+
+
+def test_discover_single_csv_path(tmp_path):
+    path = tmp_path / "a.csv"
+    path.write_text("session,ticker\n2026-06-15,AAPL\n")
+
+    files, warnings = discover_signal_csvs(["", f"  {path}  ", " \t"])
+
+    assert files == [path.resolve()]
+    assert warnings == []
+
+
+def test_discover_directory_csvs_in_stable_order(tmp_path):
+    # Create in reverse filename order; discovery must sort rather than depend
+    # on filesystem enumeration order, and accept uppercase CSV extensions.
+    for name in ("notes.txt", "b.CSV", "a.csv"):
+        (tmp_path / name).write_text("")
+
+    files, warnings = discover_signal_csvs([str(tmp_path)])
+
+    assert files == [tmp_path / "a.csv", tmp_path / "b.CSV"]
+    assert warnings == []
+
+
+def test_discover_does_not_recurse_into_subdirectories(tmp_path):
+    root = tmp_path / "root.csv"
+    root.write_text("")
+    for name in ("archive", "nested.csv"):
+        folder = tmp_path / name
+        folder.mkdir()
+        (folder / "old.csv").write_text("")
+
+    files, warnings = discover_signal_csvs([str(tmp_path)])
+
+    assert files == [root]
+    assert warnings == []
+
+
+def test_discover_deduplicates_resolved_paths_and_preserves_input_order(
+    tmp_path, monkeypatch
+):
+    first = tmp_path / "b.csv"
+    second = tmp_path / "a.csv"
+    first.write_text("")
+    second.write_text("")
+    (tmp_path / "alias.csv").symlink_to(first)
+    monkeypatch.chdir(tmp_path)
+
+    files, warnings = discover_signal_csvs([str(first), str(tmp_path), "./b.csv"])
+
+    assert files == [first, second]
+    assert warnings == []
+
+
+def test_discover_bad_inputs_do_not_block_valid_csv(tmp_path):
+    valid = tmp_path / "valid.csv"
+    valid.write_text("")
+    unsupported = tmp_path / "notes.txt"
+    unsupported.write_text("")
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    missing = tmp_path / "missing"
+
+    files, warnings = discover_signal_csvs(
+        [str(missing), str(valid), str(unsupported), str(empty)]
+    )
+
+    assert files == [valid]
+    assert warnings == [
+        f"Path does not exist: {missing}",
+        f"Unsupported file type: {unsupported}",
+        f"No CSV files found in: {empty}",
+    ]
 
 
 def test_csv_normalization_and_invalid_rows(tmp_path):

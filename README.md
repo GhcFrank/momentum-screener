@@ -9,7 +9,8 @@ uv run python -m momentum_screener.signal_ui
 ```
 
 浏览器自动打开 <http://127.0.0.1:8000>；终端保持运行，`Ctrl+C` 停止。
-每行填写一个 signal CSV path，点击 **Load Signals**，然后选择日期、strategy 和 ticker。
+Each line can be either a CSV file path or a directory path. A directory loads all CSV files directly inside that directory; subdirectories are not scanned.
+点击 **Load Signals**，然后选择日期、strategy 和 ticker。
 CSV 需要 `session`（或 `date`）及 `ticker`；缺少 `strategy_id` 时使用文件名。
 图表显示本地 Adjusted Close，默认视窗为信号日前 3 个月至后 1 个月，
 可缩放范围为前 2 年至后 1 年，并裁剪到可用价格边界。
