@@ -59,7 +59,7 @@ def test_daily_workflow_checks_identity_before_pull_and_manifest_publish() -> No
     incremental_acceptance = content.index(
         "validate_local_incremental_update_acceptance"
     )
-    notification = content.index("momentum_screener.monthly_reversal_notification")
+    notification = content.index("momentum_screener.daily_screening_notification")
     publish = content.index("momentum_screener.release_storage publish-update")
     final_check = content.rindex("momentum_screener.release_storage check")
     rps_publish = content.index("momentum_screener.rps_release_storage publish")
@@ -89,7 +89,7 @@ def test_daily_workflow_checks_identity_before_pull_and_manifest_publish() -> No
     assert "release_publish_success" in content
 
 
-def test_monthly_reversal_notification_is_success_only_before_publication() -> None:
+def test_daily_screening_notification_is_success_only_before_publication() -> None:
     content = Path(".github/workflows/update-daily-prices.yml").read_text(
         encoding="utf-8"
     )
@@ -97,14 +97,14 @@ def test_monthly_reversal_notification_is_success_only_before_publication() -> N
     refresh = content.index("- name: Refresh daily prices")
     acceptance = content.index("- name: Validate incremental update acceptance")
     notification = content.index(
-        "- name: Persist RPS and email Monthly Reversal signals"
+        "- name: Persist RPS and email daily screening signals"
     )
     price_publish = content.index("- name: Publish update to Release")
     notification_step = content[notification:price_publish]
 
     assert refresh < acceptance < notification < price_publish
     assert "if:" not in notification_step
-    assert content.count("momentum_screener.monthly_reversal_notification") == 1
+    assert content.count("momentum_screener.daily_screening_notification") == 1
     assert "momentum_screener.rps_notification" not in content
     assert "RPS_EMAIL_THRESHOLD" not in content
     assert "RPS120 >" not in content
@@ -112,7 +112,7 @@ def test_monthly_reversal_notification_is_success_only_before_publication() -> N
     assert "calculate_rps_snapshot" not in content
 
 
-def test_monthly_reversal_notification_reuses_email_secrets() -> None:
+def test_daily_screening_notification_reuses_email_secrets() -> None:
     content = Path(".github/workflows/update-daily-prices.yml").read_text(
         encoding="utf-8"
     )
@@ -131,11 +131,12 @@ def test_rps_publish_and_summary_include_persisted_dataset_results() -> None:
     )
 
     assert "data/processed/rps/manifest.json" in content
-    assert "monthly-reversal-notification.json" in content
+    assert "daily-screening-notification.json" in content
     assert "rps-publish-result.json" in content
     assert "rps-check-after.json" in content
     assert "RPS rows persisted" in content
     assert "Monthly Reversal signal count" in content
+    assert "Trend Re-acceleration signal count" in content
 
 
 def test_production_documentation_uses_market_data_tag() -> None:

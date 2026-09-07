@@ -69,3 +69,7 @@ evaluate 不做该预筛选，所以即使 FYX1=False 也能返回完整诊断�
 screen 返回 DataFrame，并在 `DataFrame.attrs` 提供 `universe_count`、
 `fyx1_candidate_count`、`yxfz_count`、`signal_count`、
 `loaded_price_session_count` 和 `rps_snapshot_count`。
+
+数据访问由公共 `strategy_data` 层负责；FYX/YXFZ/signal 公式及上述窗口口径保持不变。
+生产邮件通过 `daily_screening_notification` 与[顺向火车2](trend-reacceleration.md)
+合并发送，两个策略共享 RPS 准备结果。

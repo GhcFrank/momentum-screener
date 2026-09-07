@@ -146,25 +146,23 @@ manifest 后，以 `local_update_success=true` 报告本地状态。单独执行
 提交的 update report 构建发布计划并上传，成功时报告
 `release_publish_success=true`。
 
-### 每日月线反转邮件
+### 每日双策略筛选邮件
 
-生产入口 `momentum_screener.monthly_reversal_notification` 从已验证的
-`data/processed/prices/manifest.json` 读取 `latest_session`，不使用系统日期，也不通过
-单只股票推断日期。它只调用一次完整 Universe 的
-`calculate_rps_snapshot(latest_session, lookbacks=(50, 120, 250))`，先持久化同一对象，
-再注入 `screen_monthly_reversal()`。邮件候选严格为 `signal=True`，不会把仅
-`YXFZ=True` 或仅 RPS120/RPS250 很高的股票加入正文。
+生产入口 `momentum_screener.daily_screening_notification` 从已验证的
+`data/processed/prices/manifest.json` 读取 `latest_session`。公共 `strategy_data`
+一次准备最近 15 个 session 的 RPS50/120/250：优先读取现有存储，仅批量计算缺失
+session，当天 RPS 持久化一次。Monthly Reversal 与顺向火车2复用该批 RPS，
+不会分别重新计算当天全市场快照。
 
-主题格式为：
+主题格式为 `Momentum Screener — YYYY-MM-DD`。一封 text/HTML 邮件包含两个独立
+section：Monthly Reversal 6.2 与顺向火车2。各 section 仅显示自己的 `signal=True`
+股票；没有匹配时仍显示明确空结果，不影响另一个 section。顺向火车2连续满足时每天
+继续显示；Monthly Reversal 原有 14 日首次出现规则不变。RPS120/RPS250 继续计算和
+持久化，不恢复独立的高 RPS 股票列表推送。
 
-```text
-Momentum Screener — Monthly Reversal — YYYY-MM-DD — N signals
-```
-
-正文表格只显示 `Ticker | RPS50 | RPS120 | Adj Close`。零信号日仍发送一次，并明确写出
-`No new monthly reversal signals for YYYY-MM-DD.`。旧的
-`momentum_screener.rps_notification` 保留为手工诊断 API，但 production workflow 不再
-调用它。
+旧 `monthly_reversal_notification` CLI 转调新入口；其旧 Python renderer/runner
+保留 Monthly Reversal-only 行为。`rps_notification` 仍仅作为手工诊断 API，生产
+workflow 不调用它。新策略公式、API 和 warmup 详见 [顺向火车2](trend-reacceleration.md)。
 
 workflow 需要配置以下 GitHub Actions Secrets：
 
@@ -191,24 +189,24 @@ EMAIL_TO
 本地手动运行默认使用 price dataset latest session：
 
 ```bash
-uv run python -m momentum_screener.monthly_reversal_notification
+uv run python -m momentum_screener.daily_screening_notification
 ```
 
 先进行不写入 RPS dataset、不连接 SMTP、不发送邮件的完整计算和渲染检查：
 
 ```bash
-uv run python -m momentum_screener.monthly_reversal_notification --dry-run
+uv run python -m momentum_screener.daily_screening_notification --dry-run
 ```
 
 也可显式指定有效 XNYS session；计算仍使用完整 Universe 的三个 RPS horizon：
 
 ```bash
-uv run python -m momentum_screener.monthly_reversal_notification \
+uv run python -m momentum_screener.daily_screening_notification \
   --as-of-date 2026-08-31 \
   --dry-run
 ```
 
-命令会记录 session、Universe/RPS rows、FYX1/YXFZ/signal 数量、候选、收件人及发送
+命令会记录 session、Universe/RPS rows、FYX1/YXFZ/signal、顺向火车2信号数量、脱敏收件人及发送
 结果；不会记录 SMTP password。非 dry-run 会在计算 RPS 前验证完整邮件配置；RPS
 计算、持久化、策略、渲染或发送失败都会返回非零退出码。
 
@@ -299,7 +297,7 @@ uv run python -m momentum_screener.rps_release_storage check \
 uv run python -m momentum_screener.rps_release_storage pull \
   --repository OWNER/REPOSITORY --release-tag rpsData
 
-uv run python -m momentum_screener.monthly_reversal_notification --dry-run
+uv run python -m momentum_screener.daily_screening_notification --dry-run
 ```
 
 这些远端命令都必须由维护者显式运行；代码实现不会创建 Release，也不会自动覆盖首次

@@ -6,11 +6,15 @@ import pytest
 
 from momentum_screener.technical_features import (
     add_adjusted_ohlc,
+    bars_since_highest,
     highest_value,
+    lowest_since_anchor,
     lowest_value,
     moving_average,
     rolling_count,
+    rolling_every,
     safe_ratio,
+    value_at_offset,
 )
 
 
@@ -138,3 +142,67 @@ def test_safe_ratio_requires_positive_finite_denominator() -> None:
 
     assert result.iloc[0] == 3.0
     assert result.iloc[1:].isna().all()
+
+
+def test_every_requires_full_true_window_and_treats_na_as_false() -> None:
+    condition = pd.Series([True, True, True, pd.NA, True, True, True], dtype="boolean")
+    assert rolling_every(condition, 3).tolist() == [
+        False,
+        False,
+        True,
+        False,
+        False,
+        False,
+        True,
+    ]
+
+
+@pytest.mark.parametrize(
+    ("values", "expected"),
+    [([1, 2, 3, 4, 5, 6], 0), ([1, 2, 3, 4, 6, 5], 1), ([100, 90, 100, 90, 90, 95], 3)],
+)
+def test_hhvbars_selects_nearest_tied_high(values: list[float], expected: int) -> None:
+    result = bars_since_highest(pd.Series(values), 6)
+    assert result.iloc[:-1].isna().all()
+    assert result.iloc[-1] == expected
+
+
+@pytest.mark.parametrize("invalid", [np.nan, np.inf, -np.inf])
+def test_hhvbars_rejects_incomplete_or_invalid_window(invalid: float) -> None:
+    result = bars_since_highest(pd.Series([1.0, invalid, 2.0, 3.0, 4.0]), 3)
+    assert result.iloc[:4].isna().all()
+    assert result.iloc[-1] == 0
+
+
+def test_lowest_since_anchor_excludes_anchor_and_earlier_lows() -> None:
+    values = pd.Series([1.0, 2.0, 75.0, 80.0, 75.0, 90.0])
+    anchors = pd.Series([0, 0, 1, 2, 3, 4])
+    result = lowest_since_anchor(values, anchors)
+    assert result.iloc[-1].tolist() == [75.0, 1.0]
+    assert result.iloc[0].tolist() == [1.0, 0.0]
+    assert result.iloc[1].tolist() == [2.0, 0.0]
+
+
+def test_dynamic_helpers_reject_future_fractional_or_out_of_range_offsets() -> None:
+    values = pd.Series([10.0] * 6)
+    offsets = pd.Series([1.0, -1.0, 1.5, np.nan, np.inf, 0.0])
+    ref = value_at_offset(values, offsets)
+    low = lowest_since_anchor(values, offsets)
+    assert ref.iloc[:5].isna().all()
+    assert low.iloc[:5].isna().all().all()
+    assert ref.iloc[-1] == 10.0
+    assert low.iloc[-1].tolist() == [10.0, 0.0]
+
+
+def test_lowest_since_anchor_never_skips_missing_path_values() -> None:
+    result = lowest_since_anchor(pd.Series([1.0, np.nan, 10.0]), pd.Series([0, 1, 2]))
+    assert result.iloc[-1].isna().all()
+
+
+@pytest.mark.parametrize(
+    "helper", [moving_average, rolling_count, rolling_every, bars_since_highest]
+)
+@pytest.mark.parametrize("window", [0, -1, True, 2.5])
+def test_rolling_helpers_reject_invalid_windows(helper, window) -> None:
+    with pytest.raises(ValueError, match="positive integer"):
+        helper(pd.Series([1, 2, 3]), window)
