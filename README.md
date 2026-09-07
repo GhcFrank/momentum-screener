@@ -1,5 +1,22 @@
 # Momentum Screener
 
+## Signal Research UI
+
+安装项目依赖后启动：
+
+```bash
+uv run python -m momentum_screener.signal_ui
+```
+
+浏览器自动打开 <http://127.0.0.1:8000>；终端保持运行，`Ctrl+C` 停止。
+每行填写一个 signal CSV path，点击 **Load Signals**，然后选择日期、strategy 和 ticker。
+CSV 需要 `session`（或 `date`）及 `ticker`；缺少 `strategy_id` 时使用文件名。
+图表显示本地 Adjusted Close，默认视窗为信号日前 3 个月至后 1 个月，
+可缩放范围为前 2 年至后 1 年，并裁剪到可用价格边界。
+
+The UI is local-only and reads local CSV/market data.
+价格沿用 `data/processed/prices/` 的本地 manifest 与 parquet，缺失时提示，不自动同步。
+
 ## Historical Signals
 
 Historical Screening Engine 支持任意自然日闭区间 `[start_date, end_date]`，批量回放
