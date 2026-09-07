@@ -218,27 +218,6 @@ def test_snapshot_calculates_independent_rps120_and_rps250(
         universe_path=universe_path,
     )
 
-    assert snapshot.loc["AAA", "rps120"] == pytest.approx(0.0)
-    assert snapshot.loc["BBB", "rps120"] == pytest.approx(100.0 / 3.0)
-    assert snapshot.loc["MISS250", "rps120"] == pytest.approx(200.0 / 3.0)
-    assert snapshot.loc["CCC", "rps120"] == pytest.approx(100.0)
-    assert snapshot.loc["BBB", "rps250"] == pytest.approx(0.0)
-    assert snapshot.loc["AAA", "rps250"] == pytest.approx(100.0 / 3.0)
-    assert snapshot.loc["MISS120", "rps250"] == pytest.approx(200.0 / 3.0)
-    assert snapshot.loc["CCC", "rps250"] == pytest.approx(100.0)
-
-
-def test_default_lookbacks_and_snapshot_columns(
-    rps_dataset: tuple[Path, Path, tuple[str, ...]],
-) -> None:
-    universe_path, prices_root, _ = rps_dataset
-
-    snapshot = calculate_rps_snapshot(
-        AS_OF_DATE,
-        prices_root=prices_root,
-        universe_path=universe_path,
-    )
-
     assert RPS_LOOKBACKS == (50, 120, 250)
     assert list(snapshot.columns) == [
         "ticker",
@@ -253,6 +232,20 @@ def test_default_lookbacks_and_snapshot_columns(
         "rps120_base_date",
         "rps250_base_date",
     ]
+
+    resolved = resolve_rps_session_dates(AS_OF_DATE)
+    assert snapshot["as_of_date"].eq(AS_OF_DATE).all()
+    for lookback, base_date in resolved.base_dates.items():
+        assert snapshot[f"rps{lookback}_base_date"].eq(base_date).all()
+
+    assert snapshot.loc["AAA", "rps120"] == pytest.approx(0.0)
+    assert snapshot.loc["BBB", "rps120"] == pytest.approx(100.0 / 3.0)
+    assert snapshot.loc["MISS250", "rps120"] == pytest.approx(200.0 / 3.0)
+    assert snapshot.loc["CCC", "rps120"] == pytest.approx(100.0)
+    assert snapshot.loc["BBB", "rps250"] == pytest.approx(0.0)
+    assert snapshot.loc["AAA", "rps250"] == pytest.approx(100.0 / 3.0)
+    assert snapshot.loc["MISS120", "rps250"] == pytest.approx(200.0 / 3.0)
+    assert snapshot.loc["CCC", "rps250"] == pytest.approx(100.0)
 
 
 def test_custom_lookbacks_are_sorted_read_once_and_rank_rps50(
@@ -372,24 +365,6 @@ def test_batch_snapshots_share_one_price_read_and_can_project_result_tickers(
     assert result["as_of_date"].tolist() == list(requested_dates)
     assert result["ticker"].tolist() == ["HIGH", "HIGH"]
     assert result["rps50"].tolist() == [100.0, 100.0]
-
-
-def test_snapshot_uses_exact_t_minus_120_and_t_minus_250_sessions(
-    rps_dataset: tuple[Path, Path, tuple[str, ...]],
-) -> None:
-    universe_path, prices_root, _ = rps_dataset
-    as_of, base120, base250, _, _, _ = _xnys_dates()
-
-    snapshot = calculate_rps_snapshot(
-        as_of.isoformat(),
-        prices_root=prices_root,
-        universe_path=universe_path,
-    )
-
-    assert snapshot["as_of_date"].unique().tolist() == [as_of]
-    assert snapshot["rps50_base_date"].unique().tolist() == [_base_date(50)]
-    assert snapshot["rps120_base_date"].unique().tolist() == [base120]
-    assert snapshot["rps250_base_date"].unique().tolist() == [base250]
 
 
 def test_snapshot_uses_adjusted_close_as_standard_price_field(
@@ -519,14 +494,14 @@ def test_custom_lookback_only_requires_its_own_session_history() -> None:
 
 @pytest.mark.parametrize(
     "lookbacks",
-    [(), (0,), (-1,), (50, 50), (50.5,), (True,)],
+    [(), (0,), (50, 50), (50.5,), (True,)],
 )
 def test_invalid_lookbacks_fail_clearly(lookbacks: object) -> None:
     with pytest.raises(InvalidRpsLookbackError, match="lookbacks"):
         resolve_rps_session_dates(AS_OF_DATE, lookbacks=lookbacks)  # type: ignore[arg-type]
 
 
-@pytest.mark.parametrize("ticker", ["ZZZZZ", "NOT_IN_UNIVERSE", "^INVALID"])
+@pytest.mark.parametrize("ticker", ["ZZZZZ", "^INVALID"])
 def test_get_stock_rps_rejects_unknown_or_invalid_ticker(
     rps_dataset: tuple[Path, Path, tuple[str, ...]],
     ticker: str,

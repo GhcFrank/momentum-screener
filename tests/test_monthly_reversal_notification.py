@@ -84,21 +84,6 @@ def test_email_contains_only_signal_true_not_yxfz_or_high_rps_only() -> None:
     assert "NVDA" not in rendered.html_body
 
 
-def test_no_signal_renders_explicit_normal_empty_result() -> None:
-    rows = _screen_rows()
-    rows["signal"] = False
-
-    rendered = render_monthly_reversal_email(
-        as_of_date=date(2026, 9, 3),
-        screen_rows=rows,
-    )
-
-    assert rendered.subject.endswith("0 signals")
-    message = "No new monthly reversal signals for 2026-09-03."
-    assert message in rendered.text_body
-    assert message in rendered.html_body
-
-
 def test_daily_orchestration_calculates_once_persists_before_screen_and_sends(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -291,4 +276,7 @@ def test_zero_signal_live_run_still_sends_one_email(
 
     assert result.signal_count == 0
     assert len(sent) == 1
-    assert "No new monthly reversal signals" in sent[0].text_body  # type: ignore[union-attr]
+    assert sent[0].subject.endswith("0 signals")
+    message = "No new monthly reversal signals for 2026-09-03."
+    assert message in sent[0].text_body  # type: ignore[union-attr]
+    assert message in sent[0].html_body  # type: ignore[union-attr]

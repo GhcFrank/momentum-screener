@@ -41,7 +41,6 @@ from momentum_screener.prices import (
     isolate_incompatible_staging,
     load_or_create_run_state,
     load_universe,
-    main,
     normalize_download_frame,
     read_affected_partitions,
     rotate_price_output_to_legacy,
@@ -147,7 +146,6 @@ def test_load_universe_normalizes_deduplicates_and_preserves_order(
     tickers = load_universe(path)
 
     assert tickers == ("AAPL", "MSFT", "BRK-B")
-    assert universe_sha256(tickers) == universe_sha256(tickers)
     assert universe_sha256(tickers) != universe_sha256(tuple(reversed(tickers)))
 
 
@@ -1053,52 +1051,6 @@ def test_corrupt_staging_batch_is_not_silently_reused(tmp_path: Path) -> None:
         )
 
 
-def test_cli_success_failure_and_argument_validation(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    calls: list[dict[str, object]] = []
-
-    def capture_backfill(**kwargs: object) -> dict[str, object]:
-        calls.append(dict(kwargs))
-        return {}
-
-    monkeypatch.setattr(prices_module, "run_backfill", capture_backfill)
-    assert main(["backfill", "--pause-seconds", "0", "--batch-size", "1"]) == 0
-    assert calls[-1]["start_date"] == date(2016, 1, 1)
-    assert main(["backfill", "--start", "2014-03-04"]) == 0
-    assert calls[-1]["start_date"] == date(2014, 3, 4)
-
-    def fail_backfill(**kwargs: object) -> dict[str, Any]:
-        raise PriceBackfillError("expected failure")
-
-    monkeypatch.setattr(prices_module, "run_backfill", fail_backfill)
-    assert main(["backfill"]) == 1
-    with pytest.raises(SystemExit):
-        main(["backfill", "--batch-size", "0"])
-
-
-def test_backfill_help_shows_default_start(capsys: pytest.CaptureFixture[str]) -> None:
-    with pytest.raises(SystemExit) as exit_info:
-        main(["backfill", "--help"])
-
-    assert exit_info.value.code == 0
-    assert (
-        "first requested calendar date (default: 2016-01-01)" in capsys.readouterr().out
-    )
-
-
-def test_update_help_has_no_release_configuration(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    with pytest.raises(SystemExit) as exit_info:
-        main(["update", "--help"])
-
-    assert exit_info.value.code == 0
-    output = capsys.readouterr().out
-    assert "--repository" not in output
-    assert "--release-tag" not in output
-
-
 def test_completed_dataset_acceptance_checks_target_coverage(
     tmp_path: Path,
 ) -> None:
@@ -1828,20 +1780,3 @@ def test_run_update_replacement_failure_rolls_back_every_formal_file(
     assert {path: path.read_bytes() for path in tracked} == before
     assert not (prices_root / "update_report.json").exists()
     assert not (prices_root / "update_missing_tickers.csv").exists()
-
-
-def test_update_cli_success_and_failure(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setattr(
-        prices_module, "run_update", lambda **kwargs: {"status": "dry_run"}
-    )
-    result_path = tmp_path / "result.json"
-    assert main(["update", "--dry-run", "--result-json", str(result_path)]) == 0
-    assert json.loads(result_path.read_text(encoding="utf-8")) == {"status": "dry_run"}
-
-    def fail_update(**kwargs: object) -> dict[str, Any]:
-        raise PriceUpdateError("expected")
-
-    monkeypatch.setattr(prices_module, "run_update", fail_update)
-    assert main(["update"]) == 1

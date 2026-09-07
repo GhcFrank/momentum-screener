@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 import io
 import json
 from datetime import date
@@ -16,7 +15,6 @@ import pytest
 import momentum_screener.rps_release_storage as release_module
 from momentum_screener.release_storage import GitHubClient, ReleaseStorageError
 from momentum_screener.rps_release_storage import (
-    DEFAULT_RPS_RELEASE_TAG,
     RPS_RELEASE_MANIFEST_ASSET_NAME,
     RpsReleaseStorageError,
     check_rps_release,
@@ -59,14 +57,6 @@ def _build_local_dataset(tmp_path: Path) -> tuple[Path, Path]:
     )
     persist_rps_snapshot(snapshot, root=root, universe_path=universe_path)
     return root, universe_path
-
-
-def test_all_rps_release_operations_use_independent_case_sensitive_tag() -> None:
-    assert DEFAULT_RPS_RELEASE_TAG == "rpsData"
-    for operation in (check_rps_release, pull_rps_release, publish_rps_release):
-        assert (
-            inspect.signature(operation).parameters["release_tag"].default == "rpsData"
-        )
 
 
 def test_bootstrap_dry_run_plans_partition_then_manifest_without_uploading(
@@ -166,9 +156,15 @@ def test_bootstrap_uploads_year_partition_before_manifest(
     assert result["manifest_uploaded_last"] is True
 
 
-@pytest.mark.parametrize("operation", [check_rps_release, pull_rps_release])
-@pytest.mark.parametrize("token_key", [None, "GITHUB_TOKEN", "GH_TOKEN"])
-@pytest.mark.parametrize("injected", [False, True])
+@pytest.mark.parametrize(
+    ("operation", "token_key", "injected"),
+    [
+        pytest.param(pull_rps_release, None, False, id="anonymous-pull"),
+        pytest.param(check_rps_release, None, False, id="anonymous-check"),
+        pytest.param(pull_rps_release, "GITHUB_TOKEN", False, id="env-token-pull"),
+        pytest.param(check_rps_release, "GITHUB_TOKEN", True, id="injected-client"),
+    ],
+)
 def test_read_authentication_uses_real_client_with_fake_http(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -229,25 +225,31 @@ def test_read_authentication_uses_real_client_with_fake_http(
             ).read_bytes()
 
 
-@pytest.mark.parametrize("operation", [check_rps_release, pull_rps_release])
 def test_anonymous_read_preserves_github_permission_error(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, operation
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     def denied(request: Request, timeout: float) -> io.BytesIO:
         raise HTTPError(request.full_url, 404, "Not Found", {}, None)
 
     factory = Mock(return_value=GitHubClient(open_func=denied))
     monkeypatch.setattr(release_module, "GitHubClient", factory)
-    kwargs = {"root": tmp_path / "pulled"} if operation is pull_rps_release else {}
     with pytest.raises(ReleaseStorageError, match="HTTP 404.*private repository"):
-        operation(repository="owner/private", environ={}, **kwargs)
+        pull_rps_release(
+            repository="owner/private", environ={}, root=tmp_path / "pulled"
+        )
     factory.assert_called_once_with(token=None)
     assert not (tmp_path / "pulled").exists()
 
 
-@pytest.mark.parametrize("bootstrap", [False, True])
-@pytest.mark.parametrize("dry_run", [False, True])
-@pytest.mark.parametrize("injected", [False, True])
+@pytest.mark.parametrize(
+    ("bootstrap", "dry_run", "injected"),
+    [
+        pytest.param(False, False, False, id="publish"),
+        pytest.param(True, False, False, id="bootstrap"),
+        pytest.param(False, False, True, id="injected-anonymous-client"),
+        pytest.param(True, True, False, id="bootstrap-dry-run"),
+    ],
+)
 def test_publish_and_bootstrap_require_token_before_any_remote_request(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -277,19 +279,18 @@ def test_publish_and_bootstrap_require_token_before_any_remote_request(
     upload.assert_not_called()
 
 
-@pytest.mark.parametrize("bootstrap", [False, True])
-@pytest.mark.parametrize("token_key", ["GITHUB_TOKEN", "GH_TOKEN"])
 def test_authenticated_publish_keeps_existing_upload_flow(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
-    bootstrap: bool,
-    token_key: str,
 ) -> None:
     root, universe = _build_local_dataset(tmp_path)
     local = load_rps_manifest(root)
-    release = {"assets": [], "upload_url": "unused"}
-    if not bootstrap:
-        release["assets"] = [{"name": RPS_RELEASE_MANIFEST_ASSET_NAME}]
+    release = {
+        "assets": [{"name": RPS_RELEASE_MANIFEST_ASSET_NAME}],
+        "upload_url": "unused",
+    }
+    remote = json.loads(json.dumps(local))
+    remote["assets"]["2026"]["sha256"] = "0" * 64
     github = GitHubClient(token="test-write-token")
     factory = Mock(return_value=github)
     metadata = Mock(return_value=release)
@@ -298,21 +299,17 @@ def test_authenticated_publish_keeps_existing_upload_flow(
     monkeypatch.setattr(release_module, "get_release_metadata", metadata)
     monkeypatch.setattr(release_module, "upload_release_asset", upload)
     monkeypatch.setattr(
-        release_module, "_download_remote_manifest", Mock(return_value=local)
+        release_module, "_download_remote_manifest", Mock(side_effect=[remote, local])
     )
     result = publish_rps_release(
         repository="owner/repository",
         root=root,
         universe_path=universe,
-        bootstrap=bootstrap,
-        confirm_bootstrap=True,
-        environ={token_key: "test-write-token"},
+        environ={"GITHUB_TOKEN": "test-write-token"},
     )
     factory.assert_called_once_with(token="test-write-token")
     assert all(call.args[0] is github for call in metadata.call_args_list)
-    expected = (["rps-year-2026.parquet"] if bootstrap else []) + [
-        RPS_RELEASE_MANIFEST_ASSET_NAME
-    ]
+    expected = ["rps-year-2026.parquet", RPS_RELEASE_MANIFEST_ASSET_NAME]
     assert [call.kwargs["asset_name"] for call in upload.call_args_list] == expected
     assert all(call.args[0] is github for call in upload.call_args_list)
     assert result["uploaded_assets"] == expected

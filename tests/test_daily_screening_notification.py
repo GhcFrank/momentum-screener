@@ -84,8 +84,16 @@ def smtp_environment() -> dict[str, str]:
     }
 
 
-@pytest.mark.parametrize("dry_run", [False, True])
-@pytest.mark.parametrize("empty_strategy", ["monthly", "trend", "both", "neither"])
+# Per-strategy empty rendering is covered above. Orchestration needs a normal
+# send, an all-empty send, and a dry run, not every render state in both modes.
+@pytest.mark.parametrize(
+    ("dry_run", "empty_strategy"),
+    [
+        pytest.param(False, "neither", id="live-matches"),
+        pytest.param(False, "both", id="live-zero-signals"),
+        pytest.param(True, "neither", id="dry-run"),
+    ],
+)
 def test_orchestration_shares_rps_once_persists_once_and_sends_once(
     dry_run: bool,
     empty_strategy: str,

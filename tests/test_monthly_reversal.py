@@ -271,21 +271,19 @@ def test_barssincen_style_signal_exact_15_row_semantics(
     signal = calculate_monthly_reversal_signal(yxfz)
 
     assert bool(signal.iloc[-1]) is expected
-
-
-def test_signal_is_false_when_current_yxfz_is_false() -> None:
-    assert not bool(calculate_monthly_reversal_signal(pd.Series([False] * 20)).iloc[-1])
+    assert not signal.loc[~yxfz].any()
 
 
 def test_signal_requires_fourteen_actual_prior_rows() -> None:
     only_thirteen_prior = pd.Series([False] * 13 + [True])
 
     assert not bool(calculate_monthly_reversal_signal(only_thirteen_prior).iloc[-1])
+    fourteen_prior = pd.Series([False] * 14 + [True])
+    assert bool(calculate_monthly_reversal_signal(fourteen_prior).iloc[-1])
 
 
-@pytest.mark.parametrize("length", [100, 200, 249])
-def test_insufficient_history_cannot_produce_yxfz_or_signal(length: int) -> None:
-    frame = _price_frame(length)
+def test_insufficient_history_cannot_produce_yxfz_or_signal() -> None:
+    frame = _price_frame(249)
     frame["rps50"] = 100.0
     frame["rps120"] = 100.0
 
@@ -302,6 +300,8 @@ def test_signal_history_requires_250_plus_14_ticker_rows() -> None:
         _price_frame(MONTHLY_REVERSAL_REQUIRED_SIGNAL_ROWS)
     )
 
+    assert not bool(result.iloc[248]["history_sufficient"])
+    assert bool(result.iloc[249]["history_sufficient"])
     assert not bool(result.iloc[-2]["signal_history_sufficient"])
     assert bool(result.iloc[-1]["signal_history_sufficient"])
 

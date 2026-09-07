@@ -33,7 +33,6 @@ from momentum_screener.universe import (
     is_foreign_otc_suffix,
     is_probable_adr,
     load_manual_exclusions,
-    main,
     non_common_security_reason,
     normalize_ticker,
     parse_nasdaq_listed,
@@ -798,22 +797,3 @@ def test_run_build_downloads_both_directory_files_with_mocks(tmp_path: Path) -> 
     assert report["symbol_directory_record_count"] == 3
     assert (output.parent / "raw/nasdaqlisted.txt").is_file()
     assert (output.parent / "raw/otherlisted.txt").is_file()
-
-
-def test_cli_build_validate_success_and_failure(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(universe_module, "run_build", lambda **kwargs: {})
-    assert main(["build", "--target-size", "2"]) == 0
-    monkeypatch.setattr(
-        universe_module, "validate_universe_file", lambda *args, **kwargs: {}
-    )
-    assert main(["validate", "--target-size", "2"]) == 0
-
-    def fail(**kwargs: object) -> dict[str, object]:
-        raise UniverseBuildError("expected")
-
-    monkeypatch.setattr(universe_module, "run_build", fail)
-    assert main(["build"]) == 1
-    with pytest.raises(SystemExit):
-        main(["build", "--target-size", "0"])

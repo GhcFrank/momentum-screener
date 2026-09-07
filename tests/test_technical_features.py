@@ -199,10 +199,17 @@ def test_lowest_since_anchor_never_skips_missing_path_values() -> None:
     assert result.iloc[-1].isna().all()
 
 
+# The helpers share _validate_window; cover each entry point and each
+# validation branch once instead of crossing every helper with every value.
 @pytest.mark.parametrize(
-    "helper", [moving_average, rolling_count, rolling_every, bars_since_highest]
+    ("helper", "window"),
+    [
+        (moving_average, 0),
+        (rolling_count, -1),
+        (rolling_every, True),
+        (bars_since_highest, 2.5),
+    ],
 )
-@pytest.mark.parametrize("window", [0, -1, True, 2.5])
 def test_rolling_helpers_reject_invalid_windows(helper, window) -> None:
     with pytest.raises(ValueError, match="positive integer"):
         helper(pd.Series([1, 2, 3]), window)

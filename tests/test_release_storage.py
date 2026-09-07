@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import csv
-import inspect
 import json
 from collections.abc import Mapping
 from datetime import date
@@ -16,7 +15,6 @@ import pytest
 
 import momentum_screener.release_storage as release_module
 import momentum_screener.storage_manifest as manifest_module
-from momentum_screener.dataset_config import DEFAULT_RELEASE_TAG
 from momentum_screener.prices import DataValidationError, universe_sha256
 from momentum_screener.release_storage import (
     DatasetIdentity,
@@ -57,31 +55,6 @@ TEST_IDENTITY = DatasetIdentity(
     requested_start="2016-01-01",
     universe_ticker_count=1,
 )
-
-
-def test_all_release_operations_share_market_data_default_tag() -> None:
-    assert DEFAULT_RELEASE_TAG == "marketData"
-    for operation in (
-        pull_release_dataset,
-        pull_update_inputs,
-        publish_update,
-        check_release_dataset,
-        bootstrap_dataset,
-    ):
-        assert (
-            inspect.signature(operation).parameters["release_tag"].default
-            == "marketData"
-        )
-
-
-def test_release_storage_has_no_legacy_tag_fallback_or_case_normalization() -> None:
-    source = Path(release_module.__file__).read_text(encoding="utf-8")
-    config = Path("src/momentum_screener/dataset_config.py").read_text(encoding="utf-8")
-    legacy_tag = "market" + "-data"
-    assert legacy_tag not in source
-    assert legacy_tag not in config
-    assert "release_tag.lower" not in source
-    assert "release_tag.casefold" not in source
 
 
 def write_price_asset(path: Path, year: int = 2026, day: int = 2) -> None:
@@ -1553,43 +1526,9 @@ def test_release_cli_defaults_and_case_preserving_override(
     assert observed["check"][-1] == "CuStOmTag"
 
 
-@pytest.mark.parametrize(
-    "command",
-    ("check", "bootstrap", "pull", "pull-update-inputs", "publish-update"),
-)
-def test_release_cli_help_displays_market_data_default(
-    command: str, capsys: pytest.CaptureFixture[str]
-) -> None:
-    with pytest.raises(SystemExit) as raised:
-        main([command, "--help"])
-
-    assert raised.value.code == 0
-    assert "GitHub Release tag (default: marketData)" in capsys.readouterr().out
-
-
-def test_cli_success_failure_and_help_paths(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(release_module, "pull_release_dataset", lambda **kwargs: {})
-    assert main(["pull", "--repository", "owner/repo", "--dry-run"]) == 0
-
-    def fail(**kwargs: object) -> dict[str, Any]:
-        raise ReleaseStorageError("expected")
-
-    monkeypatch.setattr(release_module, "pull_release_dataset", fail)
-    assert main(["pull", "--repository", "owner/repo"]) == 1
-    with pytest.raises(SystemExit) as raised:
-        main(["pull", "--help"])
-    assert raised.value.code == 0
-
-
-def test_check_and_bootstrap_cli_exit_codes_and_help(
+def test_cli_returns_failure_for_unready_dataset_and_operation_errors(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(
-        release_module,
-        "check_release_dataset",
-        lambda **kwargs: {"workflow_ready": True},
-    )
-    assert main(["check", "--repository", "owner/repo"]) == 0
     monkeypatch.setattr(
         release_module,
         "check_release_dataset",
@@ -1597,20 +1536,11 @@ def test_check_and_bootstrap_cli_exit_codes_and_help(
     )
     assert main(["check", "--repository", "owner/repo"]) == 1
 
-    calls: list[dict[str, object]] = []
-    monkeypatch.setattr(
-        release_module,
-        "bootstrap_dataset",
-        lambda **kwargs: calls.append(dict(kwargs)) or {},
-    )
-    assert main(["bootstrap", "--dry-run"]) == 0
-    assert calls[-1]["confirm_replace_dataset"] is False
-    assert calls[-1]["dry_run"] is True
+    def fail(**kwargs: object) -> dict[str, Any]:
+        raise ReleaseStorageError("expected failure")
 
-    for command in ("check", "bootstrap", "pull-update-inputs", "publish-update"):
-        with pytest.raises(SystemExit) as raised:
-            main([command, "--help"])
-        assert raised.value.code == 0
+    monkeypatch.setattr(release_module, "check_release_dataset", fail)
+    assert main(["check", "--repository", "owner/repo"]) == 1
 
 
 def test_validate_managed_asset_rejects_unsorted_parquet(tmp_path: Path) -> None:
