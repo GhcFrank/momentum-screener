@@ -1,0 +1,15 @@
+[server]
+address = "127.0.0.1"
+port = 8000
+headless = true
+showEmailPrompt = false
+fileWatcherType = "none"
+
+[browser]
+serverAddress = "127.0.0.1"
+serverPort = 8000
+gatherUsageStats = false
+
+[client]
+toolbarMode = "minimal"
+showErrorLinks = false
