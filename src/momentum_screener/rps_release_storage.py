@@ -71,12 +71,7 @@ def _github_client(
 ) -> GitHubClient:
     if client is not None:
         return client
-    token = resolve_github_token(environ)
-    if token is None:
-        raise RpsReleaseStorageError(
-            "GitHub token is required for RPS Release synchronization"
-        )
-    return GitHubClient(token=token)
+    return GitHubClient(token=resolve_github_token(environ))
 
 
 def _require_identity(
@@ -237,11 +232,16 @@ def publish_rps_release(
     client: GitHubClient | None = None,
     environ: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
-    """Publish changed RPS partitions first and the manifest last."""
+    """Publish partitions then the manifest, requiring a token on the client."""
 
     local = validate_rps_dataset(root, universe_path=universe_path)
     resolved_repository = resolve_repository(repository, environ=environ)
     github = _github_client(client, environ=environ)
+    if not github.token or not github.token.strip():
+        raise RpsReleaseStorageError(
+            "GitHub token is required for publishing RPS Release data; "
+            "set GITHUB_TOKEN or GH_TOKEN, or inject an authenticated client"
+        )
     release = get_release_metadata(github, resolved_repository, release_tag)
     assets = _asset_index(release)
     remote: dict[str, Any] | None = None

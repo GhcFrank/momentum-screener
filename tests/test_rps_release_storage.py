@@ -1,16 +1,20 @@
 from __future__ import annotations
 
 import inspect
+import io
+import json
 from datetime import date
 from pathlib import Path
-from typing import cast
+from unittest.mock import Mock
+from urllib.error import HTTPError
+from urllib.request import Request
 
 import numpy as np
 import pandas as pd  # type: ignore[import-untyped]
 import pytest
 
 import momentum_screener.rps_release_storage as release_module
-from momentum_screener.release_storage import GitHubClient
+from momentum_screener.release_storage import GitHubClient, ReleaseStorageError
 from momentum_screener.rps_release_storage import (
     DEFAULT_RPS_RELEASE_TAG,
     RPS_RELEASE_MANIFEST_ASSET_NAME,
@@ -61,8 +65,7 @@ def test_all_rps_release_operations_use_independent_case_sensitive_tag() -> None
     assert DEFAULT_RPS_RELEASE_TAG == "rpsData"
     for operation in (check_rps_release, pull_rps_release, publish_rps_release):
         assert (
-            inspect.signature(operation).parameters["release_tag"].default
-            == "rpsData"
+            inspect.signature(operation).parameters["release_tag"].default == "rpsData"
         )
 
 
@@ -89,7 +92,8 @@ def test_bootstrap_dry_run_plans_partition_then_manifest_without_uploading(
         universe_path=universe_path,
         bootstrap=True,
         dry_run=True,
-        client=cast(GitHubClient, object()),
+        client=GitHubClient(token="test-token"),
+        environ={},
     )
 
     assert result["release_tag"] == "rpsData"
@@ -119,7 +123,8 @@ def test_bootstrap_requires_explicit_confirmation(
             bootstrap=True,
             confirm_bootstrap=False,
             dry_run=False,
-            client=cast(GitHubClient, object()),
+            client=GitHubClient(token="test-token"),
+            environ={},
         )
 
 
@@ -152,9 +157,163 @@ def test_bootstrap_uploads_year_partition_before_manifest(
         universe_path=universe_path,
         bootstrap=True,
         confirm_bootstrap=True,
-        client=cast(GitHubClient, object()),
+        client=GitHubClient(token="test-token"),
+        environ={},
     )
 
     assert uploaded == ["rps-year-2026.parquet", RPS_RELEASE_MANIFEST_ASSET_NAME]
     assert result["uploaded_assets"] == uploaded
     assert result["manifest_uploaded_last"] is True
+
+
+@pytest.mark.parametrize("operation", [check_rps_release, pull_rps_release])
+@pytest.mark.parametrize("token_key", [None, "GITHUB_TOKEN", "GH_TOKEN"])
+@pytest.mark.parametrize("injected", [False, True])
+def test_read_authentication_uses_real_client_with_fake_http(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    operation,
+    token_key: str | None,
+    injected: bool,
+) -> None:
+    source, universe = _build_local_dataset(tmp_path)
+    manifest = load_rps_manifest(source)
+    base = "https://api.github.com/repos/owner/repository/releases"
+    payloads = {f"{base}/assets/1": (source / "manifest.json").read_bytes()}
+    assets = [{"name": RPS_RELEASE_MANIFEST_ASSET_NAME, "url": f"{base}/assets/1"}]
+    for index, asset in enumerate(manifest["assets"].values(), start=2):
+        url = f"{base}/assets/{index}"
+        payloads[url] = (source / asset["local_path"]).read_bytes()
+        assets.append({"name": asset["asset_name"], "url": url})
+    payloads[f"{base}/tags/rpsData"] = json.dumps(
+        {"assets": assets, "upload_url": "unused"}
+    ).encode()
+    requests: list[Request] = []
+
+    def open_read(request: Request, timeout: float) -> io.BytesIO:
+        assert request.get_method() == "GET"
+        requests.append(request)
+        return io.BytesIO(payloads[request.full_url])
+
+    token = "test-read-token" if token_key else None
+    github = GitHubClient(token=token, open_func=open_read)
+    factory = Mock(return_value=github)
+    resolver = Mock(wraps=release_module.resolve_github_token)
+    monkeypatch.setattr(release_module, "GitHubClient", factory)
+    monkeypatch.setattr(release_module, "resolve_github_token", resolver)
+    destination = tmp_path / "pulled"
+    kwargs = {"root": destination} if operation is pull_rps_release else {}
+    result = operation(
+        repository="owner/repository",
+        universe_path=universe,
+        client=github if injected else None,
+        environ={} if injected or token_key is None else {token_key: token},
+        **kwargs,
+    )
+    if injected:
+        factory.assert_not_called()
+        resolver.assert_not_called()
+    else:
+        factory.assert_called_once_with(token=token)
+    assert result["success"] is True
+    assert len(requests) == (3 if operation is pull_rps_release else 2)
+    assert all(
+        request.get_header("Authorization") == (f"Bearer {token}" if token else None)
+        for request in requests
+    )
+    if operation is pull_rps_release:
+        assert load_rps_manifest(destination) == manifest
+        for asset in manifest["assets"].values():
+            assert (destination / asset["local_path"]).read_bytes() == (
+                source / asset["local_path"]
+            ).read_bytes()
+
+
+@pytest.mark.parametrize("operation", [check_rps_release, pull_rps_release])
+def test_anonymous_read_preserves_github_permission_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, operation
+) -> None:
+    def denied(request: Request, timeout: float) -> io.BytesIO:
+        raise HTTPError(request.full_url, 404, "Not Found", {}, None)
+
+    factory = Mock(return_value=GitHubClient(open_func=denied))
+    monkeypatch.setattr(release_module, "GitHubClient", factory)
+    kwargs = {"root": tmp_path / "pulled"} if operation is pull_rps_release else {}
+    with pytest.raises(ReleaseStorageError, match="HTTP 404.*private repository"):
+        operation(repository="owner/private", environ={}, **kwargs)
+    factory.assert_called_once_with(token=None)
+    assert not (tmp_path / "pulled").exists()
+
+
+@pytest.mark.parametrize("bootstrap", [False, True])
+@pytest.mark.parametrize("dry_run", [False, True])
+@pytest.mark.parametrize("injected", [False, True])
+def test_publish_and_bootstrap_require_token_before_any_remote_request(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    bootstrap: bool,
+    dry_run: bool,
+    injected: bool,
+) -> None:
+    root, universe = _build_local_dataset(tmp_path)
+    remote = Mock(side_effect=AssertionError("must reject before remote access"))
+    upload = Mock(side_effect=AssertionError("must not upload without token"))
+    monkeypatch.setattr(release_module, "get_release_metadata", remote)
+    monkeypatch.setattr(release_module, "upload_release_asset", upload)
+    with pytest.raises(
+        RpsReleaseStorageError, match="GitHub token is required for publishing"
+    ):
+        publish_rps_release(
+            repository="owner/repository",
+            root=root,
+            universe_path=universe,
+            bootstrap=bootstrap,
+            confirm_bootstrap=True,
+            dry_run=dry_run,
+            client=GitHubClient() if injected else None,
+            environ={},
+        )
+    remote.assert_not_called()
+    upload.assert_not_called()
+
+
+@pytest.mark.parametrize("bootstrap", [False, True])
+@pytest.mark.parametrize("token_key", ["GITHUB_TOKEN", "GH_TOKEN"])
+def test_authenticated_publish_keeps_existing_upload_flow(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    bootstrap: bool,
+    token_key: str,
+) -> None:
+    root, universe = _build_local_dataset(tmp_path)
+    local = load_rps_manifest(root)
+    release = {"assets": [], "upload_url": "unused"}
+    if not bootstrap:
+        release["assets"] = [{"name": RPS_RELEASE_MANIFEST_ASSET_NAME}]
+    github = GitHubClient(token="test-write-token")
+    factory = Mock(return_value=github)
+    metadata = Mock(return_value=release)
+    upload = Mock()
+    monkeypatch.setattr(release_module, "GitHubClient", factory)
+    monkeypatch.setattr(release_module, "get_release_metadata", metadata)
+    monkeypatch.setattr(release_module, "upload_release_asset", upload)
+    monkeypatch.setattr(
+        release_module, "_download_remote_manifest", Mock(return_value=local)
+    )
+    result = publish_rps_release(
+        repository="owner/repository",
+        root=root,
+        universe_path=universe,
+        bootstrap=bootstrap,
+        confirm_bootstrap=True,
+        environ={token_key: "test-write-token"},
+    )
+    factory.assert_called_once_with(token="test-write-token")
+    assert all(call.args[0] is github for call in metadata.call_args_list)
+    expected = (["rps-year-2026.parquet"] if bootstrap else []) + [
+        RPS_RELEASE_MANIFEST_ASSET_NAME
+    ]
+    assert [call.kwargs["asset_name"] for call in upload.call_args_list] == expected
+    assert all(call.args[0] is github for call in upload.call_args_list)
+    assert result["uploaded_assets"] == expected
+    assert result["success"] is True
