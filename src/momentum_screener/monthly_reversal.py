@@ -2,36 +2,31 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
 from datetime import date
 from pathlib import Path
 from typing import Final
 
-import exchange_calendars as xcals  # type: ignore[import-untyped]
 import numpy as np
 import pandas as pd  # type: ignore[import-untyped]
 
 from momentum_screener.prices import (
     DEFAULT_OUTPUT_ROOT,
     DEFAULT_UNIVERSE,
-    PriceUpdateError,
     load_universe,
-    read_affected_partitions,
 )
-from momentum_screener.rps import (
-    INVALID_RPS,
-    RPS_CALENDAR_NAME,
-    InvalidRpsSessionError,
-    calculate_rps_snapshots,
-    resolve_rps_session_dates,
+from momentum_screener.rps import INVALID_RPS
+from momentum_screener.rps_storage import DEFAULT_RPS_ROOT
+from momentum_screener.strategy_data import (
+    StrategyDataError,
+    coerce_session_date,
+    load_or_calculate_rps,
+    load_strategy_price_history,
+    merge_prices_and_rps,
+    normalize_date_values,
+    resolve_history_bounds,
+    resolve_strategy_sessions,
+    sessions_in_range,
 )
-from momentum_screener.rps_storage import (
-    DEFAULT_RPS_ROOT,
-    RPS_MANIFEST_NAME,
-    RpsStorageError,
-    read_rps_history,
-)
-from momentum_screener.storage_manifest import load_manifest
 from momentum_screener.technical_features import (
     add_adjusted_ohlc,
     highest_value,
@@ -114,7 +109,7 @@ SCREEN_COLUMNS: Final[tuple[str, ...]] = (
 )
 
 
-class MonthlyReversalError(RuntimeError):
+class MonthlyReversalError(StrategyDataError):
     """Base error for a Monthly Reversal query that cannot run safely."""
 
 
@@ -170,7 +165,7 @@ def calculate_monthly_reversal_features(frame: pd.DataFrame) -> pd.DataFrame:
         return frame.copy()
 
     result = frame.copy()
-    result["date"] = _normalize_date_values(result["date"])
+    result["date"] = normalize_date_values(result["date"])
     tickers = result["ticker"].dropna().astype(str).unique()
     if len(tickers) != 1:
         raise ValueError("Monthly Reversal features require exactly one ticker")
@@ -336,24 +331,30 @@ def calculate_monthly_reversal_history(
         raise MonthlyReversalTickerNotFoundError(
             f"Ticker is not in the requested Universe: {ticker!r}"
         )
-    requested_start, requested_end = _resolve_history_bounds(
-        start_date,
-        end_date,
-        prices_root=prices_root,
-    )
-    requested_sessions = _sessions_in_range(requested_start, requested_end)
-    evaluation_sessions = _sessions_ending_at(
+    try:
+        requested_start, requested_end = resolve_history_bounds(
+            start_date,
+            end_date,
+            prices_root=prices_root,
+            lookbacks=MONTHLY_REVERSAL_RPS_LOOKBACKS,
+        )
+    except StrategyDataError as exc:
+        raise MonthlyReversalError(str(exc)) from exc
+    requested_sessions = sessions_in_range(requested_start, requested_end)
+    evaluation_sessions = resolve_strategy_sessions(
         requested_end,
         len(requested_sessions) + MONTHLY_REVERSAL_SIGNAL_WINDOW - 1,
     )
-    price_rows, loaded_session_count = _load_price_rows(
+    price_rows, loaded_session_count = load_strategy_price_history(
+        required_sessions=MONTHLY_REVERSAL_LOAD_SESSIONS,
         start_date=evaluation_sessions[0],
         end_date=requested_end,
         prices_root=prices_root,
         universe=universe,
     )
-    rps_rows = _get_rps_rows(
+    rps_rows = load_or_calculate_rps(
         evaluation_sessions,
+        lookbacks=MONTHLY_REVERSAL_RPS_LOOKBACKS,
         prices_root=prices_root,
         universe_path=universe_path,
         price_rows=price_rows,
@@ -366,7 +367,9 @@ def calculate_monthly_reversal_history(
         price_rows["ticker"].eq(normalized_ticker)
         & price_rows["date"].le(requested_end)
     ].copy()
-    feature_input = _merge_prices_and_rps(ticker_prices, rps_rows)
+    feature_input = merge_prices_and_rps(
+        ticker_prices, rps_rows, lookbacks=MONTHLY_REVERSAL_RPS_LOOKBACKS
+    )
     features = calculate_monthly_reversal_features(feature_input)
     result = features.loc[
         features["date"].ge(requested_start) & features["date"].le(requested_end)
@@ -393,7 +396,9 @@ def evaluate_monthly_reversal(
 ) -> pd.Series:
     """Return one stock's full Monthly Reversal diagnosis on one session."""
 
-    requested = _coerce_session_date(as_of_date)
+    requested = coerce_session_date(
+        as_of_date, lookbacks=MONTHLY_REVERSAL_RPS_LOOKBACKS
+    )
     history = calculate_monthly_reversal_history(
         ticker,
         start_date=requested,
@@ -421,20 +426,24 @@ def screen_monthly_reversal(
 ) -> pd.DataFrame:
     """Screen the complete Universe, using current FYX1 as a safe prefilter."""
 
-    requested = _coerce_session_date(as_of_date)
+    requested = coerce_session_date(
+        as_of_date, lookbacks=MONTHLY_REVERSAL_RPS_LOOKBACKS
+    )
     universe = load_universe(universe_path)
-    evaluation_sessions = _sessions_ending_at(
+    evaluation_sessions = resolve_strategy_sessions(
         requested,
         MONTHLY_REVERSAL_SIGNAL_WINDOW,
     )
-    price_rows, loaded_session_count = _load_price_rows(
+    price_rows, loaded_session_count = load_strategy_price_history(
+        required_sessions=MONTHLY_REVERSAL_LOAD_SESSIONS,
         start_date=evaluation_sessions[0],
         end_date=requested,
         prices_root=prices_root,
         universe=universe,
     )
-    rps_rows = _get_rps_rows(
+    rps_rows = load_or_calculate_rps(
         evaluation_sessions,
+        lookbacks=MONTHLY_REVERSAL_RPS_LOOKBACKS,
         prices_root=prices_root,
         universe_path=universe_path,
         price_rows=price_rows,
@@ -451,7 +460,9 @@ def screen_monthly_reversal(
         candidate_prices = price_rows.loc[price_rows["ticker"].isin(candidates)]
         for ticker, ticker_prices in candidate_prices.groupby("ticker", sort=False):
             ticker_rps = rps_rows.loc[rps_rows["ticker"].eq(ticker)]
-            feature_input = _merge_prices_and_rps(ticker_prices, ticker_rps)
+            feature_input = merge_prices_and_rps(
+                ticker_prices, ticker_rps, lookbacks=MONTHLY_REVERSAL_RPS_LOOKBACKS
+            )
             features = calculate_monthly_reversal_features(feature_input)
             current = features.loc[features["date"].eq(requested)]
             if not current.empty:
@@ -483,230 +494,6 @@ def screen_monthly_reversal(
         }
     )
     return result
-
-
-def _merge_prices_and_rps(
-    prices: pd.DataFrame,
-    rps_rows: pd.DataFrame,
-) -> pd.DataFrame:
-    left = prices.drop(columns=["rps50", "rps120"], errors="ignore").copy()
-    right = rps_rows.loc[:, ["date", "ticker", "rps50", "rps120"]]
-    return left.merge(
-        right,
-        on=["date", "ticker"],
-        how="left",
-        validate="one_to_one",
-    )
-
-
-def _get_rps_rows(
-    sessions: Iterable[date],
-    *,
-    prices_root: Path,
-    universe_path: Path,
-    price_rows: pd.DataFrame,
-    universe: tuple[str, ...],
-    rps_root: Path | None,
-    rps_snapshots: pd.DataFrame | None,
-    result_tickers: tuple[str, ...] | None = None,
-) -> pd.DataFrame:
-    session_tuple = tuple(sessions)
-    requested_tickers = result_tickers or universe
-    stored_frames: list[pd.DataFrame] = []
-    if rps_root is not None:
-        manifest_path = rps_root / RPS_MANIFEST_NAME
-        if manifest_path.is_file():
-            stored_frames.append(
-                read_rps_history(
-                    tickers=requested_tickers,
-                    start_date=session_tuple[0],
-                    end_date=session_tuple[-1],
-                    root=rps_root,
-                )
-            )
-        elif rps_root.exists() and any(rps_root.iterdir()):
-            raise RpsStorageError(
-                f"Non-empty RPS root has no valid manifest: {rps_root}"
-            )
-    if rps_snapshots is not None:
-        stored_frames.append(rps_snapshots.copy())
-
-    if stored_frames:
-        normalized_stored = [
-            _normalize_rps_rows(
-                frame,
-                requested_sessions=session_tuple,
-                result_tickers=result_tickers,
-            )
-            for frame in stored_frames
-        ]
-        stored = pd.concat(normalized_stored, ignore_index=True).drop_duplicates(
-            ["date", "ticker"], keep="last", ignore_index=True
-        )
-    else:
-        stored = pd.DataFrame(columns=["date", "ticker", "rps50", "rps120"])
-
-    expected_tickers = set(requested_tickers)
-    complete_dates = {
-        session_date
-        for session_date, rows in stored.groupby("date", sort=False)
-        if len(rows) == len(expected_tickers)
-        and set(rows["ticker"]) == expected_tickers
-    }
-    missing_sessions = tuple(
-        session_date
-        for session_date in session_tuple
-        if session_date not in complete_dates
-    )
-    frames = [stored]
-    if missing_sessions:
-        frames.insert(
-            0,
-            _normalize_rps_rows(
-                calculate_rps_snapshots(
-                    missing_sessions,
-                    lookbacks=MONTHLY_REVERSAL_RPS_LOOKBACKS,
-                    prices_root=prices_root,
-                    universe_path=universe_path,
-                    price_rows=price_rows,
-                    universe=universe,
-                    result_tickers=result_tickers,
-                ),
-                requested_sessions=missing_sessions,
-                result_tickers=result_tickers,
-            ),
-        )
-    combined = pd.concat(frames, ignore_index=True).drop_duplicates(
-        ["date", "ticker"], keep="last", ignore_index=True
-    )
-    return combined.sort_values(["date", "ticker"], kind="mergesort").reset_index(
-        drop=True
-    )
-
-
-def _normalize_rps_rows(
-    snapshots: pd.DataFrame,
-    *,
-    requested_sessions: tuple[date, ...],
-    result_tickers: tuple[str, ...] | None,
-) -> pd.DataFrame:
-    source = snapshots.reset_index(drop=True)
-    date_column = "as_of_date" if "as_of_date" in source else "date"
-    required = {date_column, "ticker", "rps50", "rps120"}
-    missing = sorted(required.difference(source.columns))
-    if missing:
-        raise ValueError(f"RPS snapshots are missing columns: {missing}")
-    result = source.loc[:, [date_column, "ticker", "rps50", "rps120"]].copy()
-    result = result.rename(columns={date_column: "date"})
-    result["date"] = _normalize_date_values(result["date"])
-    result["ticker"] = result["ticker"].astype(str)
-    for column in ("rps50", "rps120"):
-        result[column] = pd.to_numeric(result[column], errors="coerce").astype(
-            "float64"
-        )
-    result = result.loc[result["date"].isin(requested_sessions)]
-    if result_tickers is not None:
-        result = result.loc[result["ticker"].isin(result_tickers)]
-    if bool(result.duplicated(["date", "ticker"]).any()):
-        raise ValueError("RPS snapshots contain duplicate date/ticker rows")
-    return result.sort_values(["date", "ticker"], kind="mergesort").reset_index(
-        drop=True
-    )
-
-
-def _load_price_rows(
-    *,
-    start_date: date,
-    end_date: date,
-    prices_root: Path,
-    universe: tuple[str, ...],
-) -> tuple[pd.DataFrame, int]:
-    calendar = xcals.get_calendar(RPS_CALENDAR_NAME)
-    start_session = calendar.date_to_session(pd.Timestamp(start_date), direction="none")
-    start_index = int(calendar.sessions.get_loc(start_session))
-    load_index = max(0, start_index - (MONTHLY_REVERSAL_LOAD_SESSIONS - 1))
-    load_start = calendar.sessions[load_index].date()
-
-    available_years = sorted(
-        int(path.parent.name.removeprefix("year="))
-        for path in (prices_root / "daily").glob("year=*/prices.parquet")
-        if path.parent.name.removeprefix("year=").isdigit()
-    )
-    if not available_years or end_date.year not in available_years:
-        raise PriceUpdateError(
-            f"No complete price partition is available through {end_date.isoformat()}"
-        )
-    first_year = max(load_start.year, available_years[0])
-    years = tuple(range(first_year, end_date.year + 1))
-    rows = read_affected_partitions(prices_root, years, tickers=universe)
-    rows = rows.loc[rows["date"].le(end_date)].copy()
-    return rows, int(rows["date"].nunique())
-
-
-def _resolve_history_bounds(
-    start_date: date | str | None,
-    end_date: date | str | None,
-    *,
-    prices_root: Path,
-) -> tuple[date, date]:
-    if start_date is None or end_date is None:
-        manifest = load_manifest(prices_root / "manifest.json")
-    else:
-        manifest = None
-    start_value = (
-        start_date
-        if start_date is not None
-        else str(manifest["actual_min_date"] if manifest is not None else "")
-    )
-    end_value = (
-        end_date
-        if end_date is not None
-        else str(manifest["latest_session"] if manifest is not None else "")
-    )
-    start = _coerce_session_date(start_value)
-    end = _coerce_session_date(end_value)
-    if start > end:
-        raise MonthlyReversalError("start_date cannot be after end_date")
-    return start, end
-
-
-def _coerce_session_date(value: date | str) -> date:
-    # Reuse the RPS module's exact XNYS validation and date coercion policy.
-    return resolve_rps_session_dates(
-        value,
-        lookbacks=MONTHLY_REVERSAL_RPS_LOOKBACKS,
-    ).as_of_date
-
-
-def _sessions_in_range(start_date: date, end_date: date) -> tuple[date, ...]:
-    calendar = xcals.get_calendar(RPS_CALENDAR_NAME)
-    sessions = calendar.sessions_in_range(
-        pd.Timestamp(start_date),
-        pd.Timestamp(end_date),
-    )
-    result = tuple(value.date() for value in sessions)
-    if not result:
-        raise InvalidRpsSessionError("Monthly Reversal range has no XNYS sessions")
-    return result
-
-
-def _sessions_ending_at(end_date: date, count: int) -> tuple[date, ...]:
-    calendar = xcals.get_calendar(RPS_CALENDAR_NAME)
-    session = calendar.date_to_session(pd.Timestamp(end_date), direction="none")
-    end_index = int(calendar.sessions.get_loc(session))
-    start_index = max(0, end_index - count + 1)
-    return tuple(
-        value.date() for value in calendar.sessions[start_index : end_index + 1]
-    )
-
-
-def _normalize_date_values(values: pd.Series) -> pd.Series:
-    normalized = pd.to_datetime(values, errors="coerce")
-    if bool(normalized.isna().any()):
-        raise ValueError("Monthly Reversal input contains invalid dates")
-    if normalized.dt.tz is not None:
-        normalized = normalized.dt.tz_localize(None)
-    return normalized.dt.date
 
 
 def _unavailable_explanation(ticker: str, requested: date) -> pd.Series:

@@ -1,11 +1,9 @@
-"""Persist daily RPS and email only new Monthly Reversal 6.2 signals."""
+"""Legacy Monthly Reversal APIs; CLI delegates to the combined daily email."""
 
 from __future__ import annotations
 
-import argparse
 import logging
 import math
-import sys
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -14,7 +12,6 @@ from pathlib import Path
 from typing import Any, TextIO
 
 import pandas as pd  # type: ignore[import-untyped]
-from dotenv import load_dotenv
 
 from momentum_screener.monthly_reversal import screen_monthly_reversal
 from momentum_screener.prices import DEFAULT_OUTPUT_ROOT, DEFAULT_UNIVERSE
@@ -30,7 +27,6 @@ from momentum_screener.rps_storage import (
     DEFAULT_RPS_ROOT,
     persist_rps_snapshot,
 )
-from momentum_screener.storage_manifest import write_json_atomically
 
 LOGGER = logging.getLogger(__name__)
 
@@ -253,56 +249,16 @@ def run_daily_monthly_reversal_notification(
     return result
 
 
-def _parse_date(value: str) -> date:
-    try:
-        return date.fromisoformat(value)
-    except ValueError as exc:
-        raise argparse.ArgumentTypeError("must use YYYY-MM-DD") from exc
-
-
-def _build_argument_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog="python -m momentum_screener.monthly_reversal_notification",
-        description="Persist daily RPS and email Monthly Reversal 6.2 signals.",
-    )
-    parser.add_argument("--as-of-date", type=_parse_date)
-    parser.add_argument("--prices-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
-    parser.add_argument("--rps-root", type=Path, default=DEFAULT_RPS_ROOT)
-    parser.add_argument("--universe", type=Path, default=DEFAULT_UNIVERSE)
-    parser.add_argument("--result-json", type=Path)
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="calculate and render without persistence or SMTP contact",
-    )
-    return parser
-
-
 def main(argv: Sequence[str] | None = None) -> int:
-    """CLI entry point for the production Monthly Reversal notification."""
+    """Compatibility CLI for the combined daily screening notification.
 
-    parser = _build_argument_parser()
-    args = parser.parse_args(argv)
-    load_dotenv(dotenv_path=Path(".env"), override=False)
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    )
-    try:
-        result = run_daily_monthly_reversal_notification(
-            as_of_date=args.as_of_date,
-            prices_root=args.prices_root,
-            rps_root=args.rps_root,
-            universe_path=args.universe,
-            dry_run=args.dry_run,
-            preview_stream=sys.stdout if args.dry_run else None,
-        )
-        if args.result_json is not None:
-            write_json_atomically(args.result_json, result.as_dict())
-        return 0
-    except Exception:
-        LOGGER.exception("Daily Monthly Reversal notification failed")
-        return 1
+    The legacy programmatic renderer/runner above retain their existing
+    Monthly Reversal-only contracts for callers that still import them.
+    """
+
+    from momentum_screener.daily_screening_notification import main as daily_main
+
+    return daily_main(argv)
 
 
 if __name__ == "__main__":

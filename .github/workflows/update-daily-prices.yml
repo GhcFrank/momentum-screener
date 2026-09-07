@@ -99,7 +99,7 @@ jobs:
           root=Path('data/processed/prices');
           validate_local_incremental_update_acceptance(prices_root=root)"
 
-      - name: Persist RPS and email Monthly Reversal signals
+      - name: Persist RPS and email daily screening signals
         env:
           RPS_SMTP_HOST: smtp.gmail.com
           RPS_SMTP_PORT: "587"
@@ -108,8 +108,8 @@ jobs:
           RPS_EMAIL_FROM: ${{ secrets.GMAIL_USER }}
           RPS_EMAIL_TO: ${{ secrets.EMAIL_TO }}
         run: >-
-          uv run python -m momentum_screener.monthly_reversal_notification
-          --result-json "$RUNNER_TEMP/monthly-reversal-notification.json"
+          uv run python -m momentum_screener.daily_screening_notification
+          --result-json "$RUNNER_TEMP/daily-screening-notification.json"
 
       - name: Publish update to Release
         if: steps.refresh.outputs.publish == 'true'
@@ -158,10 +158,10 @@ jobs:
             if [[ -f "$RUNNER_TEMP/dataset-check-after.json" ]]; then
               uv run python -c "import json, os; p=json.load(open(os.environ['RUNNER_TEMP'] + '/dataset-check-after.json')); print(f\"- Local Universe ticker count: {p['local_universe_ticker_count']}\"); print(f\"- Local Universe SHA-256: {p['local_universe_sha256']}\"); print(f\"- Expected requested start: {p['local_requested_start']}\"); print(f\"- Remote Universe SHA-256: {p['remote_universe_sha256']}\"); print(f\"- Remote requested start: {p['remote_requested_start']}\"); print(f\"- Remote latest session: {p['remote_latest_session']}\"); print(f\"- Dataset identity match: {p['dataset_identity_match']}\"); print(f\"- Workflow ready: {p['workflow_ready']}\")"
             fi
-            if [[ -f "$RUNNER_TEMP/monthly-reversal-notification.json" ]]; then
-              uv run python -c "import json, os; p=json.load(open(os.environ['RUNNER_TEMP'] + '/monthly-reversal-notification.json')); print(f\"- RPS rows persisted: {p['rps_rows_persisted']}\"); print(f\"- Monthly Reversal FYX1 count: {p['fyx1_candidate_count']}\"); print(f\"- Monthly Reversal YXFZ count: {p['yxfz_count']}\"); print(f\"- Monthly Reversal signal count: {p['signal_count']}\")"
+            if [[ -f "$RUNNER_TEMP/daily-screening-notification.json" ]]; then
+              uv run python -c "import json, os; p=json.load(open(os.environ['RUNNER_TEMP'] + '/daily-screening-notification.json')); print(f\"- RPS rows persisted: {p['rps_rows_persisted']}\"); print(f\"- Monthly Reversal FYX1 count: {p['fyx1_candidate_count']}\"); print(f\"- Monthly Reversal YXFZ count: {p['yxfz_count']}\"); print(f\"- Monthly Reversal signal count: {p['signal_count']}\"); print(f\"- Trend Re-acceleration signal count: {p['trend_signal_count']}\")"
             else
-              echo "- Monthly Reversal notification: not_completed"
+              echo "- Daily screening notification: not_completed"
             fi
             if [[ -f "$RUNNER_TEMP/rps-check-after.json" ]]; then
               uv run python -c "import json, os; p=json.load(open(os.environ['RUNNER_TEMP'] + '/rps-check-after.json')); print(f\"- Remote RPS latest session: {p['latest_session']}\"); print(f\"- Remote RPS rows: {p['total_row_count']}\")"
@@ -191,6 +191,6 @@ jobs:
             ${{ runner.temp }}/price-update-result.json
             ${{ runner.temp }}/release-publish-result.json
             ${{ runner.temp }}/rps-check-before.json
-            ${{ runner.temp }}/monthly-reversal-notification.json
+            ${{ runner.temp }}/daily-screening-notification.json
             ${{ runner.temp }}/rps-publish-result.json
             ${{ runner.temp }}/rps-check-after.json

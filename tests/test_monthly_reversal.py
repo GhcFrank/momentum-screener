@@ -10,7 +10,7 @@ import pyarrow as pa  # type: ignore[import-untyped]
 import pyarrow.parquet as pq  # type: ignore[import-untyped]
 import pytest
 
-import momentum_screener.monthly_reversal as monthly_reversal_module
+import momentum_screener.strategy_data as strategy_data_module
 from momentum_screener.monthly_reversal import (
     MONTHLY_REVERSAL_REQUIRED_SIGNAL_ROWS,
     calculate_monthly_reversal_features,
@@ -507,7 +507,7 @@ def test_get_rps_rows_prefers_persisted_history_and_injected_current_snapshot(
     injected = _minimal_rps_rows((sessions[-1],), universe, value=90.0)
 
     monkeypatch.setattr(
-        monthly_reversal_module,
+        strategy_data_module,
         "read_rps_history",
         lambda **_kwargs: persisted,
     )
@@ -516,13 +516,14 @@ def test_get_rps_rows_prefers_persisted_history_and_injected_current_snapshot(
         raise AssertionError("complete persisted/injected RPS must not be recalculated")
 
     monkeypatch.setattr(
-        monthly_reversal_module,
+        strategy_data_module,
         "calculate_rps_snapshots",
         unexpected_calculation,
     )
 
-    result = monthly_reversal_module._get_rps_rows(
+    result = strategy_data_module.load_or_calculate_rps(
         sessions,
+        lookbacks=(50, 120),
         prices_root=tmp_path / "prices",
         universe_path=tmp_path / "universe.csv",
         price_rows=pd.DataFrame(),
@@ -550,7 +551,7 @@ def test_get_rps_rows_calculates_only_missing_historical_sessions(
     calculated_sessions: list[tuple[date, ...]] = []
 
     monkeypatch.setattr(
-        monthly_reversal_module,
+        strategy_data_module,
         "read_rps_history",
         lambda **_kwargs: persisted,
     )
@@ -563,13 +564,14 @@ def test_get_rps_rows_calculates_only_missing_historical_sessions(
         return _minimal_rps_rows(requested, universe, value=60.0)
 
     monkeypatch.setattr(
-        monthly_reversal_module,
+        strategy_data_module,
         "calculate_rps_snapshots",
         calculate_missing,
     )
 
-    result = monthly_reversal_module._get_rps_rows(
+    result = strategy_data_module.load_or_calculate_rps(
         sessions,
+        lookbacks=(50, 120),
         prices_root=tmp_path / "prices",
         universe_path=tmp_path / "universe.csv",
         price_rows=pd.DataFrame(),

@@ -86,6 +86,87 @@ def rolling_count(condition: pd.Series, window: int) -> pd.Series:
     return values.rolling(window=window, min_periods=window).sum()
 
 
+def rolling_every(condition: pd.Series, window: int) -> pd.Series:
+    """True only for a complete trailing window of True ticker rows.
+
+    Missing values count as False, like rolling_count; warmup returns False.
+    Missing rows are never skipped or filled from another session.
+    """
+
+    return rolling_count(condition, window).eq(window)
+
+
+def bars_since_highest(series: pd.Series, window: int) -> pd.Series:
+    """Return bars since the most recent maximum in a full trailing window.
+
+    Today is 0, yesterday is 1. Tied maxima always select the occurrence
+    closest to today (e.g. equal highs at t-5 and t-3 return 3). Incomplete
+    windows or windows containing NaN/nonfinite values return NaN.
+    """
+
+    _validate_window(window)
+    values = pd.to_numeric(series, errors="coerce").astype("float64")
+    values = values.where(np.isfinite(values))
+    return values.rolling(window, min_periods=window).apply(
+        lambda rows: float(np.argmax(rows[::-1])), raw=True
+    )
+
+
+def value_at_offset(series: pd.Series, bars_ago: pd.Series) -> pd.Series:
+    """Return a dynamic backward REF; invalid or future offsets yield NaN."""
+
+    if not series.index.equals(bars_ago.index):
+        raise ValueError("series and bars_ago must have identical indexes")
+    values = pd.to_numeric(series, errors="coerce").to_numpy(dtype="float64")
+    offsets = pd.to_numeric(bars_ago, errors="coerce").to_numpy(dtype="float64")
+    positions = np.arange(len(values))
+    valid = np.isfinite(offsets) & (offsets >= 0) & (offsets <= positions)
+    valid &= offsets == np.floor(offsets)
+    result = np.full(len(values), np.nan)
+    result[valid] = values[positions[valid] - offsets[valid].astype("int64")]
+    result[~np.isfinite(result)] = np.nan
+    return pd.Series(result, index=series.index, dtype="float64")
+
+
+def lowest_since_anchor(
+    series: pd.Series, bars_since_anchor: pd.Series
+) -> pd.DataFrame:
+    """Return lowest_value and bars_since_low strictly AFTER a dynamic anchor.
+
+    For an anchor n > 0 bars ago, use rows t-n+1 through t, excluding the
+    anchor's own low. For n == 0 use today's value and offset 0. Equal lows
+    select the most recent occurrence. Invalid offsets, incomplete paths or
+    any nonfinite value on the path yield NaN in both output columns.
+    """
+
+    if not series.index.equals(bars_since_anchor.index):
+        raise ValueError("series and bars_since_anchor must have identical indexes")
+    values = pd.to_numeric(series, errors="coerce").to_numpy(dtype="float64")
+    anchors = pd.to_numeric(bars_since_anchor, errors="coerce").to_numpy(
+        dtype="float64"
+    )
+    lows = np.full(len(values), np.nan)
+    offsets = np.full(len(values), np.nan)
+    for position, anchor in enumerate(anchors):
+        if (
+            not np.isfinite(anchor)
+            or anchor < 0
+            or anchor > position
+            or anchor != int(anchor)
+        ):
+            continue
+        start = position - max(int(anchor), 1) + 1
+        path = values[start : position + 1]
+        if not np.isfinite(path).all():
+            continue
+        offset = int(np.argmin(path[::-1]))
+        lows[position] = values[position - offset]
+        offsets[position] = offset
+    return pd.DataFrame(
+        {"lowest_value": lows, "bars_since_low": offsets}, index=series.index
+    )
+
+
 def safe_ratio(numerator: pd.Series, denominator: pd.Series) -> pd.Series:
     """Divide finite values only when the denominator is finite and positive."""
 
