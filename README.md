@@ -41,3 +41,11 @@ uv run python -m momentum_screener.historical_screening \
 `get_signals_for_date`、`get_signal_detail` 查询结果，无需实时重跑策略。
 数据语义为 `retrospective_latest_data`，并非严格 point-in-time backtest。
 完整合约、存储 schema 与阶段规划见 [Historical Signals 设计](docs/historical-signals-design.md)。
+
+## Daily research datasets
+
+默认持久化 RPS horizons 为 **20 / 50 / 120 / 250**（`rps_v2`），计算、wide schema 与校验
+从同一配置生成。旧 `rpsData` 需要一次性迁移，保留既有指标，仅补算缺少的 horizon。
+新增独立的 **point-in-time daily market-cap snapshot**：固定 Universe，按成功 price session
+保存到 `data/processed/market_cap/`，并通过 `marketCapData` Release 保留历史；缺失值显式报告。
+[迁移命令与 MarketCap bootstrap](docs/github-actions-data-bootstrap.md#existing-rps_v1-one-time-migration-before-enabling-daily-jobs)。

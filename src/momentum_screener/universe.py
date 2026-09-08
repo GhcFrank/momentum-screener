@@ -1013,6 +1013,62 @@ def fetch_screener_pages(
     )
 
 
+def fetch_market_caps(
+    tickers: Sequence[str],
+    *,
+    screen_func: ScreenFunction | None = None,
+    sleep_func: SleepFunction = time.sleep,
+    page_size: int = PAGE_SIZE,
+    max_candidates: int = DEFAULT_MAX_CANDIDATES,
+    max_attempts: int = DEFAULT_MAX_ATTEMPTS,
+    retry_base_delay: float = DEFAULT_RETRY_BASE_DELAY,
+) -> dict[str, int]:
+    """Fetch fresh caps for fixed membership; never build or write a Universe.
+
+    Share the screener query, parsing and retry implementation with Universe
+    discovery. Stop at exhaustion, repeated pages, the bound, or full coverage.
+    Missing/invalid caps are omitted; callers must report them explicitly.
+    """
+
+    requested = {normalize_ticker(ticker) for ticker in tickers}
+    if None in requested or not requested:
+        raise ValueError("MarketCap refresh requires valid Universe tickers")
+    if not 1 <= page_size <= PAGE_SIZE or max_candidates <= 0:
+        raise ValueError("Invalid MarketCap paging bounds")
+    if max_attempts <= 0 or retry_base_delay < 0:
+        raise ValueError("Invalid MarketCap retry settings")
+    values: dict[str, int] = {}
+    seen: set[str] = set()
+    query = build_query()
+    for offset in range(0, max_candidates, page_size):
+        response, _ = _request_page_with_retries(
+            query,
+            offset=offset,
+            page_size=min(page_size, max_candidates - offset),
+            max_attempts=max_attempts,
+            retry_base_delay=retry_base_delay,
+            screen_func=screen_func or yf.screen,
+            sleep_func=sleep_func,
+        )
+        quotes = extract_quotes(response)
+        fingerprints = {_record_fingerprint(record) for record in quotes}
+        if not fingerprints.difference(seen):
+            break
+        seen.update(fingerprints)
+        for record in quotes:
+            if not isinstance(record, Mapping):
+                continue
+            ticker = normalize_ticker(record.get("symbol"))
+            if ticker not in requested:
+                continue
+            market_cap = _extract_market_cap(record)
+            if market_cap is not None and market_cap <= 2**63 - 1:
+                values.setdefault(ticker, market_cap)
+        if len(values) == len(requested) or len(quotes) < page_size:
+            break
+    return values
+
+
 def build_universe(
     records: Iterable[object],
     *,

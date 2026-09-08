@@ -122,7 +122,7 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
         events.append("prepare")
         assert sessions[-1] == session
         assert len(sessions) == 15
-        assert kwargs["lookbacks"] == (50, 120, 250)
+        assert kwargs["lookbacks"] == (20, 50, 120, 250)
         return shared
 
     def persist(rows: pd.DataFrame, **kwargs: object) -> dict[str, object]:

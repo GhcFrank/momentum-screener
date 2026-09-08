@@ -183,7 +183,7 @@ def run_daily_monthly_reversal_notification(
         prices_root=prices_root,
         universe_path=universe_path,
     )
-    LOGGER.info("Calculated RPS50/RPS120/RPS250 rows=%d", len(snapshot))
+    LOGGER.info("Calculated RPS lookbacks=%s rows=%d", RPS_LOOKBACKS, len(snapshot))
     if dry_run:
         persisted_count = 0
     else:

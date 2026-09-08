@@ -44,12 +44,15 @@ def _build_local_dataset(tmp_path: Path) -> tuple[Path, Path]:
         {
             "ticker": tickers,
             "as_of_date": date(2026, 8, 31),
+            "rps20": [0.0, 100.0],
             "rps50": [0.0, 100.0],
             "rps120": [100.0, 0.0],
             "rps250": [0.0, 100.0],
+            "return_20": [0.01, 0.02],
             "return_50": [0.1, 0.2],
             "return_120": [0.3, 0.4],
             "return_250": [np.nan, 0.5],
+            "rps20_base_date": date(2026, 8, 3),
             "rps50_base_date": date(2026, 6, 19),
             "rps120_base_date": date(2026, 3, 10),
             "rps250_base_date": date(2025, 9, 2),
@@ -314,3 +317,85 @@ def test_authenticated_publish_keeps_existing_upload_flow(
     assert all(call.args[0] is github for call in upload.call_args_list)
     assert result["uploaded_assets"] == expected
     assert result["success"] is True
+
+
+def test_legacy_pull_and_migration_publish_require_explicit_preserved_source(
+    tmp_path, monkeypatch
+):
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    from momentum_screener.rps_storage import (
+        LEGACY_RPS_LOOKBACKS,
+        RpsStorageError,
+        _manifest_for_partitions,
+        rps_columns,
+        rps_manifest_fingerprint,
+        rps_schema,
+    )
+    from momentum_screener.storage_manifest import write_json_atomically
+
+    root, universe = _build_local_dataset(tmp_path)
+    local = load_rps_manifest(root)
+    asset = local["assets"]["2026"]
+    legacy_path = tmp_path / "legacy.parquet"
+    rows = pq.read_table(root / asset["local_path"]).to_pandas()
+    old = rows.loc[:, rps_columns(LEGACY_RPS_LOOKBACKS)]
+    pq.write_table(
+        pa.Table.from_pandas(
+            old, schema=rps_schema(LEGACY_RPS_LOOKBACKS), preserve_index=False
+        ),
+        legacy_path,
+    )
+    remote = _manifest_for_partitions(
+        universe=("AAA", "BBB"), partitions={2026: (legacy_path, len(old))}
+    )
+    remote.update(schema_version="rps_v1", lookbacks=list(LEGACY_RPS_LOOKBACKS))
+    payloads = {
+        RPS_RELEASE_MANIFEST_ASSET_NAME: json.dumps(remote).encode(),
+        remote["assets"]["2026"]["asset_name"]: legacy_path.read_bytes(),
+    }
+    release = {
+        "assets": [
+            {"name": name, "size": len(payload)} for name, payload in payloads.items()
+        ],
+        "upload_url": "unused",
+    }
+    monkeypatch.setattr(release_module, "get_release_metadata", lambda *_: release)
+
+    def download(_client, metadata, destination):
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(payloads[metadata["name"]])
+
+    monkeypatch.setattr(release_module, "download_release_asset", download)
+    common = {
+        "repository": "owner/repo",
+        "universe_path": universe,
+        "client": GitHubClient(token="test-token"),
+    }
+    with pytest.raises(RpsStorageError, match="migration required"):
+        check_rps_release(**common)
+    assert (
+        release_module.main(
+            [
+                "check",
+                "--repository",
+                "owner/repo",
+                "--universe",
+                str(universe),
+            ]
+        )
+        == 1
+    )
+    imported = tmp_path / "imported-v1"
+    pull_rps_release(root=imported, allow_legacy=True, **common)
+    assert load_rps_manifest(imported, allow_legacy=True)["lookbacks"] == [50, 120, 250]
+    with pytest.raises(
+        release_module.RpsReleaseStorageError, match="exact preserved remote history"
+    ):
+        publish_rps_release(root=root, allow_migration=True, dry_run=True, **common)
+    # Publication is gated on source identity recorded by the local migration.
+    local["migration"] = {"source_manifest_sha256": rps_manifest_fingerprint(remote)}
+    write_json_atomically(root / "manifest.json", local)
+    plan = publish_rps_release(root=root, allow_migration=True, dry_run=True, **common)
+    assert plan["planned_assets"][-1] == RPS_RELEASE_MANIFEST_ASSET_NAME

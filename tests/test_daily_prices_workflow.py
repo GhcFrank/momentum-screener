@@ -33,11 +33,14 @@ def test_daily_workflow_preserves_critical_data_and_publication_order(
         ("release_storage", "pull-update-inputs"),
         ("rps_release_storage", "check"),
         ("rps_release_storage", "pull"),
+        ("market_cap_release_storage", "pull"),
         ("prices", "update"),
         ("release_storage", "incremental-acceptance"),
+        ("market_cap_storage", "refresh"),
         ("daily_screening_notification", ""),
         ("release_storage", "publish-update"),
         ("release_storage", "check"),
+        ("market_cap_release_storage", "publish"),
         ("rps_release_storage", "publish"),
         ("rps_release_storage", "check"),
     ]
@@ -54,6 +57,8 @@ def test_daily_workflow_uses_release_storage_and_stops_notifications_on_failure(
     assert "--allow-partial-session" not in scripts
     assert job["env"]["RELEASE_TAG"] == "marketData"
     assert job["env"]["RPS_RELEASE_TAG"] == "rpsData"
+    assert job["env"]["MARKET_CAP_RELEASE_TAG"] == "marketCapData"
+    assert "rps_storage migrate" not in scripts
     assert workflow["concurrency"]["cancel-in-progress"] is False
     notification = next(
         step

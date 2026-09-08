@@ -137,7 +137,7 @@ def test_daily_orchestration_calculates_once_persists_before_screen_and_sends(
     )
 
     assert [event[0] for event in events] == ["calculate", "persist", "screen", "send"]
-    assert events[0][2] == (50, 120, 250)
+    assert events[0][2] == (20, 50, 120, 250)
     assert events[2][2] is snapshot
     assert result.rps_row_count == 2
     assert result.rps_rows_persisted == 2

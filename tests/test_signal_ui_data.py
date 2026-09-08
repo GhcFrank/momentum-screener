@@ -274,11 +274,12 @@ def test_load_local_rps_snapshot_once_and_refresh_after_replacement(
         {
             "ticker": ["NVDA", "META"],
             "as_of_date": session,
+            "rps20": [89.0, 87.0],
             "rps50": [90.0, 88.0],
             "rps120": [95.0, 92.0],
             "rps250": [97.0, 94.0],
-            **{f"return_{days}": 0.1 for days in (50, 120, 250)},
-            **{f"rps{days}_base_date": date(2025, 1, 2) for days in (50, 120, 250)},
+            **{f"return_{days}": 0.1 for days in (20, 50, 120, 250)},
+            **{f"rps{days}_base_date": date(2025, 1, 2) for days in (20, 50, 120, 250)},
         }
     )
     persist_rps_snapshot(snapshot, root=root, universe_path=universe)

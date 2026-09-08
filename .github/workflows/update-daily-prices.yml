@@ -22,6 +22,7 @@ jobs:
       PYTHONUNBUFFERED: "1"
       RELEASE_TAG: marketData
       RPS_RELEASE_TAG: rpsData
+      MARKET_CAP_RELEASE_TAG: marketCapData
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -70,6 +71,14 @@ jobs:
           --repository "${{ github.repository }}"
           --release-tag "${RPS_RELEASE_TAG}"
 
+      - name: Restore MarketCap history or prepare first snapshot
+        run: >-
+          uv run python -m momentum_screener.market_cap_release_storage pull
+          --repository "${{ github.repository }}"
+          --release-tag "${MARKET_CAP_RELEASE_TAG}"
+          --allow-bootstrap
+          --result-json "$RUNNER_TEMP/market-cap-pull.json"
+
       - name: Plan daily refresh without Yahoo access
         run: >-
           uv run python -m momentum_screener.prices update --dry-run
@@ -99,6 +108,11 @@ jobs:
           root=Path('data/processed/prices');
           validate_local_incremental_update_acceptance(prices_root=root)"
 
+      - name: Refresh MarketCap for the latest successful price session
+        run: >-
+          uv run python -m momentum_screener.market_cap_storage refresh
+          --result-json "$RUNNER_TEMP/market-cap-refresh.json"
+
       - name: Persist RPS and email daily screening signals
         env:
           RPS_SMTP_HOST: smtp.gmail.com
@@ -126,6 +140,14 @@ jobs:
           --release-tag "${RELEASE_TAG}"
           --result-json "$RUNNER_TEMP/dataset-check-after.json"
 
+      - name: Publish MarketCap history to Release
+        run: >-
+          uv run python -m momentum_screener.market_cap_release_storage publish
+          --repository "${{ github.repository }}"
+          --release-tag "${MARKET_CAP_RELEASE_TAG}"
+          --allow-bootstrap
+          --result-json "$RUNNER_TEMP/market-cap-publish.json"
+
       - name: Publish RPS history to Release
         run: >-
           uv run python -m momentum_screener.rps_release_storage publish
@@ -150,6 +172,15 @@ jobs:
             echo "- Publish requested: ${{ steps.refresh.outputs.publish || 'unknown' }}"
             echo "- Release tag: ${RELEASE_TAG}"
             echo "- RPS Release tag: ${RPS_RELEASE_TAG}"
+            echo "- MarketCap Release tag: ${MARKET_CAP_RELEASE_TAG}"
+            if [[ -f "$RUNNER_TEMP/market-cap-refresh.json" ]]; then
+              uv run python -c "import json, os; p=json.load(open(os.environ['RUNNER_TEMP'] + '/market-cap-refresh.json')); print(f\"- MarketCap snapshot date: {p['snapshot_date']}\"); print(f\"- MarketCap stored count: {p['stored_ticker_count']}\"); print(f\"- MarketCap missing count: {p['missing_ticker_count']}\")"
+            fi
+            if [[ -f "$RUNNER_TEMP/market-cap-publish.json" ]]; then
+              uv run python -c "import json, os; p=json.load(open(os.environ['RUNNER_TEMP'] + '/market-cap-publish.json')); print(f\"- MarketCap publish status: {p['publish_success']}\")"
+            else
+              echo "- MarketCap publish status: not_completed"
+            fi
             if [[ -f "$RUNNER_TEMP/release-publish-result.json" ]]; then
               uv run python -c "import json, os; p=json.load(open(os.environ['RUNNER_TEMP'] + '/release-publish-result.json')); print(f\"- Release publish success: {p['release_publish_success']}\")"
             else
@@ -185,6 +216,11 @@ jobs:
             data/processed/prices/manifest.json
             data/processed/prices/.update_diagnostics/**
             data/processed/rps/manifest.json
+            data/processed/market_cap/manifest.json
+            data/processed/market_cap/missing_tickers.csv
+            ${{ runner.temp }}/market-cap-pull.json
+            ${{ runner.temp }}/market-cap-refresh.json
+            ${{ runner.temp }}/market-cap-publish.json
             ${{ runner.temp }}/dataset-check-before.json
             ${{ runner.temp }}/dataset-check-after.json
             ${{ runner.temp }}/price-update-plan.json
