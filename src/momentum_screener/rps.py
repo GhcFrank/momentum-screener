@@ -21,7 +21,7 @@ from momentum_screener.prices import (
 )
 from momentum_screener.universe import normalize_ticker
 
-RPS_LOOKBACKS: Final[tuple[int, ...]] = (50, 120, 250)
+RPS_LOOKBACKS: Final[tuple[int, ...]] = (20, 50, 120, 250)
 RPS_CALENDAR_NAME: Final[str] = "XNYS"
 RPS_PRICE_FIELD: Final[str] = "adj_close"
 INVALID_RPS: Final[float] = -1.0

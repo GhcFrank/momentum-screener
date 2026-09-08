@@ -25,6 +25,7 @@ from momentum_screener.rps_storage import (
     DEFAULT_RPS_ROOT,
     RPS_MANIFEST_NAME,
     RpsStorageError,
+    rps_manifest_fingerprint,
     validate_rps_dataset,
     validate_rps_manifest,
     validate_rps_partition,
@@ -92,6 +93,7 @@ def _download_remote_manifest(
     destination: Path,
     *,
     universe_path: Path,
+    allow_legacy: bool = False,
 ) -> dict[str, Any]:
     metadata = assets.get(RPS_RELEASE_MANIFEST_ASSET_NAME)
     if metadata is None:
@@ -103,7 +105,7 @@ def _download_remote_manifest(
         payload = json.loads(destination.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise RpsReleaseStorageError("Remote RPS manifest is unreadable") from exc
-    manifest = validate_rps_manifest(payload)
+    manifest = validate_rps_manifest(payload, allow_legacy=allow_legacy)
     _require_identity(manifest, universe_path=universe_path)
     return manifest
 
@@ -152,6 +154,7 @@ def pull_rps_release(
     repository: str | None = None,
     release_tag: str = DEFAULT_RPS_RELEASE_TAG,
     root: Path = DEFAULT_RPS_ROOT,
+    allow_legacy: bool = False,
     universe_path: Path = DEFAULT_UNIVERSE,
     client: GitHubClient | None = None,
     environ: Mapping[str, str] | None = None,
@@ -172,6 +175,7 @@ def pull_rps_release(
             assets,
             staging / RPS_MANIFEST_NAME,
             universe_path=universe_path,
+            allow_legacy=allow_legacy,
         )
         relative_paths: list[str] = []
         for year, asset in sorted(manifest["assets"].items()):
@@ -190,13 +194,17 @@ def pull_rps_release(
                 raise RpsReleaseStorageError(
                     f"Downloaded RPS hash mismatch: {asset_name}"
                 )
-            validate_rps_partition(destination, expected_year=int(year))
+            validate_rps_partition(
+                destination, expected_year=int(year), lookbacks=manifest["lookbacks"]
+            )
             relative_paths.append(relative_path)
         relative_paths.append(RPS_MANIFEST_NAME)
         backup = root.parent / f".rps-release-backup-{uuid.uuid4().hex}"
 
         def validate_installation() -> None:
-            validate_rps_dataset(root, universe_path=universe_path)
+            validate_rps_dataset(
+                root, universe_path=universe_path, allow_legacy=allow_legacy
+            )
 
         replace_files_transactionally(
             root,
@@ -227,6 +235,7 @@ def publish_rps_release(
     root: Path = DEFAULT_RPS_ROOT,
     universe_path: Path = DEFAULT_UNIVERSE,
     bootstrap: bool = False,
+    allow_migration: bool = False,
     confirm_bootstrap: bool = False,
     dry_run: bool = False,
     client: GitHubClient | None = None,
@@ -252,6 +261,7 @@ def publish_rps_release(
                 assets,
                 Path(temp) / RPS_MANIFEST_NAME,
                 universe_path=universe_path,
+                allow_legacy=allow_migration,
             )
     elif not bootstrap:
         raise RpsReleaseStorageError(
@@ -259,6 +269,19 @@ def publish_rps_release(
         )
     elif not confirm_bootstrap and not dry_run:
         raise RpsReleaseStorageError("RPS bootstrap requires --confirm-bootstrap")
+
+    if remote is not None and remote["schema_version"] != local["schema_version"]:
+        provenance = local.get("migration", {})
+        if (
+            provenance.get("source_manifest_sha256") != rps_manifest_fingerprint(remote)
+            or local["partition_row_counts"] != remote["partition_row_counts"]
+            or local["actual_min_date"] != remote["actual_min_date"]
+            or local["latest_session"] != remote["latest_session"]
+        ):
+            raise RpsReleaseStorageError(
+                "Migration publication requires the exact preserved remote history; "
+                "pull --allow-legacy and run rps_storage migrate before publishing"
+            )
 
     changed_years = [
         year
@@ -337,6 +360,18 @@ def _build_argument_parser() -> argparse.ArgumentParser:
         command.add_argument("--rps-root", type=Path, default=DEFAULT_RPS_ROOT)
         command.add_argument("--universe", type=Path, default=DEFAULT_UNIVERSE)
         command.add_argument("--result-json", type=Path)
+        if name == "pull":
+            command.add_argument(
+                "--allow-legacy",
+                action="store_true",
+                help="download v1 only for explicit local migration",
+            )
+        if name == "publish":
+            command.add_argument(
+                "--allow-migration",
+                action="store_true",
+                help="publish an explicitly migrated v1 dataset",
+            )
         if name in {"publish", "bootstrap"}:
             command.add_argument("--dry-run", action="store_true")
         if name == "bootstrap":
@@ -362,10 +397,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "check":
             result = check_rps_release(**common)
         elif args.command == "pull":
-            result = pull_rps_release(root=args.rps_root, **common)
+            result = pull_rps_release(
+                root=args.rps_root, allow_legacy=args.allow_legacy, **common
+            )
         elif args.command == "publish":
             result = publish_rps_release(
                 root=args.rps_root,
+                allow_migration=args.allow_migration,
                 dry_run=args.dry_run,
                 **common,
             )

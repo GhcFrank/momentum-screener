@@ -26,7 +26,7 @@ def rps_rows(sessions: tuple[date, ...], *, lookbacks: tuple[int, ...]) -> pd.Da
     )
 
 
-@pytest.mark.parametrize("lookbacks", [(50, 120), (120, 250), (50, 120, 250), (10, 75)])
+@pytest.mark.parametrize("lookbacks", [(20, 50), (120, 250), (50, 120, 250), (10, 75)])
 def test_complete_injected_horizons_skip_read_and_calculation(
     lookbacks: tuple[int, ...],
     monkeypatch: pytest.MonkeyPatch,
@@ -149,6 +149,12 @@ def test_real_fallback_is_persistable_and_stored_snapshot_is_reused(
         result.loc[:, RPS_DATA_COLUMNS],
         restored.loc[:, RPS_DATA_COLUMNS],
         check_dtype=False,
+    )
+    subset = data.load_or_calculate_rps(
+        (sessions[-1],), lookbacks=(20, 50), universe_path=universe_path, rps_root=root
+    )
+    pd.testing.assert_frame_equal(
+        subset[["rps20", "rps50"]], restored[["rps20", "rps50"]]
     )
 
 

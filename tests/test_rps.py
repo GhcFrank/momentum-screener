@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import exchange_calendars as xcals  # type: ignore[import-untyped]
@@ -218,22 +218,27 @@ def test_snapshot_calculates_independent_rps120_and_rps250(
         universe_path=universe_path,
     )
 
-    assert RPS_LOOKBACKS == (50, 120, 250)
+    assert RPS_LOOKBACKS == (20, 50, 120, 250)
     assert list(snapshot.columns) == [
         "ticker",
         "as_of_date",
+        "rps20",
         "rps50",
         "rps120",
         "rps250",
+        "return_20",
         "return_50",
         "return_120",
         "return_250",
+        "rps20_base_date",
         "rps50_base_date",
         "rps120_base_date",
         "rps250_base_date",
     ]
 
     resolved = resolve_rps_session_dates(AS_OF_DATE)
+    assert resolved.base_dates[20] == _base_date(20)
+    assert resolved.base_dates[20] != AS_OF_DATE - timedelta(days=20)
     assert snapshot["as_of_date"].eq(AS_OF_DATE).all()
     for lookback, base_date in resolved.base_dates.items():
         assert snapshot[f"rps{lookback}_base_date"].eq(base_date).all()

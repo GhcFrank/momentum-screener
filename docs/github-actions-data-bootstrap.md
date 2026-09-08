@@ -28,10 +28,10 @@ price dataset 中把 OHLC 转成 adjusted OHLC。后续技术分析可以在 fea
 计算 adjusted OHLC。
 
 full backfill 与 daily incremental update 共用相同的 Yahoo downloader、normalizer 和
-OHLC validation。on-demand RPS engine 的默认 horizons 是 50、120、250 个 XNYS 交易
-session；lookback 不是自然日。RPS50/RPS120/RPS250 都只读取 `adj_close`，其公式不因 v2
+OHLC validation。on-demand RPS engine 的默认 horizons 是 20、50、120、250 个 XNYS 交易
+session；lookback 不是自然日。RPS20/RPS50/RPS120/RPS250 都只读取 `adj_close`，其公式不因 v2
 增加 OHLC 而改变。生产 daily email 使用月线反转 6.2 的最终 `signal=True` 结果；它不再
-发送 RPS120/RPS250 threshold list，但三个 RPS horizon 仍会每天计算并持久化。
+发送 RPS120/RPS250 threshold list，但四个 RPS horizon 仍会每天计算并持久化。
 
 ## 当前迁移场景
 
@@ -124,18 +124,20 @@ Bootstrap 成功后：
 
 ## 每日工作流
 
-workflow 先验证 Universe 及两个远端数据集，恢复 price update inputs 和独立的 RPS
-history，然后按以下生产顺序运行：
+workflow 先验证 Universe，恢复 price update inputs、RPS history 和独立的 MarketCap
+history；尚未初始化的 MarketCap Release 允许从空数据集开始。随后按以下顺序运行：
 
 1. 增量更新并验证本地 `daily_prices_v2`；
-2. 对最新完整 session 一次计算全 Universe 的 RPS50/RPS120/RPS250；
-3. 以 `(date, ticker)` 幂等写入本地 RPS 年度分区；
-4. 把同一个当日 snapshot 注入月线反转 6.2，并优先读取已持久化的前 14 个 session；
-5. 只选择 `signal=True`，渲染并发送一次邮件；
-6. 发布 price update（若有变化）并复核 `marketData`；
-7. 发布 RPS 年度分区并最后上传 RPS manifest，再复核 `rpsData`。
+2. 抓取 MarketCap 并按最新成功 price session 保存 snapshot，显式记录缺失；
+3. 对最新完整 session 一次计算全 Universe 的 RPS20/RPS50/RPS120/RPS250；
+4. 以 `(date, ticker)` 幂等写入本地 RPS 年度分区；
+5. 把同一个当日 snapshot 注入现有双策略，并优先读取已持久化的前 14 个 session；
+6. 只选择各策略的 `signal=True`，渲染并发送一次邮件；
+7. 发布 price update（若有变化）并复核 `marketData`；
+8. 发布 MarketCap 年度分区，再上传并复核 `market-cap-manifest.json`；
+9. 发布 RPS 年度分区并最后上传 RPS manifest，再复核 `rpsData`。
 
-任何 price update、RPS calculation/persistence 或 monthly reversal 失败都会中止后续
+任何 price update、MarketCap refresh、RPS calculation/persistence 或策略失败都会中止后续
 正常邮件/发布步骤。`signal_count=0` 是成功结果，仍发送明确的空结果邮件。price 数据集
 身份不匹配时不会下载旧分区、访问 Yahoo 或上传资产。
 
@@ -150,7 +152,7 @@ manifest 后，以 `local_update_success=true` 报告本地状态。单独执行
 
 生产入口 `momentum_screener.daily_screening_notification` 从已验证的
 `data/processed/prices/manifest.json` 读取 `latest_session`。公共 `strategy_data`
-一次准备最近 15 个 session 的 RPS50/120/250：优先读取现有存储，仅批量计算缺失
+一次准备最近 15 个 session 的 RPS20/50/120/250：优先读取现有存储，仅批量计算缺失
 session，当天 RPS 持久化一次。Monthly Reversal 与顺向火车2复用该批 RPS，
 不会分别重新计算当天全市场快照。
 
@@ -198,7 +200,7 @@ uv run python -m momentum_screener.daily_screening_notification
 uv run python -m momentum_screener.daily_screening_notification --dry-run
 ```
 
-也可显式指定有效 XNYS session；计算仍使用完整 Universe 的三个 RPS horizon：
+也可显式指定有效 XNYS session；计算仍使用完整 Universe 的四个 RPS horizon：
 
 ```bash
 uv run python -m momentum_screener.daily_screening_notification \
@@ -223,17 +225,17 @@ data/processed/rps/
         year=2026/rps.parquet
 ```
 
-schema version 为 `rps_v1`。每个 `(date, ticker)` 唯一行按 `date,ticker` 稳定排序，列为：
+schema version 为 `rps_v2`。每个 `(date, ticker)` 唯一行按 `date,ticker` 稳定排序，列为：
 
 ```text
 date, ticker,
-rps50, rps120, rps250,
-return_50, return_120, return_250,
-rps50_base_date, rps120_base_date, rps250_base_date
+rps20, rps50, rps120, rps250,
+return_20, return_50, return_120, return_250,
+rps20_base_date, rps50_base_date, rps120_base_date, rps250_base_date
 ```
 
 manifest 记录 `schema_version/latest_session/actual_min_date`、Universe SHA-256 与 ticker
-count、`lookbacks=[50,120,250]`、`price_field=adj_close`、逐年 row count、文件 size 和
+count、`lookbacks=[20,50,120,250]`、`price_field=adj_close`、逐年 row count、文件 size 和
 SHA-256。daily upsert 只重写当前年份分区；重复运行同一个 session 会替换该日完整
 Universe，不会追加重复键。
 
@@ -300,7 +302,7 @@ uv run python -m momentum_screener.rps_release_storage pull \
 uv run python -m momentum_screener.daily_screening_notification --dry-run
 ```
 
-这些远端命令都必须由维护者显式运行；代码实现不会创建 Release，也不会自动覆盖首次
+这些 RPS 远端命令都必须由维护者显式运行；RPS tooling 不会创建 Release，也不会自动覆盖首次
 production dataset。`rpsData` 未完成 bootstrap 前不要启用新版 workflow，否则远端
 RPS check 会按 fail-closed 语义失败。
 
@@ -349,3 +351,43 @@ uv run python -m momentum_screener.release_storage pull \
 Repository 解析优先级为 `--repository`、`GITHUB_REPOSITORY`、
 `MOMENTUM_SCREENER_REPOSITORY`、只读解析 `.git/config`。认证优先使用
 `GITHUB_TOKEN`，其次使用 `GH_TOKEN`；token 不会写入报告或日志。
+
+### Existing rps_v1: one-time migration before enabling daily jobs
+
+以下命令由维护者手动执行，需要完整本地 price history（迁移前校验分区 size/hash）。迁移只计算新增 horizon，
+保留旧 50/120/250 的每一行和数值，并返回原始文件 archive 路径；重复 migrate 是 no-op。
+`rpsData` 仍为 v1 时 daily check 明确报 migration required，不会在 runner 中重算历史。
+在隔离目录迁移后先检查 dry-run，再由维护者决定发布（这些命令不会由开发过程自动执行）：
+
+```bash
+uv run python -m momentum_screener.release_storage pull --repository GhcFrank/momentum-screener --release-tag marketData
+uv run python -m momentum_screener.rps_release_storage pull --repository GhcFrank/momentum-screener --release-tag rpsData --allow-legacy --rps-root data/processed/rps-migration
+uv run python -m momentum_screener.rps_storage migrate --rps-root data/processed/rps-migration --prices-root data/processed/prices
+uv run python -m momentum_screener.rps_release_storage publish --repository GhcFrank/momentum-screener --release-tag rpsData --rps-root data/processed/rps-migration --allow-migration --dry-run
+# Review first. The following command writes the migrated dataset to the Release:
+uv run python -m momentum_screener.rps_release_storage publish --repository GhcFrank/momentum-screener --release-tag rpsData --rps-root data/processed/rps-migration --allow-migration
+uv run python -m momentum_screener.rps_release_storage pull --repository GhcFrank/momentum-screener --release-tag rpsData
+```
+
+### Daily MarketCap observations
+
+`market_cap_v1` 是独立的 point-in-time daily market-cap snapshot，位于
+`data/processed/market_cap/daily/year=YYYY/market_cap.parquet`，列为 `date,ticker,market_cap`。
+日期来自有效价格 manifest 的最新已结算 session；`observed_at` 记录实际抓取时间，
+不声称是精确收盘市值，也不允许用今天的市值回填陈旧历史。
+仅保留现有 Universe tickers；missing 不填零、不前向填充，计数逐日保留在 manifest，
+本次 missing 清单写入 `missing_tickers.csv`。
+
+```bash
+uv run python -m momentum_screener.market_cap_release_storage check --repository GhcFrank/momentum-screener
+uv run python -m momentum_screener.market_cap_release_storage pull --repository GhcFrank/momentum-screener --allow-bootstrap
+uv run python -m momentum_screener.market_cap_storage refresh
+uv run python -m momentum_screener.market_cap_release_storage publish --repository GhcFrank/momentum-screener --allow-bootstrap --dry-run
+```
+
+独立 tag `marketCapData`，年度资产 `market-cap-year-YYYY.parquet`，最后上传
+`market-cap-manifest.json`。确认仓库可访问且 tag 确实 404 时才允许首次初始化；权限、网络、
+损坏数据均报错；已有年度资产但缺失 manifest 时停止，须先恢复 manifest。
+`publish --allow-bootstrap` 的实际执行会创建缺失的 Release。
+Daily 顺序：恢复 price/RPS/MarketCap → 更新并验收 price → MarketCap refresh →
+增量 RPS 和现有通知 → 发布 price → 发布 MarketCap → 发布 RPS。

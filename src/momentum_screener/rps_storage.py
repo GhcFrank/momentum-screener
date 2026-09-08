@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import logging
 import tempfile
@@ -33,13 +34,17 @@ from momentum_screener.rps import (
     RPS_CALENDAR_NAME,
     RPS_LOOKBACKS,
     RPS_PRICE_FIELD,
+    _normalize_lookbacks,
     calculate_rps_snapshot,
 )
 from momentum_screener.storage_manifest import (
     PRICE_SCHEMA,
+    ManifestError,
     calculate_sha256,
     remove_owned_tree,
     replace_files_transactionally,
+    resolve_local_asset_path,
+    validate_asset_size_and_hash,
     write_json_atomically,
 )
 from momentum_screener.storage_manifest import (
@@ -49,37 +54,41 @@ from momentum_screener.universe import normalize_ticker
 
 LOGGER = logging.getLogger(__name__)
 
-RPS_SCHEMA_VERSION: Final[str] = "rps_v1"
+RPS_SCHEMA_VERSION: Final[str] = "rps_v2"
+LEGACY_RPS_LOOKBACKS: Final[tuple[int, ...]] = (50, 120, 250)
 DEFAULT_RPS_ROOT: Final[Path] = Path("data/processed/rps")
 RPS_MANIFEST_NAME: Final[str] = "manifest.json"
-RPS_DATA_COLUMNS: Final[tuple[str, ...]] = (
-    "date",
-    "ticker",
-    "rps50",
-    "rps120",
-    "rps250",
-    "return_50",
-    "return_120",
-    "return_250",
-    "rps50_base_date",
-    "rps120_base_date",
-    "rps250_base_date",
-)
-RPS_SCHEMA: Final[pa.Schema] = pa.schema(
-    [
-        pa.field("date", pa.date32(), nullable=False),
-        pa.field("ticker", pa.string(), nullable=False),
-        pa.field("rps50", pa.float64(), nullable=False),
-        pa.field("rps120", pa.float64(), nullable=False),
-        pa.field("rps250", pa.float64(), nullable=False),
-        pa.field("return_50", pa.float64(), nullable=True),
-        pa.field("return_120", pa.float64(), nullable=True),
-        pa.field("return_250", pa.float64(), nullable=True),
-        pa.field("rps50_base_date", pa.date32(), nullable=False),
-        pa.field("rps120_base_date", pa.date32(), nullable=False),
-        pa.field("rps250_base_date", pa.date32(), nullable=False),
-    ]
-)
+
+
+def rps_columns(lookbacks: Sequence[int] = RPS_LOOKBACKS) -> tuple[str, ...]:
+    horizons = _normalize_lookbacks(lookbacks)
+    return (
+        "date",
+        "ticker",
+        *(f"rps{n}" for n in horizons),
+        *(f"return_{n}" for n in horizons),
+        *(f"rps{n}_base_date" for n in horizons),
+    )
+
+
+def rps_schema(lookbacks: Sequence[int] = RPS_LOOKBACKS) -> pa.Schema:
+    horizons = _normalize_lookbacks(lookbacks)
+    return pa.schema(
+        [
+            pa.field("date", pa.date32(), nullable=False),
+            pa.field("ticker", pa.string(), nullable=False),
+            *(pa.field(f"rps{n}", pa.float64(), nullable=False) for n in horizons),
+            *(pa.field(f"return_{n}", pa.float64(), nullable=True) for n in horizons),
+            *(
+                pa.field(f"rps{n}_base_date", pa.date32(), nullable=False)
+                for n in horizons
+            ),
+        ]
+    )
+
+
+RPS_DATA_COLUMNS: Final[tuple[str, ...]] = rps_columns()
+RPS_SCHEMA: Final[pa.Schema] = rps_schema()
 
 
 class RpsStorageError(RuntimeError):
@@ -107,22 +116,25 @@ def _normalize_date_series(values: pd.Series, *, name: str) -> pd.Series:
     return normalized.dt.date
 
 
-def normalize_rps_rows(rows: pd.DataFrame) -> pd.DataFrame:
+def normalize_rps_rows(
+    rows: pd.DataFrame, *, lookbacks: Sequence[int] = RPS_LOOKBACKS
+) -> pd.DataFrame:
     """Normalize either an on-demand snapshot or persisted-shape RPS rows."""
 
+    columns = rps_columns(lookbacks)
     source = rows.reset_index(drop=True)
     date_column = "as_of_date" if "as_of_date" in source else "date"
-    required = {date_column, *RPS_DATA_COLUMNS[1:]}
+    required = {date_column, *columns[1:]}
     missing = sorted(required.difference(source.columns))
     if missing:
         raise RpsStorageError(f"RPS rows are missing columns: {missing}")
-    result = source.loc[:, [date_column, *RPS_DATA_COLUMNS[1:]]].copy()
+    result = source.loc[:, [date_column, *columns[1:]]].copy()
     result = result.rename(columns={date_column: "date"})
     result["date"] = _normalize_date_series(result["date"], name="date")
     result["ticker"] = result["ticker"].astype("string")
     if bool(result["ticker"].isna().any()) or bool(result["ticker"].eq("").any()):
         raise RpsStorageError("RPS ticker must be a non-empty string")
-    for column in ("rps50", "rps120", "rps250"):
+    for column in (f"rps{n}" for n in lookbacks):
         result[column] = pd.to_numeric(result[column], errors="coerce").astype(
             "float64"
         )
@@ -133,22 +145,18 @@ def normalize_rps_rows(rows: pd.DataFrame) -> pd.DataFrame:
             raise RpsStorageError(
                 f"{column} must be finite INVALID_RPS or within 0..100"
             )
-    for column in ("return_50", "return_120", "return_250"):
+    for column in (f"return_{n}" for n in lookbacks):
         result[column] = pd.to_numeric(result[column], errors="coerce").astype(
             "float64"
         )
         if not bool((result[column].isna() | np.isfinite(result[column])).all()):
             raise RpsStorageError(f"{column} must be finite or null")
-    for column in (
-        "rps50_base_date",
-        "rps120_base_date",
-        "rps250_base_date",
-    ):
+    for column in (f"rps{n}_base_date" for n in lookbacks):
         result[column] = _normalize_date_series(result[column], name=column)
     result = result.sort_values(["date", "ticker"], kind="mergesort", ignore_index=True)
     if bool(result.duplicated(["date", "ticker"]).any()):
         raise RpsStorageError("RPS rows contain duplicate date/ticker keys")
-    return result.loc[:, RPS_DATA_COLUMNS]
+    return result.loc[:, columns]
 
 
 def _write_rps_parquet(path: Path, rows: pd.DataFrame) -> None:
@@ -159,7 +167,9 @@ def _write_rps_parquet(path: Path, rows: pd.DataFrame) -> None:
     validate_rps_partition(path, expected_year=int(normalized.iloc[0]["date"].year))
 
 
-def validate_rps_partition(path: Path, *, expected_year: int) -> int:
+def validate_rps_partition(
+    path: Path, *, expected_year: int, lookbacks: Sequence[int] = RPS_LOOKBACKS
+) -> int:
     """Validate schema, values, ordering, key uniqueness, and partition year."""
 
     if not path.is_file():
@@ -168,17 +178,17 @@ def validate_rps_partition(path: Path, *, expected_year: int) -> int:
         table = pq.read_table(path)
     except (OSError, pa.ArrowException) as exc:
         raise RpsStorageError(f"Unable to read RPS partition {path}: {exc}") from exc
-    if not table.schema.equals(RPS_SCHEMA, check_metadata=False):
+    if not table.schema.equals(rps_schema(lookbacks), check_metadata=False):
         raise RpsStorageError(f"RPS partition has unexpected schema: {path}")
     if table.num_rows == 0:
         raise RpsStorageError(f"RPS partition cannot be empty: {path}")
     years = {int(value) for value in pc.unique(pc.year(table["date"])).to_pylist()}
     if years != {expected_year}:
         raise RpsStorageError(f"RPS partition {path} contains years {sorted(years)}")
-    normalized = normalize_rps_rows(table.to_pandas())
-    original = table.to_pandas().loc[:, RPS_DATA_COLUMNS]
+    normalized = normalize_rps_rows(table.to_pandas(), lookbacks=lookbacks)
+    original = table.to_pandas().loc[:, rps_columns(lookbacks)]
     original["ticker"] = original["ticker"].astype("string")
-    for column in ("date", "rps50_base_date", "rps120_base_date", "rps250_base_date"):
+    for column in ("date", *(f"rps{n}_base_date" for n in lookbacks)):
         original[column] = original[column].map(
             lambda value: value.date() if isinstance(value, pd.Timestamp) else value
         )
@@ -196,15 +206,24 @@ def _asset_record(path: Path, year: int) -> dict[str, str | int]:
     }
 
 
-def validate_rps_manifest(payload: object) -> dict[str, Any]:
+def validate_rps_manifest(
+    payload: object, *, allow_legacy: bool = False
+) -> dict[str, Any]:
     """Validate the identity and partition index for the RPS dataset."""
 
     if not isinstance(payload, Mapping):
         raise RpsStorageError("RPS manifest must be a JSON object")
     manifest = dict(payload)
+    legacy = manifest.get("schema_version") == "rps_v1"
+    if legacy and not allow_legacy:
+        raise RpsStorageError(
+            "RPS migration required: rps_v1 lacks RPS20. Pull with --allow-legacy, "
+            "run python -m momentum_screener.rps_storage migrate, then publish "
+            "with --allow-migration. Daily jobs never migrate history."
+        )
     expected = {
-        "schema_version": RPS_SCHEMA_VERSION,
-        "lookbacks": list(RPS_LOOKBACKS),
+        "schema_version": "rps_v1" if legacy else RPS_SCHEMA_VERSION,
+        "lookbacks": list(LEGACY_RPS_LOOKBACKS if legacy else RPS_LOOKBACKS),
         "price_field": RPS_PRICE_FIELD,
     }
     for key, expected_value in expected.items():
@@ -291,7 +310,9 @@ def validate_rps_manifest(payload: object) -> dict[str, Any]:
     return manifest
 
 
-def load_rps_manifest(root: Path = DEFAULT_RPS_ROOT) -> dict[str, Any]:
+def load_rps_manifest(
+    root: Path = DEFAULT_RPS_ROOT, *, allow_legacy: bool = False
+) -> dict[str, Any]:
     """Load and validate the local RPS manifest."""
 
     path = root / RPS_MANIFEST_NAME
@@ -301,17 +322,18 @@ def load_rps_manifest(root: Path = DEFAULT_RPS_ROOT) -> dict[str, Any]:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise RpsStorageError(f"Unable to parse RPS manifest {path}: {exc}") from exc
-    return validate_rps_manifest(payload)
+    return validate_rps_manifest(payload, allow_legacy=allow_legacy)
 
 
 def validate_rps_dataset(
     root: Path = DEFAULT_RPS_ROOT,
     *,
     universe_path: Path = DEFAULT_UNIVERSE,
+    allow_legacy: bool = False,
 ) -> dict[str, Any]:
     """Fully validate every local RPS partition against its manifest."""
 
-    manifest = load_rps_manifest(root)
+    manifest = load_rps_manifest(root, allow_legacy=allow_legacy)
     universe = load_universe(universe_path)
     if manifest["universe_sha256"] != universe_sha256(universe):
         raise RpsStorageError("RPS manifest Universe hash does not match")
@@ -328,7 +350,9 @@ def validate_rps_dataset(
             raise RpsStorageError(f"RPS asset size mismatch for {year}")
         if calculate_sha256(path) != asset["sha256"]:
             raise RpsStorageError(f"RPS asset hash mismatch for {year}")
-        count = validate_rps_partition(path, expected_year=int(year))
+        count = validate_rps_partition(
+            path, expected_year=int(year), lookbacks=manifest["lookbacks"]
+        )
         if count != expected_count:
             raise RpsStorageError(f"RPS partition row count mismatch for {year}")
         rows = pq.read_table(path, columns=["date", "ticker"]).to_pandas()
@@ -490,10 +514,11 @@ def read_rps_history(
     start_date: date | str | None = None,
     end_date: date | str | None = None,
     root: Path = DEFAULT_RPS_ROOT,
+    allow_legacy: bool = False,
 ) -> pd.DataFrame:
     """Read RPS history without exposing its physical yearly layout."""
 
-    manifest = load_rps_manifest(root)
+    manifest = load_rps_manifest(root, allow_legacy=allow_legacy)
     start = _coerce_optional_date(start_date)
     end = _coerce_optional_date(end_date)
     if start is not None and end is not None and start > end:
@@ -508,14 +533,16 @@ def read_rps_history(
     frames: list[pd.DataFrame] = []
     for year in sorted(years):
         path = _partition_path(root, year)
-        validate_rps_partition(path, expected_year=year)
+        validate_rps_partition(
+            path, expected_year=year, lookbacks=manifest["lookbacks"]
+        )
         frame = pq.read_table(path).to_pandas()
         frame["date"] = frame["date"].map(
             lambda value: value.date() if isinstance(value, pd.Timestamp) else value
         )
         frames.append(frame)
     if not frames:
-        return pd.DataFrame(columns=RPS_DATA_COLUMNS)
+        return pd.DataFrame(columns=rps_columns(manifest["lookbacks"]))
     result = pd.concat(frames, ignore_index=True)
     if start is not None:
         result = result.loc[result["date"].ge(start)]
@@ -523,7 +550,9 @@ def read_rps_history(
         result = result.loc[result["date"].le(end)]
     if selected_tickers is not None:
         result = result.loc[result["ticker"].isin(selected_tickers)]
-    return normalize_rps_rows(result).reset_index(drop=True)
+    return normalize_rps_rows(result, lookbacks=manifest["lookbacks"]).reset_index(
+        drop=True
+    )
 
 
 def read_rps_snapshot(
@@ -578,9 +607,11 @@ def calculate_rps_history(
     universe: tuple[str, ...],
     start_date: date,
     end_date: date,
+    lookbacks: Sequence[int] = RPS_LOOKBACKS,
 ) -> pd.DataFrame:
     """Vectorize historical RPS while preserving on-demand ranking semantics."""
 
+    lookbacks = _normalize_lookbacks(lookbacks)
     required = {"date", "ticker", RPS_PRICE_FIELD}
     missing = sorted(required.difference(price_rows.columns))
     if missing:
@@ -598,7 +629,7 @@ def calculate_rps_history(
     session_dates = pd.Index([value.date() for value in sessions], name="date")
     panel = prices.pivot(index="date", columns="ticker", values=RPS_PRICE_FIELD)
     panel = panel.reindex(index=session_dates, columns=universe).astype("float64")
-    metrics = _wide_rps_metrics(panel)
+    metrics = _wide_rps_metrics(panel, lookbacks=lookbacks)
     output_dates = tuple(
         value for value in session_dates if start_date <= value <= end_date
     )
@@ -607,13 +638,16 @@ def calculate_rps_history(
         universe=universe,
         metrics=metrics,
         calendar=calendar,
+        lookbacks=lookbacks,
     )
 
 
-def _wide_rps_metrics(panel: pd.DataFrame) -> dict[str, pd.DataFrame]:
+def _wide_rps_metrics(
+    panel: pd.DataFrame, *, lookbacks: Sequence[int] = RPS_LOOKBACKS
+) -> dict[str, pd.DataFrame]:
     metrics: dict[str, pd.DataFrame] = {}
     current_valid = panel.notna() & np.isfinite(panel) & panel.gt(0)
-    for lookback in RPS_LOOKBACKS:
+    for lookback in lookbacks:
         base = panel.shift(lookback)
         valid = current_valid & base.notna() & np.isfinite(base) & base.gt(0)
         with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
@@ -639,6 +673,7 @@ def _history_frame_from_wide(
     universe: tuple[str, ...],
     metrics: Mapping[str, pd.DataFrame],
     calendar: Any,
+    lookbacks: Sequence[int] = RPS_LOOKBACKS,
 ) -> pd.DataFrame:
     dates = tuple(output_dates)
     count = len(universe)
@@ -648,15 +683,15 @@ def _history_frame_from_wide(
             "ticker": np.tile(np.asarray(universe, dtype="object"), len(dates)),
         }
     )
-    for lookback in RPS_LOOKBACKS:
+    for lookback in lookbacks:
         result[f"rps{lookback}"] = (
             metrics[f"rps{lookback}"].loc[list(dates)].to_numpy().ravel()
         )
-    for lookback in RPS_LOOKBACKS:
+    for lookback in lookbacks:
         result[f"return_{lookback}"] = (
             metrics[f"return_{lookback}"].loc[list(dates)].to_numpy().ravel()
         )
-    for lookback in RPS_LOOKBACKS:
+    for lookback in lookbacks:
         base_dates: list[date] = []
         for session_date in dates:
             index = int(calendar.sessions.get_loc(pd.Timestamp(session_date)))
@@ -668,7 +703,7 @@ def _history_frame_from_wide(
         result[f"rps{lookback}_base_date"] = np.repeat(
             np.asarray(base_dates, dtype="object"), count
         )
-    return normalize_rps_rows(result)
+    return normalize_rps_rows(result, lookbacks=lookbacks)
 
 
 def _read_slim_price_history(
@@ -778,6 +813,119 @@ def backfill_rps_history(
     }
 
 
+def rps_manifest_fingerprint(manifest: Mapping[str, Any]) -> str:
+    return hashlib.sha256(
+        json.dumps(dict(manifest), sort_keys=True).encode()
+    ).hexdigest()
+
+
+def migrate_rps_history(
+    *,
+    prices_root: Path = DEFAULT_PRICES_ROOT,
+    root: Path = DEFAULT_RPS_ROOT,
+    universe_path: Path = DEFAULT_UNIVERSE,
+) -> dict[str, Any]:
+    """One-time local v1 migration: preserve old metrics and compute missing ones.
+
+    Keep the original manifest/partitions in an archive returned to the caller.
+    Re-running on v2 validates and does no writes. No network or publication.
+    """
+
+    previous = validate_rps_dataset(
+        root, universe_path=universe_path, allow_legacy=True
+    )
+    if previous["schema_version"] == RPS_SCHEMA_VERSION:
+        return {
+            "success": True,
+            "status": "already_current",
+            "schema_version": RPS_SCHEMA_VERSION,
+        }
+    prices = load_price_manifest(prices_root / "manifest.json")
+    universe = load_universe(universe_path)
+    if prices["universe_sha256"] != universe_sha256(universe):
+        raise RpsStorageError("Migration price Universe differs from RPS Universe")
+    if (
+        prices["latest_session"] < previous["latest_session"]
+        or prices["requested_start"] > previous["actual_min_date"]
+    ):
+        raise RpsStorageError(
+            "Migration requires complete local price history covering the old RPS dataset"
+        )
+    old = read_rps_history(root=root, allow_legacy=True)
+    missing = tuple(n for n in RPS_LOOKBACKS if n not in previous["lookbacks"])
+    # A runner may have only rolling update inputs despite a full-history manifest.
+    # Require each source partition to match the committed price dataset exactly.
+    for year in range(
+        int(prices["actual_min_date"][:4]), int(previous["latest_session"][:4]) + 1
+    ):
+        asset = prices["assets"].get(str(year))
+        if asset is None:
+            raise RpsStorageError(f"Migration requires price asset metadata for {year}")
+        try:
+            validate_asset_size_and_hash(
+                resolve_local_asset_path(prices_root, asset["local_path"]), asset
+            )
+        except ManifestError as exc:
+            raise RpsStorageError(
+                f"Migration requires complete committed price history: {exc}"
+            ) from exc
+    price_rows = _read_slim_price_history(
+        prices_root=prices_root,
+        start_year=int(prices["actual_min_date"][:4]),
+        end_year=int(previous["latest_session"][:4]),
+    )
+    added = calculate_rps_history(
+        price_rows,
+        universe=universe,
+        start_date=date.fromisoformat(previous["actual_min_date"]),
+        end_date=date.fromisoformat(previous["latest_session"]),
+        lookbacks=missing,
+    )
+    merged = old.merge(added, on=["date", "ticker"], how="left", validate="one_to_one")
+    merged = normalize_rps_rows(merged)
+    # This is also a guard against accidentally recalculating the old horizons.
+    if not merged.loc[:, rps_columns(previous["lookbacks"])].equals(old):
+        raise RpsStorageError("Migration would change existing RPS history")
+    with tempfile.TemporaryDirectory(prefix=".rps-migrate-", dir=root.parent) as temp:
+        staging = Path(temp)
+        partitions = {}
+        for year, rows in merged.groupby(merged["date"].map(lambda value: value.year)):
+            path = _partition_path(staging, int(year))
+            _write_rps_parquet(path, rows)
+            partitions[int(year)] = (path, len(rows))
+        manifest = _manifest_for_partitions(
+            universe=universe, partitions=partitions, previous=previous
+        )
+        manifest["migration"] = {
+            "from_schema": previous["schema_version"],
+            "source_manifest_sha256": rps_manifest_fingerprint(previous),
+            "preserved_lookbacks": previous["lookbacks"],
+        }
+        write_json_atomically(staging / RPS_MANIFEST_NAME, manifest)
+        validate_rps_dataset(staging, universe_path=universe_path)
+        archive = root.parent / f".rps-v1-archive-{uuid.uuid4().hex}"
+        replace_files_transactionally(
+            root,
+            staging,
+            [
+                *(str(asset["local_path"]) for asset in manifest["assets"].values()),
+                RPS_MANIFEST_NAME,
+            ],
+            backup_root=archive,
+            validate_after=lambda: validate_rps_dataset(
+                root, universe_path=universe_path
+            ),
+        )
+    return {
+        "success": True,
+        "status": "migrated",
+        "schema_version": RPS_SCHEMA_VERSION,
+        "rows_preserved": len(old),
+        "added_lookbacks": list(missing),
+        "archive": str(archive),
+    }
+
+
 def update_daily_rps(
     *,
     as_of_date: date | None = None,
@@ -785,7 +933,7 @@ def update_daily_rps(
     root: Path = DEFAULT_RPS_ROOT,
     universe_path: Path = DEFAULT_UNIVERSE,
 ) -> dict[str, Any]:
-    """Calculate the default 50/120/250 snapshot once and persist it."""
+    """Calculate the default configured-horizon snapshot once and persist it."""
 
     if as_of_date is None:
         manifest = load_price_manifest(prices_root / "manifest.json")
@@ -819,10 +967,13 @@ def _build_argument_parser() -> argparse.ArgumentParser:
     backfill = subparsers.add_parser("backfill", help="vectorize complete RPS history")
     backfill.add_argument("--start", type=_parse_date, default=DEFAULT_BACKFILL_START)
     backfill.add_argument("--end", type=_parse_date)
+    migration = subparsers.add_parser(
+        "migrate", help="preserve v1 history and add missing horizons from local prices"
+    )
     subparsers.add_parser("validate", help="validate all persisted RPS assets")
-    for command in (update, backfill):
+    for command in (update, backfill, migration):
         command.add_argument("--prices-root", type=Path, default=DEFAULT_PRICES_ROOT)
-    for command in (update, backfill, subparsers.choices["validate"]):
+    for command in (update, backfill, migration, subparsers.choices["validate"]):
         command.add_argument("--rps-root", type=Path, default=DEFAULT_RPS_ROOT)
         command.add_argument("--universe", type=Path, default=DEFAULT_UNIVERSE)
         command.add_argument("--result-json", type=Path)
@@ -850,6 +1001,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = backfill_rps_history(
                 start_date=args.start,
                 end_date=args.end,
+                prices_root=args.prices_root,
+                root=args.rps_root,
+                universe_path=args.universe,
+            )
+        elif args.command == "migrate":
+            result = migrate_rps_history(
                 prices_root=args.prices_root,
                 root=args.rps_root,
                 universe_path=args.universe,
