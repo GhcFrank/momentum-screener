@@ -15,6 +15,7 @@ from pathlib import Path
 HOST = "127.0.0.1"
 PORT = 8000
 URL = f"http://{HOST}:{PORT}"
+DEFAULT_SIGNAL_PATH = "/home/gooder/momentum-screener-research/"
 
 
 def render_app() -> None:
@@ -23,12 +24,17 @@ def render_app() -> None:
     import pyarrow as pa
     import streamlit as st
 
+    from momentum_screener.rps_storage import RpsStorageError
     from momentum_screener.signal_ui_data import (
         LocalFile,
+        build_ticker_rps_table,
         clip_price_window,
         combine_signals,
         discover_signal_csvs,
+        filter_tickers_by_strategies,
+        load_rps_for_session,
         local_price_files,
+        local_rps_files,
         read_local_prices,
         read_signal_csv,
     )
@@ -41,8 +47,11 @@ def render_app() -> None:
     # file timestamps. Widget reruns keep the loaded signal frame in the session.
     cached_csv = st.cache_data(read_signal_csv, show_spinner=False, max_entries=32)
     cached_prices = st.cache_data(read_local_prices, show_spinner=False, max_entries=64)
+    cached_rps = st.cache_data(load_rps_for_session, show_spinner=False, max_entries=32)
 
     with st.sidebar:
+        if "signal_paths_input" not in st.session_state:
+            st.session_state["signal_paths_input"] = DEFAULT_SIGNAL_PATH
         paths_text = st.text_area(
             "Signal CSV files or folders",
             key="signal_paths_input",
@@ -83,8 +92,14 @@ def render_app() -> None:
             st.session_state["signals"] = combined
             st.session_state["signal_files"] = metadata
             st.session_state["load_reports"] = reports
-            # Reset dependent choices when a new collection is loaded.
-            for key in ("signal_date", "strategy", "ticker"):
+            # Reset date/row selection on reload; preserve only strategies that
+            # still exist in the new collection, including an empty selection.
+            st.session_state["selected_strategies"] = [
+                item
+                for item in st.session_state.get("selected_strategies", [])
+                if item in set(combined["strategy_id"])
+            ]
+            for key in ("signal_date", "ticker_table_context"):
                 st.session_state.pop(key, None)
         for level, message in st.session_state.get("load_reports", []):
             getattr(st, level)(message)
@@ -96,37 +111,86 @@ def render_app() -> None:
 
     first_date = signals["session"].min().date()
     last_date = signals["session"].max().date()
-    date_column, strategy_column, ticker_column = st.columns(3)
-    with date_column:
-        signal_date = st.date_input(
-            "Signal Date",
-            value=last_date,
-            min_value=first_date,
-            max_value=last_date,
-            key="signal_date",
+    signal_date = st.date_input(
+        "Signal Date",
+        value=last_date,
+        min_value=first_date,
+        max_value=last_date,
+        key="signal_date",
+    )
+    selected_strategies = st.pills(
+        "Strategies",
+        sorted(signals["strategy_id"].unique()),
+        selection_mode="multi",
+        key="selected_strategies",
+    )
+    tickers = filter_tickers_by_strategies(signals, signal_date, selected_strategies)
+    table_context = (signal_date, tuple(sorted(selected_strategies)), tuple(tickers))
+    if st.session_state.get("ticker_table_context") != table_context:
+        # Dataframe selection state is read-only. A new widget key discards old
+        # row positions when date, strategies, results, or loaded CSVs change.
+        st.session_state["ticker_table_context"] = table_context
+        st.session_state["ticker_table_revision"] = (
+            st.session_state.get("ticker_table_revision", 0) + 1
         )
-    with strategy_column:
-        strategy = st.selectbox(
-            "Strategy", sorted(signals["strategy_id"].unique()), key="strategy"
-        )
-    day = signals.loc[signals["session"].eq(pd.Timestamp(signal_date))]
-    if day.empty:
+    if not selected_strategies:
+        st.info("Select at least one strategy.")
+        return
+    if not signals["session"].eq(pd.Timestamp(signal_date)).any():
         st.info("No signals for this date.")
         return
-    matches = day.loc[day["strategy_id"].eq(strategy)]
-    if matches.empty:
-        st.info("No signals for this strategy on this date.")
+    if not tickers:
+        st.info(f"No matching signals for the selected strategies on {signal_date}.")
         return
-    tickers = sorted(matches["ticker"].unique())
-    if st.session_state.get("ticker") not in tickers:
-        st.session_state.pop("ticker", None)
-    with ticker_column:
-        ticker = st.selectbox("Ticker", tickers, key="ticker")
-    st.caption(f"{len(tickers)} ticker(s) for this date and strategy")
+
+    try:
+        snapshot = cached_rps(signal_date, local_rps_files(signal_date))
+        if snapshot.empty:
+            st.caption(f"No local RPS snapshot for {signal_date}; showing N/A.")
+    except (
+        OSError,
+        ValueError,
+        RpsStorageError,
+        ManifestError,
+        pa.ArrowException,
+    ) as exc:
+        st.warning(f"Local RPS unavailable; showing N/A. {exc}")
+        snapshot = pd.DataFrame()
+    table = build_ticker_rps_table(tickers, snapshot)
+    st.caption(f"{len(table)} matching tickers")
+    selection = st.dataframe(
+        table,
+        hide_index=True,
+        width="stretch",
+        placeholder="N/A",
+        column_config={
+            name: st.column_config.NumberColumn(name, format="%.1f")
+            for name in ("RPS50", "RPS120", "RPS250")
+        },
+        on_select="rerun",
+        selection_mode="single-row",
+        key=f"ticker_results:{st.session_state['ticker_table_revision']}",
+    )
+    rows = selection.selection.rows
+    if not rows or not 0 <= rows[0] < len(table):
+        st.info("Select a ticker row to view its price chart.")
+        return
+    # Streamlit returns original integer row positions even after client sorting.
+    ticker = table.iloc[rows[0]]["Ticker"]
+    strategy = " + ".join(selected_strategies)
     st.text(f"Ticker: {ticker}    Signal Date: {signal_date}    Strategy: {strategy}")
-    version = matches.loc[matches["ticker"].eq(ticker), "strategy_version"].iloc[0]
-    if pd.notna(version):
-        st.caption(f"Strategy Version: {version}")
+    details = signals.loc[
+        signals["session"].eq(pd.Timestamp(signal_date))
+        & signals["ticker"].eq(ticker)
+        & signals["strategy_id"].isin(selected_strategies)
+    ]
+    versions = [
+        f"{row.strategy_id}: {row.strategy_version}"
+        for row in details.itertuples()
+        if pd.notna(row.strategy_version)
+    ]
+    if versions:
+        st.caption("Strategy Versions: " + " · ".join(versions))
 
     try:
         with st.spinner("Reading local price data…"):

@@ -9,12 +9,18 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
+from momentum_screener import signal_ui_data
+from momentum_screener.rps_storage import RpsStorageError, persist_rps_snapshot
 from momentum_screener.signal_ui_data import (
     LocalFile,
+    build_ticker_rps_table,
     clip_price_window,
     combine_signals,
     discover_signal_csvs,
+    filter_tickers_by_strategies,
+    load_rps_for_session,
     local_price_files,
+    local_rps_files,
     maximum_price_window,
     read_local_prices,
     read_signal_csv,
@@ -189,6 +195,120 @@ def test_merge_diagnostics_duplicates_and_reload_identity(tmp_path):
         read_signal_csv(original)
     reloaded, _ = read_signal_csv(updated)
     assert reloaded.loc[0, "ticker"] == "META"
+
+
+@pytest.mark.parametrize(
+    ("selected", "expected"),
+    [
+        (["A"], ["META", "NVDA"]),
+        (["A", "B"], ["NVDA"]),
+        (["A", "D"], []),
+        (["A", "B", "C"], ["NVDA"]),
+        ([], []),
+        (["A", "missing"], []),
+    ],
+)
+def test_filter_tickers_by_strategy_intersection(selected, expected):
+    rows = [
+        ("A", "NVDA"),
+        ("A", "META"),
+        ("A", "META"),
+        ("B", "NVDA"),
+        ("B", "APP"),
+        ("C", "NVDA"),
+        ("C", "MSFT"),
+        ("D", "APP"),
+    ]
+    signals = pd.DataFrame(rows, columns=["strategy_id", "ticker"])
+    signals["session"] = pd.Timestamp("2026-06-15")
+    signals.loc[len(signals)] = ["A", "APP", pd.Timestamp("2026-06-16")]
+
+    assert (
+        filter_tickers_by_strategies(signals, date(2026, 6, 15), selected) == expected
+    )
+    assert filter_tickers_by_strategies(signals, date(2026, 6, 14), selected) == []
+
+
+def test_ticker_rps_table_joins_snapshot_and_retains_missing_values():
+    snapshot = pd.DataFrame(
+        {
+            "ticker": ["NVDA", "META"],
+            "rps50": [90.0, 88.0],
+            "rps120": [95.0, 92.0],
+            "rps250": [97.0, 94.0],
+        }
+    )
+    table = build_ticker_rps_table(["NVDA", "META", "NVDA"], snapshot)
+    assert table.to_dict("list") == {
+        "Ticker": ["META", "NVDA"],
+        "RPS50": [88.0, 90.0],
+        "RPS120": [92.0, 95.0],
+        "RPS250": [94.0, 97.0],
+    }
+
+    snapshot.loc[0, "rps50"] = -1  # Storage's INVALID_RPS sentinel is not a score.
+    snapshot.loc[1, "rps120"] = float("nan")
+    missing = build_ticker_rps_table(
+        ["NVDA", "META", "UNKNOWN"], snapshot.drop(columns="rps250")
+    ).set_index("Ticker")
+    assert missing.index.tolist() == ["META", "NVDA", "UNKNOWN"]
+    assert pd.isna(missing.loc["NVDA", "RPS50"])
+    assert missing.loc["NVDA", "RPS120"] == 95.0
+    assert missing.loc["META", "RPS50"] == 88.0
+    assert pd.isna(missing.loc["META", "RPS120"])
+    assert missing["RPS250"].isna().all()
+    assert missing.loc["UNKNOWN"].isna().all()
+    empty = build_ticker_rps_table(["NVDA"], pd.DataFrame())
+    assert empty["Ticker"].tolist() == ["NVDA"]
+    assert empty.drop(columns="Ticker").isna().all().all()
+
+
+def test_load_local_rps_snapshot_once_and_refresh_after_replacement(
+    tmp_path, monkeypatch
+):
+    session = date(2026, 6, 15)
+    root = tmp_path / "rps"
+    universe = tmp_path / "universe.csv"
+    universe.write_text("ticker\nNVDA\nMETA\n")
+    snapshot = pd.DataFrame(
+        {
+            "ticker": ["NVDA", "META"],
+            "as_of_date": session,
+            "rps50": [90.0, 88.0],
+            "rps120": [95.0, 92.0],
+            "rps250": [97.0, 94.0],
+            **{f"return_{days}": 0.1 for days in (50, 120, 250)},
+            **{f"rps{days}_base_date": date(2025, 1, 2) for days in (50, 120, 250)},
+        }
+    )
+    persist_rps_snapshot(snapshot, root=root, universe_path=universe)
+    files = local_rps_files(session, root)
+    original_reader = signal_ui_data.read_rps_snapshot
+    calls = []
+
+    def read_snapshot(as_of_date, *, root):
+        calls.append(as_of_date)
+        return original_reader(as_of_date, root=root)
+
+    monkeypatch.setattr(signal_ui_data, "read_rps_snapshot", read_snapshot)
+    restored = load_rps_for_session(session, files, root)
+    assert calls == [session]
+    assert build_ticker_rps_table(["NVDA", "META"], restored)["RPS50"].tolist() == [
+        88.0,
+        90.0,
+    ]
+    assert load_rps_for_session(date(2026, 6, 16), files, root).empty
+
+    snapshot.loc[0, "rps50"] = 99.0
+    persist_rps_snapshot(snapshot, root=root, universe_path=universe)
+    updated = local_rps_files(session, root)
+    assert updated != files
+    with pytest.raises(RpsStorageError, match="changed while loading"):
+        load_rps_for_session(session, files, root)
+    refreshed = load_rps_for_session(session, updated, root)
+    assert build_ticker_rps_table(["NVDA"], refreshed).loc[0, "RPS50"] == 99.0
+    with pytest.raises(FileNotFoundError):
+        local_rps_files(session, tmp_path / "missing")
 
 
 def test_price_window_clipping_and_calendar_offsets():

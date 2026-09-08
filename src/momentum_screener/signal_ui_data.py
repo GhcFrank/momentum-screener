@@ -18,6 +18,13 @@ import pandas as pd
 import pyarrow.parquet as pq
 
 from momentum_screener.prices import DEFAULT_OUTPUT_ROOT
+from momentum_screener.rps_storage import (
+    DEFAULT_RPS_ROOT,
+    RPS_MANIFEST_NAME,
+    RpsStorageError,
+    load_rps_manifest,
+    read_rps_snapshot,
+)
 from momentum_screener.storage_manifest import load_manifest, resolve_local_asset_path
 
 SIGNAL_KEY = ["session", "strategy_id", "ticker"]
@@ -196,6 +203,81 @@ def combine_signals(frames: list[pd.DataFrame]) -> tuple[pd.DataFrame, list[str]
     return combined.drop_duplicates(SIGNAL_KEY, keep="first").reset_index(
         drop=True
     ), warnings
+
+
+def filter_tickers_by_strategies(
+    signals: pd.DataFrame, session: date, selected_strategies: Sequence[str]
+) -> list[str]:
+    """Return sorted unique tickers present in EVERY selected strategy that day.
+
+    An empty selection or a strategy with no rows that day yields no matches.
+    Duplicate rows within one strategy cannot substitute for another strategy.
+    """
+
+    selected = set(selected_strategies)
+    if not selected or signals.empty:
+        return []
+    rows = signals.loc[
+        signals["session"].eq(pd.Timestamp(session))
+        & signals["strategy_id"].isin(selected)
+    ]
+    counts = rows.groupby("ticker")["strategy_id"].nunique()
+    return sorted(counts.index[counts.eq(len(selected))].tolist())
+
+
+def local_rps_files(
+    session: date, root: Path = DEFAULT_RPS_ROOT
+) -> tuple[LocalFile, ...]:
+    """Fingerprint the manifest and session's asset without duplicating its layout."""
+
+    files = [LocalFile.inspect(root / RPS_MANIFEST_NAME)]
+    manifest = load_rps_manifest(root)
+    asset = manifest["assets"].get(str(session.year))
+    if asset is not None:
+        files.append(
+            LocalFile.inspect(resolve_local_asset_path(root, asset["local_path"]))
+        )
+    return tuple(files)
+
+
+def load_rps_for_session(
+    session: date, files: tuple[LocalFile, ...], root: Path = DEFAULT_RPS_ROOT
+) -> pd.DataFrame:
+    """Read one complete local snapshot for caching, never calculate missing RPS.
+
+    Include local_rps_files() in the cache key so edits and atomic replacements
+    invalidate it. Storage errors propagate to the UI, which keeps tickers and
+    displays missing RPS; an absent session already returns an empty snapshot.
+    """
+
+    if any(LocalFile.inspect(source.path) != source for source in files):
+        raise RpsStorageError("Local RPS changed while loading; retry the selection.")
+    snapshot = read_rps_snapshot(session, root=root)
+    if any(LocalFile.inspect(source.path) != source for source in files):
+        raise RpsStorageError("Local RPS changed while loading; retry the selection.")
+    return snapshot
+
+
+def build_ticker_rps_table(
+    tickers: Sequence[str], snapshot: pd.DataFrame
+) -> pd.DataFrame:
+    """Join one session's RPS onto unique tickers, retaining every missing value.
+
+    Read only snapshot values, never strategy CSV diagnostics. INVALID_RPS (-1),
+    missing fields/rows, and nonfinite or out-of-range scores become NaN.
+    """
+
+    columns = ["rps50", "rps120", "rps250"]
+    source = snapshot.reindex(columns=["ticker", *columns]).set_index("ticker")
+    if source.index.has_duplicates:
+        raise ValueError("RPS snapshot contains duplicate tickers.")
+    table = source.reindex(pd.Index(sorted(set(tickers)), name="ticker"))
+    for column in columns:
+        values = pd.to_numeric(table[column], errors="coerce").astype("float64")
+        table[column] = values.where(values.between(0, 100))
+    return table.reset_index().rename(
+        columns={"ticker": "Ticker", **{column: column.upper() for column in columns}}
+    )
 
 
 def maximum_price_window(signal_date: date) -> tuple[date, date]:

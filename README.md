@@ -10,7 +10,9 @@ uv run python -m momentum_screener.signal_ui
 
 浏览器自动打开 <http://127.0.0.1:8000>；终端保持运行，`Ctrl+C` 停止。
 Each line can be either a CSV file path or a directory path. A directory loads all CSV files directly inside that directory; subdirectories are not scanned.
-点击 **Load Signals**，然后选择日期、strategy 和 ticker。
+默认 signal folder 为 `/home/gooder/momentum-screener-research/`，可自由修改。
+点击 **Load Signals**，选择日期及一个或多个 strategy；多选时显示 ticker 严格交集。
+结果表显示本地 RPS storage 的 RPS50/RPS120/RPS250（缺失为 `N/A`，不自动重算），点击股票行查看价格图。
 CSV 需要 `session`（或 `date`）及 `ticker`；缺少 `strategy_id` 时使用文件名。
 图表显示本地 Adjusted Close，默认视窗为信号日前 3 个月至后 1 个月，
 可缩放范围为前 2 年至后 1 年，并裁剪到可用价格边界。
