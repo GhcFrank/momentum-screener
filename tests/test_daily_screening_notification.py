@@ -87,16 +87,18 @@ def smtp_environment() -> dict[str, str]:
 # Per-strategy empty rendering is covered above. Orchestration needs a normal
 # send, an all-empty send, and a dry run, not every render state in both modes.
 @pytest.mark.parametrize(
-    ("dry_run", "empty_strategy"),
+    ("dry_run", "empty_strategy", "prepare_only"),
     [
-        pytest.param(False, "neither", id="live-matches"),
-        pytest.param(False, "both", id="live-zero-signals"),
-        pytest.param(True, "neither", id="dry-run"),
+        pytest.param(False, "neither", False, id="live-matches"),
+        pytest.param(False, "both", False, id="live-zero-signals"),
+        pytest.param(True, "neither", False, id="dry-run"),
+        pytest.param(False, "neither", True, id="prepare-before-publication"),
     ],
 )
 def test_orchestration_shares_rps_once_persists_once_and_sends_once(
     dry_run: bool,
     empty_strategy: str,
+    prepare_only: bool,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -158,7 +160,7 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
     monkeypatch.setattr(notification, "screen_monthly_reversal", screen_monthly)
     monkeypatch.setattr(notification, "screen_trend_reacceleration", screen_trend)
     monkeypatch.setattr(notification, "send_rps_email", send)
-    if dry_run:
+    if dry_run or prepare_only:
 
         def no_config(*args: object, **kwargs: object) -> None:
             raise AssertionError("dry run must not load SMTP configuration")
@@ -172,11 +174,13 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
         environ={} if dry_run else smtp_environment(),
         dry_run=dry_run,
         preview_stream=preview,
+        prepared_email_path=tmp_path / "prepared.json" if prepare_only else None,
     )
     assert events == (
         ["prepare", "monthly", "trend"]
         if dry_run
-        else ["prepare", "persist", "monthly", "trend", "send"]
+        else ["prepare", "persist", "monthly", "trend"]
+        + ([] if prepare_only else ["send"])
     )
     assert result.rps_row_count == 2
     assert result.rps_rows_persisted == (0 if dry_run else 2)
@@ -185,6 +189,12 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
     assert result.as_dict()["trend_candidate_tickers"] == trend["ticker"].tolist()
     if dry_run:
         assert "顺向火车2" in preview.getvalue()
+    if prepare_only:
+        import json
+
+        payload = json.loads((tmp_path / "prepared.json").read_text())
+        assert payload["result"] == result.as_dict()
+        assert "顺向火车2" in payload["email"]["text_body"]
 
 
 def test_persistence_failure_prevents_both_screens_and_email(

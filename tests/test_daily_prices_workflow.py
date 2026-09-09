@@ -27,23 +27,43 @@ def test_daily_workflow_preserves_critical_data_and_publication_order(
             if module == "prices" and "--dry-run" in script:
                 continue
             operations.append((module, command))
-    assert operations == [
-        ("universe", "validate"),
-        ("release_storage", "check"),
-        ("release_storage", "pull-update-inputs"),
-        ("rps_release_storage", "check"),
-        ("rps_release_storage", "pull"),
-        ("market_cap_release_storage", "pull"),
-        ("prices", "update"),
-        ("release_storage", "incremental-acceptance"),
-        ("market_cap_storage", "refresh"),
-        ("daily_screening_notification", ""),
-        ("release_storage", "publish-update"),
-        ("release_storage", "check"),
-        ("market_cap_release_storage", "publish"),
-        ("rps_release_storage", "publish"),
-        ("rps_release_storage", "check"),
-    ]
+
+    def position(module, command):
+        return operations.index((module, command))
+
+    # Protect the dependency order, not an exact snapshot of every workflow step.
+    assert position("daily_update", "preflight") < position(
+        "release_storage", "pull-update-inputs"
+    )
+    assert position("daily_update", "prices") < position(
+        "release_storage", "incremental-acceptance"
+    )
+    assert position("market_cap_storage", "refresh") < position(
+        "daily_screening_notification", ""
+    )
+    assert position("daily_screening_notification", "") < position(
+        "release_storage", "publish-update"
+    )
+    notify = position("daily_update", "notify")
+    assert position("release_storage", "publish-update") < notify
+    assert position("market_cap_release_storage", "publish") < notify
+    assert position("rps_release_storage", "publish") < notify
+    assert (
+        max(
+            i
+            for i, item in enumerate(operations)
+            if item == ("rps_release_storage", "check")
+        )
+        < notify
+    )
+    triggers = workflow.get("on", workflow.get(True))
+    from momentum_screener.daily_update import SCHEDULES
+
+    assert {entry["cron"] for entry in triggers["schedule"]} == set(SCHEDULES)
+    assert all(
+        entry["timezone"] == "America/New_York" for entry in triggers["schedule"]
+    )
+    assert "workflow_dispatch" in triggers
 
 
 def test_daily_workflow_uses_release_storage_and_stops_notifications_on_failure(
@@ -63,9 +83,24 @@ def test_daily_workflow_uses_release_storage_and_stops_notifications_on_failure(
     notification = next(
         step
         for step in steps
-        if "momentum_screener.daily_screening_notification" in step.get("run", "")
+        if "momentum_screener.daily_update notify" in step.get("run", "")
     )
-    assert notification.get("if", "success()") in {"success()", "${{ success() }}"}
+    assert "success()" in notification["if"]
+    assert "steps.refresh.outputs.ready == 'true'" in notification["if"]
+    start = next(
+        i
+        for i, step in enumerate(steps)
+        if "Validate incremental update acceptance" == step["name"]
+    )
+    end = steps.index(notification)
+    for step in steps[start : end + 1]:
+        assert "steps.refresh.outputs.ready == 'true'" in step["if"]
+        assert "steps.preflight.outputs.action == 'run'" in step["if"]
+    final = next(
+        step for step in steps if "daily_update final-failure" in step.get("run", "")
+    )
+    assert "github.event_name == 'schedule'" in final["if"]
+    assert "github.event.schedule == '30 5 * * 2-6'" in final["if"]
     assert notification.get("continue-on-error", False) is False
     assert job.get("continue-on-error", False) is False
 
@@ -75,7 +110,7 @@ def test_daily_workflow_wires_release_and_email_credentials(workflow: dict) -> N
     notification = next(
         step
         for step in job["steps"]
-        if "momentum_screener.daily_screening_notification" in step.get("run", "")
+        if "momentum_screener.daily_update notify" in step.get("run", "")
     )
     environment = {**job.get("env", {}), **notification.get("env", {})}
     assert environment["GITHUB_TOKEN"] == "${{ secrets.GITHUB_TOKEN }}"

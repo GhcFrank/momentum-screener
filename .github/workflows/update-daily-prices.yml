@@ -2,7 +2,13 @@ name: Update daily prices
 
 on:
   schedule:
-    - cron: "17 18 * * 1-5"
+    - cron: "30 18 * * 1-5"
+      timezone: "America/New_York"
+    - cron: "30 21 * * 1-5"
+      timezone: "America/New_York"
+    - cron: "30 0 * * 2-6"
+      timezone: "America/New_York"
+    - cron: "30 5 * * 2-6"
       timezone: "America/New_York"
   workflow_dispatch:
 
@@ -12,6 +18,7 @@ concurrency:
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
   update-daily-prices:
@@ -42,10 +49,24 @@ jobs:
       - name: Install locked dependencies
         run: uv sync --locked
 
+      - name: Resolve attempt and skip completed session
+        id: preflight
+        env:
+          DAILY_SCHEDULE: ${{ github.event.schedule }}
+        run: >-
+          uv run python -m momentum_screener.daily_update preflight
+          --repository "${{ github.repository }}"
+          --release-tag "${RELEASE_TAG}"
+          --work-dir "$RUNNER_TEMP"
+
       - name: Validate local Universe
+        id: universe
+        if: success() && steps.preflight.outputs.action == 'run'
         run: uv run python -m momentum_screener.universe validate
 
       - name: Verify local and remote dataset identity
+        id: price_identity
+        if: success() && steps.preflight.outputs.action == 'run'
         run: >-
           uv run python -m momentum_screener.release_storage check
           --repository "${{ github.repository }}"
@@ -53,54 +74,31 @@ jobs:
           --result-json "$RUNNER_TEMP/dataset-check-before.json"
 
       - name: Restore update inputs from Release
+        id: price_restore
+        if: success() && steps.preflight.outputs.action == 'run'
         run: >-
           uv run python -m momentum_screener.release_storage pull-update-inputs
           --repository "${{ github.repository }}"
           --release-tag "${RELEASE_TAG}"
 
-      - name: Verify remote RPS dataset
-        run: >-
-          uv run python -m momentum_screener.rps_release_storage check
-          --repository "${{ github.repository }}"
-          --release-tag "${RPS_RELEASE_TAG}"
-          --result-json "$RUNNER_TEMP/rps-check-before.json"
-
-      - name: Restore RPS history from Release
-        run: >-
-          uv run python -m momentum_screener.rps_release_storage pull
-          --repository "${{ github.repository }}"
-          --release-tag "${RPS_RELEASE_TAG}"
-
-      - name: Restore MarketCap history or prepare first snapshot
-        run: >-
-          uv run python -m momentum_screener.market_cap_release_storage pull
-          --repository "${{ github.repository }}"
-          --release-tag "${MARKET_CAP_RELEASE_TAG}"
-          --allow-bootstrap
-          --result-json "$RUNNER_TEMP/market-cap-pull.json"
-
       - name: Plan daily refresh without Yahoo access
+        id: price_plan
+        if: success() && steps.preflight.outputs.action == 'run'
         run: >-
           uv run python -m momentum_screener.prices update --dry-run
+          --target-date "${{ steps.preflight.outputs.target_session }}"
           --result-json "$RUNNER_TEMP/price-update-plan.json"
 
       - name: Refresh daily prices
+        if: success() && steps.preflight.outputs.action == 'run'
         id: refresh
-        shell: bash
-        run: |
-          uv run python -m momentum_screener.prices update \
-            --result-json "$RUNNER_TEMP/price-update-result.json"
-          status="$(uv run python -c "import json, os; print(json.load(open(os.environ['RUNNER_TEMP'] + '/price-update-result.json'))['status'])")"
-          local_success="$(uv run python -c "import json, os; print(str(json.load(open(os.environ['RUNNER_TEMP'] + '/price-update-result.json'))['local_update_success']).lower())")"
-          echo "local_update_success=$local_success" >> "$GITHUB_OUTPUT"
-          if [[ "$status" == "updated" && "$local_success" == "true" ]]; then
-            echo "publish=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "publish=false" >> "$GITHUB_OUTPUT"
-          fi
+        run: >-
+          uv run python -m momentum_screener.daily_update prices
+          --work-dir "$RUNNER_TEMP"
 
       - name: Validate incremental update acceptance
-        if: steps.refresh.outputs.publish == 'true'
+        id: price_acceptance
+        if: success() && steps.preflight.outputs.action == 'run' && steps.refresh.outputs.ready == 'true' && steps.refresh.outputs.publish == 'true'
         run: >-
           uv run python -c
           "from pathlib import Path; from momentum_screener.release_storage import
@@ -108,25 +106,52 @@ jobs:
           root=Path('data/processed/prices');
           validate_local_incremental_update_acceptance(prices_root=root)"
 
+      - name: Verify remote RPS dataset
+        id: rps_identity
+        if: success() && steps.preflight.outputs.action == 'run' && steps.refresh.outputs.ready == 'true'
+        run: >-
+          uv run python -m momentum_screener.rps_release_storage check
+          --repository "${{ github.repository }}"
+          --release-tag "${RPS_RELEASE_TAG}"
+          --result-json "$RUNNER_TEMP/rps-check-before.json"
+
+      - name: Restore RPS history from Release
+        id: rps_restore
+        if: success() && steps.preflight.outputs.action == 'run' && steps.refresh.outputs.ready == 'true'
+        run: >-
+          uv run python -m momentum_screener.rps_release_storage pull
+          --repository "${{ github.repository }}"
+          --release-tag "${RPS_RELEASE_TAG}"
+
+      - name: Restore MarketCap history or prepare first snapshot
+        id: market_cap_restore
+        if: success() && steps.preflight.outputs.action == 'run' && steps.refresh.outputs.ready == 'true'
+        run: >-
+          uv run python -m momentum_screener.market_cap_release_storage pull
+          --repository "${{ github.repository }}"
+          --release-tag "${MARKET_CAP_RELEASE_TAG}"
+          --allow-bootstrap
+          --result-json "$RUNNER_TEMP/market-cap-pull.json"
+
       - name: Refresh MarketCap for the latest successful price session
+        id: market_cap_refresh
+        if: success() && steps.preflight.outputs.action == 'run' && steps.refresh.outputs.ready == 'true'
         run: >-
           uv run python -m momentum_screener.market_cap_storage refresh
           --result-json "$RUNNER_TEMP/market-cap-refresh.json"
 
-      - name: Persist RPS and email daily screening signals
-        env:
-          RPS_SMTP_HOST: smtp.gmail.com
-          RPS_SMTP_PORT: "587"
-          RPS_SMTP_USERNAME: ${{ secrets.GMAIL_USER }}
-          RPS_SMTP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-          RPS_EMAIL_FROM: ${{ secrets.GMAIL_USER }}
-          RPS_EMAIL_TO: ${{ secrets.EMAIL_TO }}
+      - name: Persist RPS and prepare daily screening signals
+        id: screening_prepare
+        if: success() && steps.preflight.outputs.action == 'run' && steps.refresh.outputs.ready == 'true'
         run: >-
           uv run python -m momentum_screener.daily_screening_notification
-          --result-json "$RUNNER_TEMP/daily-screening-notification.json"
+          --as-of-date "${{ steps.preflight.outputs.target_session }}"
+          --prepare-email "$RUNNER_TEMP/prepared-screening.json"
+          --result-json "$RUNNER_TEMP/daily-screening-prepared.json"
 
       - name: Publish update to Release
-        if: steps.refresh.outputs.publish == 'true'
+        id: price_publish
+        if: success() && steps.preflight.outputs.action == 'run' && steps.refresh.outputs.ready == 'true' && steps.refresh.outputs.publish == 'true'
         run: >-
           uv run python -m momentum_screener.release_storage publish-update
           --repository "${{ github.repository }}"
@@ -134,6 +159,8 @@ jobs:
           --result-json "$RUNNER_TEMP/release-publish-result.json"
 
       - name: Verify remote manifest after update
+        id: price_verify
+        if: success() && steps.preflight.outputs.action == 'run' && steps.refresh.outputs.ready == 'true'
         run: >-
           uv run python -m momentum_screener.release_storage check
           --repository "${{ github.repository }}"
@@ -141,6 +168,8 @@ jobs:
           --result-json "$RUNNER_TEMP/dataset-check-after.json"
 
       - name: Publish MarketCap history to Release
+        id: market_cap_publish
+        if: success() && steps.preflight.outputs.action == 'run' && steps.refresh.outputs.ready == 'true'
         run: >-
           uv run python -m momentum_screener.market_cap_release_storage publish
           --repository "${{ github.repository }}"
@@ -149,6 +178,8 @@ jobs:
           --result-json "$RUNNER_TEMP/market-cap-publish.json"
 
       - name: Publish RPS history to Release
+        id: rps_publish
+        if: success() && steps.preflight.outputs.action == 'run' && steps.refresh.outputs.ready == 'true'
         run: >-
           uv run python -m momentum_screener.rps_release_storage publish
           --repository "${{ github.repository }}"
@@ -156,55 +187,74 @@ jobs:
           --result-json "$RUNNER_TEMP/rps-publish-result.json"
 
       - name: Verify remote RPS manifest after update
+        id: rps_verify
+        if: success() && steps.preflight.outputs.action == 'run' && steps.refresh.outputs.ready == 'true'
         run: >-
           uv run python -m momentum_screener.rps_release_storage check
           --repository "${{ github.repository }}"
           --release-tag "${RPS_RELEASE_TAG}"
           --result-json "$RUNNER_TEMP/rps-check-after.json"
 
+      - name: Send screening and mark session complete
+        if: success() && steps.preflight.outputs.action == 'run' && steps.refresh.outputs.ready == 'true'
+        id: notify
+        env:
+          RPS_SMTP_HOST: smtp.gmail.com
+          RPS_SMTP_PORT: "587"
+          RPS_SMTP_USERNAME: ${{ secrets.GMAIL_USER }}
+          RPS_SMTP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          RPS_EMAIL_FROM: ${{ secrets.GMAIL_USER }}
+          RPS_EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: >-
+          uv run python -m momentum_screener.daily_update notify
+          --repository "${{ github.repository }}"
+          --release-tag "${RELEASE_TAG}"
+          --work-dir "$RUNNER_TEMP"
+
+      - name: Notify failure only on the final scheduled attempt
+        if: >-
+          always() && !cancelled() && github.event_name == 'schedule' &&
+          github.event.schedule == '30 5 * * 2-6' &&
+          steps.preflight.outputs.action != 'skip' &&
+          (failure() || steps.refresh.outputs.ready == 'false')
+        env:
+          DAILY_STEP_OUTCOMES: ${{ toJSON(steps) }}
+          RPS_SMTP_HOST: smtp.gmail.com
+          RPS_SMTP_PORT: "587"
+          RPS_SMTP_USERNAME: ${{ secrets.GMAIL_USER }}
+          RPS_SMTP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          RPS_EMAIL_FROM: ${{ secrets.GMAIL_USER }}
+          RPS_EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: >-
+          uv run python -m momentum_screener.daily_update final-failure
+          --repository "${{ github.repository }}"
+          --release-tag "${RELEASE_TAG}"
+          --work-dir "$RUNNER_TEMP"
+
       - name: Write job summary
         if: always()
         shell: bash
         run: |
-          {
-            echo "## Daily price update"
-            echo "- Local update success: ${{ steps.refresh.outputs.local_update_success || 'unknown' }}"
-            echo "- Publish requested: ${{ steps.refresh.outputs.publish || 'unknown' }}"
-            echo "- Release tag: ${RELEASE_TAG}"
-            echo "- RPS Release tag: ${RPS_RELEASE_TAG}"
-            echo "- MarketCap Release tag: ${MARKET_CAP_RELEASE_TAG}"
-            if [[ -f "$RUNNER_TEMP/market-cap-refresh.json" ]]; then
-              uv run python -c "import json, os; p=json.load(open(os.environ['RUNNER_TEMP'] + '/market-cap-refresh.json')); print(f\"- MarketCap snapshot date: {p['snapshot_date']}\"); print(f\"- MarketCap stored count: {p['stored_ticker_count']}\"); print(f\"- MarketCap missing count: {p['missing_ticker_count']}\")"
-            fi
-            if [[ -f "$RUNNER_TEMP/market-cap-publish.json" ]]; then
-              uv run python -c "import json, os; p=json.load(open(os.environ['RUNNER_TEMP'] + '/market-cap-publish.json')); print(f\"- MarketCap publish status: {p['publish_success']}\")"
-            else
-              echo "- MarketCap publish status: not_completed"
-            fi
-            if [[ -f "$RUNNER_TEMP/release-publish-result.json" ]]; then
-              uv run python -c "import json, os; p=json.load(open(os.environ['RUNNER_TEMP'] + '/release-publish-result.json')); print(f\"- Release publish success: {p['release_publish_success']}\")"
-            else
-              echo "- Release publish success: not_completed"
-            fi
-            if [[ -f "$RUNNER_TEMP/dataset-check-after.json" ]]; then
-              uv run python -c "import json, os; p=json.load(open(os.environ['RUNNER_TEMP'] + '/dataset-check-after.json')); print(f\"- Local Universe ticker count: {p['local_universe_ticker_count']}\"); print(f\"- Local Universe SHA-256: {p['local_universe_sha256']}\"); print(f\"- Expected requested start: {p['local_requested_start']}\"); print(f\"- Remote Universe SHA-256: {p['remote_universe_sha256']}\"); print(f\"- Remote requested start: {p['remote_requested_start']}\"); print(f\"- Remote latest session: {p['remote_latest_session']}\"); print(f\"- Dataset identity match: {p['dataset_identity_match']}\"); print(f\"- Workflow ready: {p['workflow_ready']}\")"
-            fi
-            if [[ -f "$RUNNER_TEMP/daily-screening-notification.json" ]]; then
-              uv run python -c "import json, os; p=json.load(open(os.environ['RUNNER_TEMP'] + '/daily-screening-notification.json')); print(f\"- RPS rows persisted: {p['rps_rows_persisted']}\"); print(f\"- Monthly Reversal FYX1 count: {p['fyx1_candidate_count']}\"); print(f\"- Monthly Reversal YXFZ count: {p['yxfz_count']}\"); print(f\"- Monthly Reversal signal count: {p['signal_count']}\"); print(f\"- Trend Re-acceleration signal count: {p['trend_signal_count']}\")"
-            else
-              echo "- Daily screening notification: not_completed"
-            fi
-            if [[ -f "$RUNNER_TEMP/rps-check-after.json" ]]; then
-              uv run python -c "import json, os; p=json.load(open(os.environ['RUNNER_TEMP'] + '/rps-check-after.json')); print(f\"- Remote RPS latest session: {p['latest_session']}\"); print(f\"- Remote RPS rows: {p['total_row_count']}\")"
-            fi
-            echo "- Data is persisted as Release assets; the source checkout is read-only."
-          } >> "$GITHUB_STEP_SUMMARY"
+          uv run python - <<'PYTHON' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          import os
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          print('## Daily update attempt')
+          for name in ('daily-attempt', 'daily-preflight-result', 'daily-prices-result',
+                       'daily-screening-prepared', 'release-publish-result',
+                       'market-cap-publish', 'rps-publish-result',
+                       'daily-notify-result', 'daily-final-failure-result'):
+              path = root / (name + '.json')
+              if path.is_file():
+                  print(f'### {name}\n```json\n{json.dumps(json.loads(path.read_text()), indent=2)}\n```')
+          PYTHON
 
       - name: Upload bounded diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: daily-price-update-diagnostics-${{ github.run_id }}
+          name: daily-price-update-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
           retention-days: 14
           if-no-files-found: ignore
           include-hidden-files: true
@@ -224,9 +274,8 @@ jobs:
             ${{ runner.temp }}/dataset-check-before.json
             ${{ runner.temp }}/dataset-check-after.json
             ${{ runner.temp }}/price-update-plan.json
-            ${{ runner.temp }}/price-update-result.json
+            ${{ runner.temp }}/daily-*.json
             ${{ runner.temp }}/release-publish-result.json
             ${{ runner.temp }}/rps-check-before.json
-            ${{ runner.temp }}/daily-screening-notification.json
             ${{ runner.temp }}/rps-publish-result.json
             ${{ runner.temp }}/rps-check-after.json

@@ -16,6 +16,7 @@ import pytest
 import momentum_screener.prices as prices_module
 import momentum_screener.release_storage as release_module
 import momentum_screener.storage_manifest as manifest_module
+from momentum_screener import daily_update
 from momentum_screener.prices import (
     COVERAGE_COLUMNS,
     DEFAULT_START,
@@ -1261,6 +1262,17 @@ def test_expected_active_uses_prior_ten_sessions_and_coverage_gate() -> None:
     )
     assert ratio == 0.5
     assert missing == ("BBB",)
+    # Equality at 97% is publishable; one fewer valid target bar is not.
+    universe = tuple(f"T{index}" for index in range(100))
+    target = pd.DataFrame({"date": date(2026, 1, 5), "ticker": universe[:97]})
+    ratio, _ = validate_target_coverage(
+        target, expected_active=universe, target_session=date(2026, 1, 5)
+    )
+    assert ratio == 0.97
+    with pytest.raises(PriceUpdateError, match="coverage"):
+        validate_target_coverage(
+            target.iloc[:-1], expected_active=universe, target_session=date(2026, 1, 5)
+        )
 
 
 def test_read_affected_partitions_reads_only_requested_years(
@@ -1414,18 +1426,20 @@ def test_run_update_writes_partitions_manifest_coverage_and_reports(
             dates=("2026-01-05",),
         )
 
-    result = run_update(
+    result = daily_update.run_price_attempt(
+        date(2026, 1, 5),
         universe_path=universe,
         prices_root=prices_root,
         refresh_calendar_days=10,
         batch_size=2,
         max_retries=0,
         pause_seconds=0,
-        target_date=date(2026, 1, 5),
         now=datetime(2026, 1, 5, 23, 0, tzinfo=UTC),
         download_func=fake_download,
         sleep_func=lambda _: None,
     )
+    assert result["ready"] is True
+    assert result["publish"] is True
     assert result["status"] == "updated"
     assert result["local_update_success"] is True
     assert result["changed_partition_years"] == [2025, 2026]
@@ -1475,6 +1489,20 @@ def test_run_update_writes_partitions_manifest_coverage_and_reports(
     assert {row["last_date"] for row in coverage} == {"2026-01-05"}
     assert replacement_order[-1] == "manifest.json"
     assert not (prices_root / "release_publish_plan.json").exists()
+
+    def forbidden_download(**kwargs):
+        raise AssertionError("A previously committed target must reuse local prices")
+
+    retry = daily_update.run_price_attempt(
+        date(2026, 1, 5),
+        universe_path=universe,
+        prices_root=prices_root,
+        now=datetime(2026, 1, 6, 5, 30, tzinfo=UTC),
+        download_func=forbidden_download,
+    )
+    assert retry["status"] == "no_op"
+    assert retry["ready"] is True
+    assert retry["publish"] is False
 
 
 def test_run_update_without_github_configuration_is_local_only(
@@ -1686,7 +1714,7 @@ def test_run_update_failure_keeps_existing_files(tmp_path: Path) -> None:
     def failing_download(**kwargs: object) -> pd.DataFrame:
         raise TimeoutError("offline")
 
-    with pytest.raises(PriceUpdateError, match="unresolved failures"):
+    with pytest.raises(PriceUpdateError, match="unresolved failures") as failure:
         run_update(
             universe_path=universe,
             prices_root=prices_root,
@@ -1698,6 +1726,7 @@ def test_run_update_failure_keeps_existing_files(tmp_path: Path) -> None:
             download_func=failing_download,
             sleep_func=lambda _: None,
         )
+    assert failure.value.report["status"] == "download_failure"
     assert (prices_root / "manifest.json").read_bytes() == before
     assert not (prices_root / "update_report.json").exists()
     diagnostic_reports = list(
@@ -1780,3 +1809,48 @@ def test_run_update_replacement_failure_rolls_back_every_formal_file(
     assert {path: path.read_bytes() for path in tracked} == before
     assert not (prices_root / "update_report.json").exists()
     assert not (prices_root / "update_missing_tickers.csv").exists()
+
+
+def test_provider_not_settled_preserves_canonical_files_and_missing_close_diagnostics(
+    tmp_path,
+):
+    universe, prices_root = write_incremental_fixture(tmp_path)
+    before = {
+        path: path.read_bytes() for path in prices_root.rglob("*") if path.is_file()
+    }
+
+    def incomplete_download(**kwargs):
+        frame = multi_frame(
+            {"AAA": (30.0, 29.0, 300), "BBB": (30.0, 29.0, 300)},
+            dates=("2026-01-02", "2026-01-05"),
+        )
+        frame.loc[pd.Timestamp("2026-01-05"), ("BBB", "Close")] = float("nan")
+        return frame
+
+    result = daily_update.run_price_attempt(
+        date(2026, 1, 5),
+        universe_path=universe,
+        prices_root=prices_root,
+        refresh_calendar_days=10,
+        max_retries=0,
+        pause_seconds=0,
+        now=datetime(2026, 1, 5, 23, 0, tzinfo=UTC),
+        download_func=incomplete_download,
+        sleep_func=lambda _: None,
+    )
+    assert result["status"] == "provider_not_settled"
+    assert result["download_status"] == "success"
+    assert result["unresolved_failure_count"] == 0
+    assert result["target_session_coverage_ratio"] == 0.5
+    assert result["minimum_target_coverage_ratio"] == 0.97
+    assert result["missing_ticker_count"] == 1
+    assert (
+        result["ready"] is result["publish"] is result["local_update_success"] is False
+    )
+    assert all(path.read_bytes() == contents for path, contents in before.items())
+    diagnostics = Path(result["diagnostics_path"])
+    assert (
+        json.loads((diagnostics / "update_report.json").read_text())["status"]
+        == "provider_not_settled"
+    )
+    assert "BBB" in (diagnostics / "update_missing_tickers.csv").read_text()

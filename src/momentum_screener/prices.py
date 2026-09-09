@@ -101,6 +101,14 @@ class BackfillIncompleteError(PriceBackfillError):
 class PriceUpdateError(PriceBackfillError):
     """Raised when a daily update cannot be validated or committed safely."""
 
+    def __init__(self, message: str, *, report: dict[str, Any] | None = None):
+        super().__init__(message)
+        self.report = report or {}
+
+
+class ProviderNotSettledError(PriceUpdateError):
+    """Requests completed, but canonical target bars have insufficient coverage."""
+
 
 @dataclass(frozen=True, slots=True)
 class ErrorSummary:
@@ -2966,25 +2974,31 @@ def run_update(
         ticker for ticker, status in execution.statuses.items() if status == "failed"
     )
     if unresolved:
+        report = {
+            "run_id": run_id,
+            "started_at_utc": update_started_at,
+            "finished_at_utc": _utc_now_iso(),
+            "target_session": target_session.isoformat(),
+            "refresh_start": refresh_start.isoformat(),
+            "expected_active_ticker_count": len(expected_active),
+            "minimum_target_coverage_ratio": minimum_coverage,
+            "unresolved_failure_count": len(unresolved),
+            "status": "download_failure",
+            "download_status": "failed",
+            "failure_reason": "unresolved_download_failure",
+            "local_update_success": False,
+            "success": False,
+        }
         diagnostic = _write_update_failure_diagnostics(
             prices_root,
             run_id=run_id,
-            report={
-                "run_id": run_id,
-                "started_at_utc": update_started_at,
-                "finished_at_utc": _utc_now_iso(),
-                "target_session": target_session.isoformat(),
-                "refresh_start": refresh_start.isoformat(),
-                "unresolved_failure_count": len(unresolved),
-                "failure_reason": "unresolved_download_failure",
-                "local_update_success": False,
-                "success": False,
-            },
+            report=report,
             execution=execution,
         )
         raise PriceUpdateError(
             f"Incremental download has {len(unresolved)} unresolved failures; "
-            f"first ticker: {unresolved[0]}; diagnostics: {diagnostic}"
+            f"first ticker: {unresolved[0]}; diagnostics: {diagnostic}",
+            report={**report, "diagnostics_path": str(diagnostic)},
         )
     merged = upsert_refresh_window(
         old_rows,
@@ -3009,30 +3023,34 @@ def run_update(
             minimum_ratio=minimum_coverage,
             allow_partial_session=True,
         )
+        report = {
+            "run_id": run_id,
+            "started_at_utc": update_started_at,
+            "finished_at_utc": _utc_now_iso(),
+            "target_session": target_session.isoformat(),
+            "refresh_start": refresh_start.isoformat(),
+            "expected_active_ticker_count": len(expected_active),
+            "target_session_coverage_ratio": coverage_ratio,
+            "minimum_target_coverage_ratio": minimum_coverage,
+            "missing_ticker_count": len(missing),
+            "unresolved_failure_count": 0,
+            "status": "provider_not_settled",
+            "download_status": "success",
+            "failure_reason": "insufficient_target_coverage",
+            "local_update_success": False,
+            "success": False,
+        }
         diagnostic = _write_update_failure_diagnostics(
             prices_root,
             run_id=run_id,
-            report={
-                "run_id": run_id,
-                "started_at_utc": update_started_at,
-                "finished_at_utc": _utc_now_iso(),
-                "target_session": target_session.isoformat(),
-                "refresh_start": refresh_start.isoformat(),
-                "expected_active_ticker_count": len(expected_active),
-                "target_session_coverage_ratio": coverage_ratio,
-                "minimum_target_coverage_ratio": minimum_coverage,
-                "missing_ticker_count": len(missing),
-                "unresolved_failure_count": 0,
-                "failure_reason": "insufficient_target_coverage",
-                "local_update_success": False,
-                "success": False,
-            },
+            report=report,
             execution=execution,
             missing=missing,
         )
-        raise PriceUpdateError(
+        raise ProviderNotSettledError(
             f"Target session {target_session} coverage {coverage_ratio:.4f} is below "
-            f"required {minimum_coverage:.4f}; diagnostics: {diagnostic}"
+            f"required {minimum_coverage:.4f}; diagnostics: {diagnostic}",
+            report={**report, "diagnostics_path": str(diagnostic)},
         ) from None
     existing_coverage = _load_coverage_rows(prices_root / "ticker_coverage.csv")
     coverage = update_ticker_coverage(
@@ -3149,6 +3167,11 @@ def run_update(
                 "status": "updated",
                 "local_update_success": True,
                 "coverage_ratio": coverage_ratio,
+                "target_session_coverage_ratio": coverage_ratio,
+                "minimum_target_coverage_ratio": minimum_coverage,
+                "expected_active_ticker_count": len(expected_active),
+                "unresolved_failure_count": 0,
+                "download_status": "success",
                 "missing_ticker_count": len(missing),
                 "downloaded_row_count": len(execution.rows),
                 "run_id": run_id,

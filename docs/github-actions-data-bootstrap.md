@@ -124,22 +124,60 @@ Bootstrap 成功后：
 
 ## 每日工作流
 
-workflow 先验证 Universe，恢复 price update inputs、RPS history 和独立的 MarketCap
-history；尚未初始化的 MarketCap Release 允许从空数据集开始。随后按以下顺序运行：
+自动尝试使用 `America/New_York` 时区：Mon–Fri **18:30、21:30**，Tue–Sat
+**00:30、05:30**；保留 `workflow_dispatch`。使用 GitHub 的 `timezone` 字段自动处理
+DST，不硬编码 UTC offset（[GitHub schedule 文档](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onschedule)）。
 
-1. 增量更新并验证本地 `daily_prices_v2`；
-2. 抓取 MarketCap 并按最新成功 price session 保存 snapshot，显式记录缺失；
-3. 对最新完整 session 一次计算全 Universe 的 RPS20/RPS50/RPS120/RPS250；
-4. 以 `(date, ticker)` 幂等写入本地 RPS 年度分区；
-5. 把同一个当日 snapshot 注入现有双策略，并优先读取已持久化的前 14 个 session；
-6. 只选择各策略的 `signal=True`，渲染并发送一次邮件；
-7. 发布 price update（若有变化）并复核 `marketData`；
-8. 发布 MarketCap 年度分区，再上传并复核 `market-cap-manifest.json`；
-9. 发布 RPS 年度分区并最后上传 RPS manifest，再复核 `rpsData`。
+`daily_update preflight` 先读取本次 workflow run 的 `created_at`，结合触发的 cron
+还原 nominal attempt time，再复用 `prices.determine_target_session` 的 XNYS calendar
+和实际收盘 + 90 分钟逻辑。凌晨尝试指向前一个已完成交易日，Saturday 指向 Friday；
+节假日、提前收盘、重跑和排队延迟不会简单使用 runner 的 `date.today()`。
+读取 run metadata 使用 `actions: read` 权限。
 
-任何 price update、MarketCap refresh、RPS calculation/persistence 或策略失败都会中止后续
-正常邮件/发布步骤。`signal_count=0` 是成功结果，仍发送明确的空结果邮件。price 数据集
-身份不匹配时不会下载旧分区、访问 Yahoo 或上传资产。
+preflight 在恢复数据前检查 `marketData` 中该 session 的完成凭据。已 complete 时，
+验证、恢复、Yahoo/MarketCap、RPS、signals、发布和正常邮件步骤全部跳过。手动触发同样
+默认 skip，没有新增 force mode。未完成时顺序为：
+
+1. 验证 Universe/数据身份，恢复 price update inputs；
+2. 增量更新并验收本地 `daily_prices_v2`；已经存在的 target prices 不重新访问 Yahoo，
+   但仍校验 target coverage；
+3. 仅 `ready=true` 时恢复 RPS/MarketCap，刷新并保存 MarketCap snapshot；
+4. 共享一次 RPS 准备、持久化和现有双策略计算，以 `--prepare-email` 保存邮件内容；
+5. 发布 price（有变化时）、MarketCap、RPS，并复核远端结果；
+6. 确认三个 dataset 都对应 target session 后，发送刚才准备的正常邮件，再标记 complete。
+
+所有下游 step 都显式要求 preflight `action=run`、price `ready=true` 和前置步骤成功。
+`signal_count=0` 仍是成功结果，发送明确的空结果邮件。strategy 公式及现有邮件内容不变。
+
+Yahoo 请求完成且 `unresolved_failure_count=0`，但 target coverage 未达到 **0.97** 时，
+price 层抛出带结构化报告的 `ProviderNotSettledError`，orchestration 转为
+`provider_not_settled`、`ready=false`。缺少 Close 的 bar 仍被 normalizer 排除，不填补
+任何价格，也不提交或发布不完整 canonical data。前三次 attempt 正常结束，只保存
+`.update_diagnostics/**`，不跑下游、不发正常或失败邮件；手动 run 同样不自动发最终失败邮件。
+真正的下载、校验、意外错误保留失败退出码和日志 traceback，不伪装成 provider 待完成。
+
+只有触发 cron 为 **05:30 Tue–Sat**、且 session 尚未 complete 时，最终失败步骤才复用
+现有 SMTP infrastructure 发一封 `Momentum Screener — Daily Update Failed — YYYY-MM-DD`。
+邮件包含 session、attempt time/final 标志、失败原因、实际/要求 coverage、expected active、
+missing 和 unresolved 数量。provider 未完成时明确说明本次未推进 canonical 数据、未生成
+RPS/signals；若失败发生在下游，则如实说明前面的发布或计算可能已成功。发信后该最终失败
+attempt 返回非零，便于 Actions 监控。每次 run/attempt 的 diagnostics artifact 独立命名。
+
+完成凭据是小型 Release asset `daily-screening-YYYY-MM-DD.json`，内容记录发布验收和
+screening 结果。发信前创建占位，SMTP 成功后通过原位 PATCH 把 asset metadata `label`
+设为 `complete`，避免删除/重传凭据产生空窗。失败邮件使用独立的
+`daily-failure-YYYY-MM-DD.json`，发送成功后的 label 为 `sent`。
+这些凭据不进入 price manifest/schema，不会被正常 publish 覆盖；旧的 Release check
+可能把它们列在 `obsolete_remote_assets` 中，但它们是需要保留的通知凭据。
+
+SMTP 与 Release 无法构成一个原子事务。若 SMTP 结果或发送后的 marker 更新无法确认，
+占位会保留，后续自动尝试明确失败并要求人工核对原 run/SMTP 结果，既不算 complete，也不
+自动重发。只有确认发送成功且所有发布验收已完成后，才可人工将对应 label 设为 complete；
+无法确认时保留占位。这个取舍保证自动正常邮件最多发送一次，不能同时承诺网络故障下必达。
+本地原有 notification 命令保持直接发送语义；session 去重由 daily workflow adapter 负责。
+旧 workflow 没有这类发送凭据，因此不能从价格 manifest 追认历史邮件已经发送。首次启用
+应从尚未处理的新 session 开始；若与旧流程在同一 session 交接，应先核实原 run 的完整
+成功结果并建立对应完成凭据，避免把缺少凭据的旧 session 再次作为未完成任务处理。
 
 `momentum_screener.prices update` 是纯本地命令，不解析 repository、不读取 GitHub token，
 也不构建 `release_publish_plan.json`。它成功提交 Parquet、coverage、update report 和
@@ -209,7 +247,8 @@ uv run python -m momentum_screener.daily_screening_notification \
 ```
 
 命令会记录 session、Universe/RPS rows、FYX1/YXFZ/signal、顺向火车2信号数量、脱敏收件人及发送
-结果；不会记录 SMTP password。非 dry-run 会在计算 RPS 前验证完整邮件配置；RPS
+结果；不会记录 SMTP password。默认非 dry-run 会在计算 RPS 前验证完整邮件配置；
+workflow 的 `--prepare-email PATH` 只持久化/准备，不加载 SMTP 配置，由发布后的发送阶段验证。RPS
 计算、持久化、策略、渲染或发送失败都会返回非零退出码。
 
 ## RPS history dataset
@@ -389,5 +428,5 @@ uv run python -m momentum_screener.market_cap_release_storage publish --reposito
 `market-cap-manifest.json`。确认仓库可访问且 tag 确实 404 时才允许首次初始化；权限、网络、
 损坏数据均报错；已有年度资产但缺失 manifest 时停止，须先恢复 manifest。
 `publish --allow-bootstrap` 的实际执行会创建缺失的 Release。
-Daily 顺序：恢复 price/RPS/MarketCap → 更新并验收 price → MarketCap refresh →
-增量 RPS 和现有通知 → 发布 price → 发布 MarketCap → 发布 RPS。
+Daily 顺序：completion preflight → 恢复并验收 price → 恢复 RPS/MarketCap → MarketCap refresh →
+共享 RPS/signals 并准备邮件 → 发布/复核 price、MarketCap、RPS → 发送邮件 → 标记 complete。

@@ -6,7 +6,7 @@ import argparse
 import logging
 import sys
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import date
 from html import escape
 from pathlib import Path
@@ -160,6 +160,7 @@ def run_daily_screening_notification(
     dry_run: bool = False,
     preview_stream: TextIO | None = None,
     trend_config: TrendReaccelerationConfig = DEFAULT_CONFIG,
+    prepared_email_path: Path | None = None,
 ) -> DailyScreeningNotificationResult:
     """Load/calculate shared RPS once, persist today's rows once, send one email.
 
@@ -168,7 +169,13 @@ def run_daily_screening_notification(
     dry_run renders without loading SMTP config, contacting SMTP or persisting.
     """
 
-    smtp_config = None if dry_run else SmtpEmailConfig.from_environment(environ)
+    if dry_run and prepared_email_path is not None:
+        raise ValueError("dry_run cannot prepare a persisted notification")
+    smtp_config = (
+        None
+        if dry_run or prepared_email_path is not None
+        else SmtpEmailConfig.from_environment(environ)
+    )
     session = coerce_session_date(
         get_latest_dataset_session(prices_root)
         if as_of_date is None
@@ -244,6 +251,15 @@ def run_daily_screening_notification(
             preview_stream.write(f"Subject: {rendered.subject}\n\n{rendered.text_body}")
         LOGGER.info("Daily screening dry run complete; no persistence or SMTP contact")
         return result
+    if prepared_email_path is not None:
+        # The daily workflow publishes and verifies all datasets before sending
+        # this exact rendering; no second RPS calculation or strategy execution.
+        write_json_atomically(
+            prepared_email_path,
+            {"result": result.as_dict(), "email": asdict(rendered)},
+        )
+        LOGGER.info("Daily screening prepared; SMTP deferred until publication")
+        return result
     if smtp_config is None:
         raise AssertionError("SMTP config must be available for a live send")
     recipient_summary = ", ".join(
@@ -279,6 +295,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--universe", type=Path, default=DEFAULT_UNIVERSE)
     parser.add_argument("--result-json", type=Path)
     parser.add_argument(
+        "--prepare-email",
+        type=Path,
+        help="persist RPS and save the rendered email without contacting SMTP",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="render without persistence or SMTP contact",
@@ -296,6 +317,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             universe_path=args.universe,
             dry_run=args.dry_run,
             preview_stream=sys.stdout if args.dry_run else None,
+            prepared_email_path=args.prepare_email,
         )
         if args.result_json is not None:
             write_json_atomically(args.result_json, result.as_dict())
