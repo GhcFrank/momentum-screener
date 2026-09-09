@@ -12,7 +12,7 @@ import os
 import re
 import tempfile
 import uuid
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Final
@@ -313,6 +313,43 @@ def read_strategy_signals(
     )
     _guard(root)
     return result
+
+
+def export_signal_csv(
+    destination: Path,
+    start_date: date | str,
+    end_date: date | str,
+    *,
+    strategies: Sequence[str] | None = None,
+    root: Path = DEFAULT_SIGNAL_ROOT,
+) -> int:
+    """Export committed signals with all diagnostics through one shared CSV path.
+
+    Replace only the explicitly named CSV atomically; no signals are fabricated
+    for complete/zero sessions. The Parquet coverage remains authoritative.
+    """
+    destination = Path(destination).expanduser()
+    if destination.suffix.lower() != ".csv":
+        raise SignalStoreError("Signal export destination must be a .csv file")
+    coverage = get_signal_calendar(start_date, end_date, root=root)
+    ids = (
+        tuple(dict.fromkeys(strategies))
+        if strategies is not None
+        else tuple(coverage["strategy_id"].unique())
+    )
+    frames = [
+        read_strategy_signals(value, start_date, end_date, root=root) for value in ids
+    ]
+    rows = pd.concat(frames, ignore_index=True, sort=False) if frames else _empty()
+    rows = rows.sort_values(["session", "strategy_id", "ticker"], ignore_index=True)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(
+        prefix=".signal-csv-", dir=destination.parent
+    ) as temp:
+        staged = Path(temp) / "signals.csv"
+        rows.to_csv(staged, index=False)
+        os.replace(staged, destination)
+    return len(rows)
 
 
 def get_signals_for_date(

@@ -12,7 +12,14 @@ from pathlib import Path
 
 import exchange_calendars as xcals  # type: ignore[import-untyped]
 import pandas as pd  # type: ignore[import-untyped]
+import pyarrow as pa
 
+from momentum_screener.market_cap_storage import (
+    DEFAULT_MARKET_CAP_ROOT,
+    MarketCapStorageError,
+    read_market_cap,
+    validate_market_cap_dataset,
+)
 from momentum_screener.prices import (
     DEFAULT_OUTPUT_ROOT,
     DEFAULT_UNIVERSE,
@@ -40,6 +47,59 @@ from momentum_screener.storage_manifest import load_manifest
 
 class StrategyDataError(RuntimeError):
     """A strategy date range cannot be queried safely."""
+
+
+def load_strategy_market_cap(
+    sessions: Iterable[date],
+    *,
+    root: Path = DEFAULT_MARKET_CAP_ROOT,
+    universe_path: Path = DEFAULT_UNIVERSE,
+) -> pd.DataFrame:
+    """Require observations for every target session; retain missing ticker rows.
+
+    No warmup snapshots are required. Only exact date/ticker observations are
+    returned, with per-session coverage diagnostics for the current Universe.
+    """
+
+    requested = tuple(sorted(set(sessions)))
+    if not requested:
+        raise StrategyDataError("MarketCap query requires target sessions")
+    try:
+        manifest = validate_market_cap_dataset(root, universe_path=universe_path)
+        missing = [
+            day.isoformat()
+            for day in requested
+            if manifest["snapshots"]
+            .get(day.isoformat(), {})
+            .get("stored_ticker_count", 0)
+            == 0
+        ]
+        if missing:
+            raise StrategyDataError(
+                f"MarketCap snapshots unavailable for {len(missing)} target session(s): "
+                + ", ".join(missing[:10])
+                + (" ..." if len(missing) > 10 else "")
+            )
+        rows = read_market_cap(
+            start_date=requested[0], end_date=requested[-1], root=root
+        )
+    except (MarketCapStorageError, OSError, ValueError, pa.ArrowException) as exc:
+        raise StrategyDataError(
+            f"MarketCap data unavailable for target sessions {requested[0]}..{requested[-1]}: {exc}"
+        ) from exc
+    rows = rows.loc[rows["date"].isin(requested)].copy()
+    rows.attrs["session_counts"] = {
+        day.isoformat(): {
+            "market_cap_available_count": manifest["snapshots"][day.isoformat()][
+                "stored_ticker_count"
+            ],
+            "market_cap_missing_ticker_count": manifest["snapshots"][day.isoformat()][
+                "missing_ticker_count"
+            ],
+        }
+        for day in requested
+    }
+    return rows
 
 
 def normalize_date_values(values: pd.Series) -> pd.Series:

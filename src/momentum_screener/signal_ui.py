@@ -24,6 +24,10 @@ def render_app() -> None:
     import pyarrow as pa
     import streamlit as st
 
+    from momentum_screener.forward_performance import (
+        calculate_forward_performance_for_signals,
+    )
+    from momentum_screener.local_price_data import price_files_in_range
     from momentum_screener.rps_storage import RpsStorageError
     from momentum_screener.signal_ui_data import (
         LocalFile,
@@ -48,6 +52,9 @@ def render_app() -> None:
     cached_csv = st.cache_data(read_signal_csv, show_spinner=False, max_entries=32)
     cached_prices = st.cache_data(read_local_prices, show_spinner=False, max_entries=64)
     cached_rps = st.cache_data(load_rps_for_session, show_spinner=False, max_entries=32)
+    cached_forward = st.cache_data(
+        calculate_forward_performance_for_signals, show_spinner=False, max_entries=32
+    )
 
     with st.sidebar:
         if "signal_paths_input" not in st.session_state:
@@ -157,15 +164,40 @@ def render_app() -> None:
         st.warning(f"Local RPS unavailable; showing N/A. {exc}")
         snapshot = pd.DataFrame()
     table = build_ticker_rps_table(tickers, snapshot)
+    forward_columns = {
+        "forward_40d_max_drawdown": "40D DD",
+        "forward_40d_max_gain": "40D Gain",
+        "forward_120d_max_drawdown": "120D DD",
+        "forward_120d_max_gain": "120D Gain",
+    }
+    try:
+        performance = cached_forward(
+            pd.DataFrame({"ticker": tickers, "session": signal_date}),
+            files=price_files_in_range(signal_date),
+        ).set_index("ticker")
+    except (OSError, ValueError, TypeError, ManifestError, pa.ArrowException) as exc:
+        st.warning(f"Forward performance unavailable; showing N/A. {exc}")
+        performance = pd.DataFrame(columns=list(forward_columns))
+    for metric, label in forward_columns.items():
+        # Presentation-only conversion to percent; domain returns decimal ratios.
+        table[label] = (
+            performance[metric].reindex(table["Ticker"]).to_numpy(dtype="float64") * 100
+        )
     st.caption(f"{len(table)} matching tickers")
+    st.caption(
+        "Forward performance uses raw signal Close and future High/Low; incomplete 40/120-session windows use available data."
+    )
     selection = st.dataframe(
         table,
         hide_index=True,
         width="stretch",
         placeholder="N/A",
         column_config={
-            name: st.column_config.NumberColumn(name, format="%.1f")
-            for name in ("RPS50", "RPS120", "RPS250")
+            name: st.column_config.NumberColumn(
+                name, format="%+.1f%%" if name in forward_columns.values() else "%.1f"
+            )
+            for name in table.columns
+            if name != "Ticker"
         },
         on_select="rerun",
         selection_mode="single-row",
