@@ -15,9 +15,14 @@ from stat import S_ISDIR, S_ISREG
 
 import numpy as np
 import pandas as pd
-import pyarrow.parquet as pq
 
+from momentum_screener.local_price_data import (
+    LocalFile,
+    price_files_in_range,
+    read_local_price_rows,
+)
 from momentum_screener.prices import DEFAULT_OUTPUT_ROOT
+from momentum_screener.rps import RPS_LOOKBACKS
 from momentum_screener.rps_storage import (
     DEFAULT_RPS_ROOT,
     RPS_MANIFEST_NAME,
@@ -25,7 +30,7 @@ from momentum_screener.rps_storage import (
     load_rps_manifest,
     read_rps_snapshot,
 )
-from momentum_screener.storage_manifest import load_manifest, resolve_local_asset_path
+from momentum_screener.storage_manifest import resolve_local_asset_path
 
 SIGNAL_KEY = ["session", "strategy_id", "ticker"]
 
@@ -85,24 +90,6 @@ def discover_signal_csvs(paths: Sequence[str]) -> tuple[list[Path], list[str]]:
         except (OSError, ValueError, RuntimeError) as exc:
             warnings.append(f"Unable to inspect path: {text}: {exc}")
     return discovered, warnings
-
-
-@dataclass(frozen=True)
-class LocalFile:
-    """Hashable cache identity; reloading observes local file replacements."""
-
-    path: str
-    mtime_ns: int
-    ctime_ns: int
-    size: int
-
-    @classmethod
-    def inspect(cls, path: str | Path) -> LocalFile:
-        resolved = Path(path).expanduser().resolve()
-        info = resolved.stat()
-        if not S_ISREG(info.st_mode):
-            raise ValueError(f"Not a regular local file: {resolved}")
-        return cls(str(resolved), info.st_mtime_ns, info.st_ctime_ns, info.st_size)
 
 
 def read_signal_csv(source: LocalFile) -> tuple[pd.DataFrame, list[str]]:
@@ -267,7 +254,7 @@ def build_ticker_rps_table(
     missing fields/rows, and nonfinite or out-of-range scores become NaN.
     """
 
-    columns = ["rps50", "rps120", "rps250"]
+    columns = [f"rps{lookback}" for lookback in RPS_LOOKBACKS]
     source = snapshot.reindex(columns=["ticker", *columns]).set_index("ticker")
     if source.index.has_duplicates:
         raise ValueError("RPS snapshot contains duplicate tickers.")
@@ -328,16 +315,8 @@ def local_price_files(
 ) -> tuple[LocalFile, ...]:
     """Resolve only relevant local assets through the existing manifest helpers."""
 
-    manifest_path = prices_root / "manifest.json"
-    if not manifest_path.is_file():
-        raise FileNotFoundError(f"Local marketData manifest not found: {manifest_path}")
-    manifest = load_manifest(manifest_path)
     start, end = maximum_price_window(signal_date)
-    return tuple(
-        LocalFile.inspect(resolve_local_asset_path(prices_root, asset["local_path"]))
-        for year, asset in sorted(manifest["assets"].items())
-        if year.isdigit() and start.year <= int(year) <= end.year
-    )
+    return price_files_in_range(start, end, prices_root=prices_root)[1:]
 
 
 def read_local_prices(
@@ -350,31 +329,13 @@ def read_local_prices(
     """
 
     start, end = maximum_price_window(signal_date)
-    frames = []
-    for source in files:
-        if LocalFile.inspect(source.path) != source:
-            raise ValueError(
-                "Local price data changed while loading; retry the selection."
-            )
-        frame = pq.read_table(
-            source.path,
-            columns=["date", "adj_close"],
-            filters=[
-                ("ticker", "=", ticker),
-                ("date", ">=", start),
-                ("date", "<=", end),
-            ],
-        ).to_pandas()
-        if LocalFile.inspect(source.path) != source:
-            raise ValueError(
-                "Local price data changed while loading; retry the selection."
-            )
-        frames.append(frame)
-    if not frames:
-        return pd.DataFrame(columns=["date", "adjusted_close"])
-    prices = pd.concat(frames, ignore_index=True).rename(
-        columns={"adj_close": "adjusted_close"}
+    prices = (
+        read_local_price_rows((ticker,), start, end, files, columns=("adj_close",))
+        .drop(columns="ticker")
+        .rename(columns={"adj_close": "adjusted_close"})
     )
+    if prices.empty:
+        return pd.DataFrame(columns=["date", "adjusted_close"])
     prices["date"] = pd.to_datetime(prices["date"], errors="raise")
     values = pd.to_numeric(prices["adjusted_close"], errors="raise").astype("float64")
     if prices["date"].isna().any() or not (np.isfinite(values) & values.gt(0)).all():

@@ -245,7 +245,9 @@ def test_batch_signals_and_every_diagnostic_match_existing_features(
     dataset: HistoricalDataset,
 ) -> None:
     result = dataset.run()
-    prepared = data.merge_prices_and_rps(dataset.prices, dataset.rps)
+    prepared = data.merge_prices_and_rps(
+        dataset.prices, dataset.rps, lookbacks=(50, 120, 250)
+    )
     calculators = {
         "monthly_reversal": calculate_monthly_reversal_features,
         "trend_reacceleration": calculate_trend_reacceleration_features,
@@ -297,7 +299,9 @@ def test_monthly_prior_yxfz_before_requested_start_suppresses_first_day(
     dataset: HistoricalDataset,
 ) -> None:
     dataset.run()
-    inputs = data.merge_prices_and_rps(dataset.prices, dataset.rps)
+    inputs = data.merge_prices_and_rps(
+        dataset.prices, dataset.rps, lookbacks=(50, 120, 250)
+    )
     for ticker in ("OLD", "GAP"):
         history = calculate_monthly_reversal_features(
             inputs.loc[inputs["ticker"].eq(ticker)]
@@ -613,3 +617,168 @@ def test_cli_reports_corrupt_rps_store_without_publishing_coverage(
     )
     assert "Non-empty RPS root has no valid manifest" in caplog.text
     assert not dataset.output_store.exists()
+
+
+def test_blue_diamond_registry_market_cap_coverage_store_csv_and_live_queries(
+    dataset: HistoricalDataset, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from datetime import UTC, datetime
+
+    import momentum_screener.blue_diamond as blue
+    from momentum_screener.market_cap_storage import refresh_market_cap_snapshot
+    from momentum_screener.rps import RPS_LOOKBACKS, resolve_rps_session_dates
+    from momentum_screener.rps_storage import persist_rps_snapshot, read_rps_snapshot
+    from momentum_screener.signal_store import export_signal_csv
+    from momentum_screener.signal_ui_data import (
+        LocalFile,
+        build_ticker_rps_table,
+        filter_tickers_by_strategies,
+        read_signal_csv,
+    )
+
+    session = date(2026, 9, 4)
+    entry = engine.SUPPORTED_STRATEGIES["blue_diamond"]
+    assert entry.version == "1.0" and entry.lookbacks == (20, 50)
+    assert entry.required_price_rows == 250 and entry.prior_rps_rows == 0
+    assert entry.requires_market_cap
+    cap_root = tmp_path / "caps"
+    rps_root = tmp_path / "persisted-rps"
+    trend = dataset.prices.loc[dataset.prices["ticker"].eq("TREND")].copy()
+    for offset in (-2, -1):
+        closing = trend["adj_close"].iloc[offset - 19 : offset].mean() * 0.999
+        index = trend.index[offset]
+        trend.loc[index, ["open", "close", "adj_close"]] = closing
+        trend.loc[index, "high"] = closing + 0.2
+        trend.loc[index, "low"] = closing - 0.2
+    # FRESH has the same qualifying prices/RPS, but no exact-date cap.
+    dataset.prices = pd.concat(
+        [
+            dataset.prices.loc[~dataset.prices["ticker"].isin(["TREND", "FRESH"])],
+            trend,
+            trend.assign(ticker="FRESH"),
+        ],
+        ignore_index=True,
+    )
+    dataset.save()
+    dataset.rps["rps20"] = -1.0
+    dataset.rps.loc[
+        dataset.rps["ticker"].isin(["TREND", "FRESH"]), ["rps20", "rps50"]
+    ] = [98.0, 95.0]
+    snapshot = dataset.rps.loc[dataset.rps["date"].eq(session)].copy()
+    for lookback, base in resolve_rps_session_dates(session).base_dates.items():
+        snapshot[f"return_{lookback}"] = 0.1
+        snapshot[f"rps{lookback}_base_date"] = base
+    persist_rps_snapshot(snapshot, root=rps_root, universe_path=dataset.universe_path)
+    monkeypatch.setattr(
+        data,
+        "calculate_rps_snapshots",
+        Mock(side_effect=AssertionError("Persisted RPS must be reused")),
+    )
+    options = {
+        "strategies": "blue_diamond",
+        "market_cap_root": cap_root,
+        "rps_root": rps_root,
+        "rps_snapshots": None,
+    }
+
+    # Existing strategies neither load nor require MarketCap.
+    dataset.run(session, session, market_cap_root=cap_root)
+    prior_coverage = (dataset.output_store / "coverage.parquet").read_bytes()
+    with pytest.raises(data.StrategyDataError, match="MarketCap data unavailable"):
+        dataset.run(session, session, **options)
+    assert (dataset.output_store / "coverage.parquet").read_bytes() == prior_coverage
+
+    refresh_market_cap_snapshot(
+        prices_root=dataset.prices_root,
+        root=cap_root,
+        universe_path=dataset.universe_path,
+        now=datetime(2026, 9, 4, 22, tzinfo=UTC),
+        fetch_func=lambda _: {"TREND": 1_000_000},
+    )
+    with pytest.raises(data.StrategyDataError, match="2026-09-03"):
+        dataset.run("2026-09-03", session, **options)
+    assert (dataset.output_store / "coverage.parquet").read_bytes() == prior_coverage
+
+    summary = dataset.run(session, session, **options).strategy_summaries[
+        "blue_diamond"
+    ]
+    assert summary["signals"] == 1
+    assert summary["market_cap_available_count"] == 1
+    assert summary["market_cap_missing_ticker_count"] == len(dataset.universe) - 1
+    stored = read_strategy_signals("blue_diamond", root=dataset.output_store)
+    assert stored["ticker"].tolist() == ["TREND"]
+    assert stored["status"].tolist() == ["ok"]
+    common = {
+        "prices_root": dataset.prices_root,
+        "universe_path": dataset.universe_path,
+        "rps_root": rps_root,
+        "market_cap_root": cap_root,
+    }
+    explanation = blue.evaluate_blue_diamond("TREND", session, **common)
+    pd.testing.assert_series_equal(
+        stored.iloc[0].rename({"session": "date"})[list(blue.SCREEN_COLUMNS)],
+        explanation[list(blue.SCREEN_COLUMNS)],
+        check_names=False,
+    )
+    missing = blue.evaluate_blue_diamond("FRESH", session, **common)
+    assert missing["status"] == "market_cap_unavailable" and not missing["signal"]
+    price_reader = Mock(wraps=blue.load_strategy_price_history)
+    monkeypatch.setattr(blue, "load_strategy_price_history", price_reader)
+    screened = blue.screen_blue_diamond(session, **common)
+    assert screened["ticker"].tolist() == ["TREND"]
+    assert set(price_reader.call_args.kwargs["tickers"]) == {"TREND", "FRESH"}
+    assert (
+        screened.attrs["market_cap_missing_ticker_count"] == len(dataset.universe) - 1
+    )
+    with pytest.raises(data.StrategyDataError, match="2026-09-03"):
+        blue.screen_blue_diamond(date(2026, 9, 3), **common)
+
+    csv = tmp_path / "research" / "signals.csv"
+    export_signal_csv(csv, session, session, root=dataset.output_store)
+    signals, warnings = read_signal_csv(LocalFile.inspect(csv))
+    assert not warnings and "blue_diamond" in set(signals["strategy_id"])
+    blue_rows = signals.loc[signals["strategy_id"].eq("blue_diamond")]
+    assert blue_rows["strategy_version"].tolist() == ["1.0"]
+    assert blue_rows["turnover"].tolist() == pytest.approx(stored["turnover"].tolist())
+    assert filter_tickers_by_strategies(signals, session, ["blue_diamond"]) == ["TREND"]
+    assert (
+        filter_tickers_by_strategies(
+            signals, session, ["blue_diamond", "monthly_reversal"]
+        )
+        == []
+    )
+    table = build_ticker_rps_table(["TREND"], read_rps_snapshot(session, root=rps_root))
+    assert list(table) == ["Ticker", *[f"RPS{n}" for n in RPS_LOOKBACKS]]
+    assert table["RPS20"].tolist() == [98.0]
+
+    # Re-running with no RPS candidates must replace prior signals with a real
+    # complete/zero result, still using the same store/export path.
+    snapshot[["rps20", "rps50"]] = -1.0
+    persist_rps_snapshot(snapshot, root=rps_root, universe_path=dataset.universe_path)
+    assert (
+        engine.main(
+            [
+                "--start-date",
+                str(session),
+                "--end-date",
+                str(session),
+                "--strategy",
+                "blue_diamond",
+                "--prices-root",
+                str(dataset.prices_root),
+                "--rps-root",
+                str(rps_root),
+                "--market-cap-root",
+                str(cap_root),
+                "--universe",
+                str(dataset.universe_path),
+                "--output-store",
+                str(dataset.output_store),
+                "--export-csv",
+                str(csv),
+            ]
+        )
+        == 0
+    )
+    assert read_strategy_signals("blue_diamond", root=dataset.output_store).empty
+    assert pd.read_csv(csv).empty

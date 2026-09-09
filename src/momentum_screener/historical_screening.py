@@ -16,6 +16,22 @@ from typing import Any
 
 import pandas as pd  # type: ignore[import-untyped]
 
+from momentum_screener.blue_diamond import (
+    BLUE_DIAMOND_LOAD_SESSIONS,
+    BLUE_DIAMOND_RPS_LOOKBACKS,
+    calculate_blue_diamond_features,
+    extreme_rps_mask,
+)
+from momentum_screener.blue_diamond import (
+    DEFAULT_CONFIG as BLUE_DIAMOND_CONFIG,
+)
+from momentum_screener.blue_diamond import (
+    STRATEGY_ID as BLUE_DIAMOND_STRATEGY_ID,
+)
+from momentum_screener.blue_diamond import (
+    STRATEGY_VERSION as BLUE_DIAMOND_STRATEGY_VERSION,
+)
+from momentum_screener.market_cap_storage import DEFAULT_MARKET_CAP_ROOT
 from momentum_screener.monthly_reversal import (
     MONTHLY_REVERSAL_LOAD_SESSIONS,
     MONTHLY_REVERSAL_REQUIRED_SIGNAL_ROWS,
@@ -36,12 +52,14 @@ from momentum_screener.signal_store import (
     DATA_MODE,
     DEFAULT_SIGNAL_ROOT,
     SignalStoreError,
+    export_signal_csv,
     replace_signal_range,
 )
 from momentum_screener.storage_manifest import ManifestError, load_manifest
 from momentum_screener.strategy_data import (
     StrategyDataError,
     load_or_calculate_rps,
+    load_strategy_market_cap,
     load_strategy_price_history,
     merge_prices_and_rps,
     resolve_strategy_sessions,
@@ -80,6 +98,7 @@ class HistoricalStrategy:
     prior_rps_rows: int
     calculate_features: Callable[[pd.DataFrame], pd.DataFrame]
     config: Mapping[str, Any]
+    requires_market_cap: bool = False
 
 
 SUPPORTED_STRATEGIES: Mapping[str, HistoricalStrategy] = MappingProxyType(
@@ -104,8 +123,22 @@ SUPPORTED_STRATEGIES: Mapping[str, HistoricalStrategy] = MappingProxyType(
             calculate_features=calculate_trend_reacceleration_features,
             config=MappingProxyType(asdict(DEFAULT_CONFIG)),
         ),
+        BLUE_DIAMOND_STRATEGY_ID: HistoricalStrategy(
+            strategy_id=BLUE_DIAMOND_STRATEGY_ID,
+            version=BLUE_DIAMOND_STRATEGY_VERSION,
+            lookbacks=BLUE_DIAMOND_RPS_LOOKBACKS,
+            required_price_rows=BLUE_DIAMOND_CONFIG.required_price_rows,
+            load_sessions=BLUE_DIAMOND_LOAD_SESSIONS,
+            prior_rps_rows=0,
+            calculate_features=calculate_blue_diamond_features,
+            config=MappingProxyType(asdict(BLUE_DIAMOND_CONFIG)),
+            requires_market_cap=True,
+        ),
     }
 )
+# Keep existing long-range commands usable before MarketCap history began.
+# Blue Diamond participates when explicitly selected, using the same runner.
+DEFAULT_STRATEGIES = ("monthly_reversal", TREND_STRATEGY_ID)
 
 
 @dataclass(frozen=True, slots=True)
@@ -165,7 +198,7 @@ def _select_strategies(
     config: TrendReaccelerationConfig,
 ) -> tuple[HistoricalStrategy, ...]:
     ids = (
-        tuple(SUPPORTED_STRATEGIES)
+        DEFAULT_STRATEGIES
         if strategies is None
         else ((strategies,) if isinstance(strategies, str) else tuple(strategies))
     )
@@ -219,6 +252,7 @@ def run_historical_screening(
     force: bool = False,
     prices_root: Path = DEFAULT_OUTPUT_ROOT,
     rps_root: Path | None = DEFAULT_RPS_ROOT,
+    market_cap_root: Path = DEFAULT_MARKET_CAP_ROOT,
     universe_path: Path = DEFAULT_UNIVERSE,
     rps_snapshots: pd.DataFrame | None = None,
     trend_config: TrendReaccelerationConfig = DEFAULT_CONFIG,
@@ -245,6 +279,14 @@ def run_historical_screening(
     ] != len(universe):
         raise HistoricalScreeningError(
             "Price manifest does not match the requested Universe"
+        )
+
+    caps = None
+    if any(item.requires_market_cap for item in selected):
+        # Validate all target sessions before price/RPS calculation or any store
+        # replacement. Warmup price rows deliberately require no MarketCap.
+        caps = load_strategy_market_cap(
+            sessions, root=market_cap_root, universe_path=universe_path
         )
 
     lookbacks = tuple(sorted({value for item in selected for value in item.lookbacks}))
@@ -296,6 +338,13 @@ def run_historical_screening(
         rps_snapshots=rps_snapshots,
     )
     prepared = merge_prices_and_rps(prices, rps_rows, lookbacks=lookbacks)
+    blue_candidates = set()
+    if caps is not None:
+        blue_candidates = set(
+            rps_rows.loc[
+                rps_rows["date"].isin(sessions) & extreme_rps_mask(rps_rows), "ticker"
+            ]
+        )
     LOGGER.info(
         "Prepared prices once: sessions=%d rows=%d; shared RPS sessions=%d",
         loaded_count,
@@ -304,11 +353,25 @@ def run_historical_screening(
     )
     matches: dict[str, list[pd.DataFrame]] = {item.strategy_id: [] for item in selected}
     templates: dict[str, pd.DataFrame] = {}
-    for index, (_, ticker_rows) in enumerate(
+    for index, (ticker, ticker_rows) in enumerate(
         prepared.groupby("ticker", sort=False), start=1
     ):
         for item in selected:
-            features = item.calculate_features(ticker_rows)
+            inputs = ticker_rows
+            if item.requires_market_cap:
+                if ticker not in blue_candidates:
+                    if item.strategy_id not in templates:
+                        templates[item.strategy_id] = item.calculate_features(
+                            ticker_rows.iloc[:0]
+                        )
+                    continue
+                inputs = ticker_rows.merge(
+                    caps.loc[caps["ticker"].eq(ticker)],
+                    on=["date", "ticker"],
+                    how="left",
+                    validate="one_to_one",
+                )
+            features = item.calculate_features(inputs)
             if item.strategy_id not in templates:
                 templates[item.strategy_id] = features.iloc[:0].copy()
             signals = features.loc[
@@ -368,6 +431,14 @@ def run_historical_screening(
             "signals": len(rows),
             "config_hash": metadata["config_hash"],
         }
+        if item.requires_market_cap:
+            summaries[item.strategy_id] = {
+                **summaries[item.strategy_id],
+                "market_cap_available_count": len(caps),
+                "market_cap_missing_ticker_count": len(sessions) * len(universe)
+                - len(caps),
+                "market_cap_session_counts": caps.attrs["session_counts"],
+            }
     root = DEFAULT_SIGNAL_ROOT if output_store is None else Path(output_store)
     replace_signal_range(
         signals_by_strategy, pd.concat(coverage_frames, ignore_index=True), root=root
@@ -400,11 +471,20 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--end-date", default="latest", help="YYYY-MM-DD or latest (default)"
     )
     parser.add_argument(
-        "--strategy", action="append", choices=tuple(SUPPORTED_STRATEGIES)
+        "--strategy",
+        action="append",
+        choices=tuple(SUPPORTED_STRATEGIES),
+        help="repeat to select strategies; default: monthly_reversal and trend_reacceleration",
     )
     parser.add_argument("--output-store", type=Path, default=DEFAULT_SIGNAL_ROOT)
     parser.add_argument("--prices-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
     parser.add_argument("--rps-root", type=Path, default=DEFAULT_RPS_ROOT)
+    parser.add_argument("--market-cap-root", type=Path, default=DEFAULT_MARKET_CAP_ROOT)
+    parser.add_argument(
+        "--export-csv",
+        type=Path,
+        help="export this run's committed signals and diagnostics for the research UI",
+    )
     parser.add_argument("--universe", type=Path, default=DEFAULT_UNIVERSE)
     parser.add_argument(
         "--force",
@@ -423,9 +503,18 @@ def main(argv: Sequence[str] | None = None) -> int:
             output_store=args.output_store,
             prices_root=args.prices_root,
             rps_root=args.rps_root,
+            market_cap_root=args.market_cap_root,
             universe_path=args.universe,
             force=args.force,
         )
+        if args.export_csv is not None:
+            export_signal_csv(
+                args.export_csv,
+                result.actual_start,
+                result.actual_end,
+                strategies=tuple(result.strategy_summaries),
+                root=result.output_store,
+            )
     except (
         HistoricalScreeningError,
         SignalStoreError,
@@ -448,7 +537,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(
             f"{strategy_id} {summary['strategy_version']}: sessions evaluated={summary['sessions_evaluated']}, signals={summary['signals']}"
         )
+        if "market_cap_available_count" in summary:
+            print(
+                f"MarketCap: available={summary['market_cap_available_count']}, "
+                f"missing tickers={summary['market_cap_missing_ticker_count']}"
+            )
     print(f"store: {result.output_store}")
+    if args.export_csv is not None:
+        print(f"CSV: {args.export_csv}")
     return 0
 
 

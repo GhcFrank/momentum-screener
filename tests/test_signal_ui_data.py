@@ -233,6 +233,7 @@ def test_ticker_rps_table_joins_snapshot_and_retains_missing_values():
     snapshot = pd.DataFrame(
         {
             "ticker": ["NVDA", "META"],
+            "rps20": [98.0, 93.0],
             "rps50": [90.0, 88.0],
             "rps120": [95.0, 92.0],
             "rps250": [97.0, 94.0],
@@ -241,17 +242,21 @@ def test_ticker_rps_table_joins_snapshot_and_retains_missing_values():
     table = build_ticker_rps_table(["NVDA", "META", "NVDA"], snapshot)
     assert table.to_dict("list") == {
         "Ticker": ["META", "NVDA"],
+        "RPS20": [93.0, 98.0],
         "RPS50": [88.0, 90.0],
         "RPS120": [92.0, 95.0],
         "RPS250": [94.0, 97.0],
     }
 
     snapshot.loc[0, "rps50"] = -1  # Storage's INVALID_RPS sentinel is not a score.
+    snapshot.loc[0, "rps20"] = -1
+    snapshot.loc[1, "rps20"] = 101
     snapshot.loc[1, "rps120"] = float("nan")
     missing = build_ticker_rps_table(
         ["NVDA", "META", "UNKNOWN"], snapshot.drop(columns="rps250")
     ).set_index("Ticker")
     assert missing.index.tolist() == ["META", "NVDA", "UNKNOWN"]
+    assert missing["RPS20"].isna().all()
     assert pd.isna(missing.loc["NVDA", "RPS50"])
     assert missing.loc["NVDA", "RPS120"] == 95.0
     assert missing.loc["META", "RPS50"] == 88.0
