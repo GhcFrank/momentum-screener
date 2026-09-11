@@ -19,6 +19,8 @@ DEFAULT_SIGNAL_PATH = "/home/gooder/momentum-screener-research/"
 STRATEGY_DISPLAY_NAMES = {
     "blue_diamond": "蓝色钻石",
     "blue_diamond_core": "蓝色钻石 Core",
+    "daily_watch_3": "每日观察选股3",
+    "daily_watch_3_core": "每日观察选股3 Core",
     "trend_reacceleration": "顺向火车2",
     "trend_reacceleration_entry": "顺向火车2 · 首次触发（实验）",
 }

@@ -20,6 +20,11 @@ from momentum_screener.blue_diamond import (
 )
 from momentum_screener.blue_diamond import STRATEGY_NAME as BLUE_DIAMOND_NAME
 from momentum_screener.blue_diamond import screen_blue_diamond
+from momentum_screener.daily_watch_3 import (
+    STRATEGY_DESCRIPTION as DAILY_WATCH_3_DESCRIPTION,
+)
+from momentum_screener.daily_watch_3 import STRATEGY_NAME as DAILY_WATCH_3_NAME
+from momentum_screener.daily_watch_3 import screen_daily_watch_3
 from momentum_screener.market_cap_storage import DEFAULT_MARKET_CAP_ROOT
 from momentum_screener.monthly_reversal import (
     MONTHLY_REVERSAL_SIGNAL_WINDOW,
@@ -71,6 +76,9 @@ class DailyScreeningNotificationResult(MonthlyReversalNotificationResult):
     trend_candidate_tickers: tuple[str, ...]
     blue_diamond_signal_count: int
     blue_diamond_candidate_tickers: tuple[str, ...]
+    daily_watch_3_rps_candidate_count: int
+    daily_watch_3_signal_count: int
+    daily_watch_3_candidate_tickers: tuple[str, ...]
 
     def as_dict(self) -> dict[str, object]:
         result = MonthlyReversalNotificationResult.as_dict(self)
@@ -82,6 +90,13 @@ class DailyScreeningNotificationResult(MonthlyReversalNotificationResult):
                 "blue_diamond_signal_count": self.blue_diamond_signal_count,
                 "blue_diamond_candidate_tickers": list(
                     self.blue_diamond_candidate_tickers
+                ),
+                "daily_watch_3_rps_candidate_count": (
+                    self.daily_watch_3_rps_candidate_count
+                ),
+                "daily_watch_3_signal_count": self.daily_watch_3_signal_count,
+                "daily_watch_3_candidate_tickers": list(
+                    self.daily_watch_3_candidate_tickers
                 ),
             }
         )
@@ -129,7 +144,7 @@ def _render_strategy_section(
             value = row.get(key)
             values.append(
                 _format_percentage(value)
-                if key == "turnover"
+                if key in {"turnover", "turnover_market_cap_proxy"}
                 else _format_number(value)
             )
         text_lines.append(
@@ -157,8 +172,9 @@ def render_daily_screening_email(
     monthly_reversal_rows: pd.DataFrame,
     trend_reacceleration_rows: pd.DataFrame,
     blue_diamond_rows: pd.DataFrame | None = None,
+    daily_watch_3_rows: pd.DataFrame | None = None,
 ) -> RenderedRpsEmail:
-    """Render three independent signal sections with presentation turnover."""
+    """Render all production signal sections with presentation turnover."""
 
     monthly_rows = monthly_reversal_rows.copy()
     if "turnover" not in monthly_rows:
@@ -192,6 +208,30 @@ def render_daily_screening_email(
             ("turnover", "Turnover", 10),
         ),
     )
+    if daily_watch_3_rows is None:
+        daily_watch_3_rows = pd.DataFrame(
+            columns=(
+                "ticker",
+                "rps50",
+                "rps120",
+                "rps250",
+                "adj_close",
+                "turnover_market_cap_proxy",
+                "signal",
+            )
+        )
+    daily_watch_3_text, daily_watch_3_html = _render_strategy_section(
+        rows=daily_watch_3_rows,
+        name=f"Daily Watch 3 / {DAILY_WATCH_3_NAME}",
+        description=DAILY_WATCH_3_DESCRIPTION,
+        columns=(
+            ("rps50", "RPS50", 8),
+            ("rps120", "RPS120", 8),
+            ("rps250", "RPS250", 8),
+            ("adj_close", "Adj Close", 12),
+            ("turnover_market_cap_proxy", "Turnover", 10),
+        ),
+    )
     title = f"Momentum Screener — {as_of_date.isoformat()}"
     text_lines = [
         title,
@@ -201,6 +241,8 @@ def render_daily_screening_email(
         *trend_text,
         "",
         *blue_text,
+        "",
+        *daily_watch_3_text,
     ]
     monthly_html = monthly.html_body.partition("<body>")[2].rpartition("</body>")[0]
     monthly_html = monthly_html.replace("<h1>", "<h2>").replace("</h1>", "</h2>")
@@ -213,6 +255,7 @@ def render_daily_screening_email(
             + monthly_html
             + trend_html
             + blue_html
+            + daily_watch_3_html
             + "</body></html>"
         ),
     )
@@ -234,7 +277,7 @@ def run_daily_screening_notification(
     """Load shared point-in-time inputs once and send one screening email.
 
     The 15-session batch warms Monthly Reversal's existing first-occurrence
-    logic; Trend and Blue Diamond use today's RPS from the same batch.
+    logic; Trend, Blue Diamond and Daily Watch 3 use today's RPS from the same batch.
     dry_run renders without loading SMTP config, contacting SMTP or persisting.
     """
 
@@ -303,6 +346,16 @@ def run_daily_screening_notification(
         market_cap_root=market_cap_root,
         market_cap_rows=market_cap_rows,
     )
+    daily_watch_3 = screen_daily_watch_3(
+        session,
+        signal_only=True,
+        prices_root=prices_root,
+        universe_path=universe_path,
+        rps_root=None,
+        rps_snapshots=shared_rps,
+        market_cap_root=market_cap_root,
+        market_cap_rows=market_cap_rows,
+    )
     signal_tickers = tuple(
         dict.fromkeys(
             str(ticker)
@@ -326,6 +379,7 @@ def run_daily_screening_notification(
         monthly_reversal_rows=monthly_email_rows,
         trend_reacceleration_rows=trend_email_rows,
         blue_diamond_rows=blue_diamond_email_rows,
+        daily_watch_3_rows=daily_watch_3,
     )
     result = DailyScreeningNotificationResult(
         as_of_date=session,
@@ -343,15 +397,23 @@ def run_daily_screening_notification(
         blue_diamond_candidate_tickers=tuple(
             str(value) for value in blue_diamond["ticker"]
         ),
+        daily_watch_3_rps_candidate_count=int(
+            daily_watch_3.attrs["rps_candidate_count"]
+        ),
+        daily_watch_3_signal_count=len(daily_watch_3),
+        daily_watch_3_candidate_tickers=tuple(
+            str(value) for value in daily_watch_3["ticker"]
+        ),
         subject=rendered.subject,
         dry_run=dry_run,
     )
     LOGGER.info(
         "Monthly Reversal signals=%d; Trend Re-acceleration signals=%d; "
-        "Blue Diamond signals=%d",
+        "Blue Diamond signals=%d; Daily Watch 3 signals=%d",
         len(monthly),
         len(trend),
         len(blue_diamond),
+        len(daily_watch_3),
     )
     if dry_run:
         if preview_stream is not None:
