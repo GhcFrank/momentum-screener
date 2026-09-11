@@ -26,6 +26,7 @@ def screen_rows(
             "rps250": [97.0],
             "adj_close": [123.0],
             "turnover": [turnover],
+            "turnover_market_cap_proxy": [turnover],
             "signal": [signal],
         }
     )
@@ -40,12 +41,13 @@ def screen_rows(
     return rows
 
 
-def test_email_renders_three_sections_turnover_and_explicit_empty_results() -> None:
+def test_email_renders_all_sections_turnover_and_explicit_empty_results() -> None:
     result = notification.render_daily_screening_email(
         as_of_date=date(2026, 9, 3),
         monthly_reversal_rows=screen_rows("MONTHLY", turnover=0.0084),
         trend_reacceleration_rows=screen_rows("TREND", turnover=0.0127),
         blue_diamond_rows=screen_rows("BLUE", turnover=0.1234),
+        daily_watch_3_rows=screen_rows("WATCH", turnover=0.0567),
     )
     assert result.subject == "Momentum Screener — 2026-09-03"
     for body in (result.text_body, result.html_body):
@@ -54,9 +56,13 @@ def test_email_renders_three_sections_turnover_and_explicit_empty_results() -> N
         assert "Strong Momentum + Healthy Pullback + Trend Re-acceleration" in body
         assert "Blue Diamond / 蓝色钻石" in body
         assert "Extreme Momentum + Strong Trend Structure" in body
-        assert all(ticker in body for ticker in ("MONTHLY", "TREND", "BLUE"))
-        assert body.count("Turnover") == 3
-        assert all(value in body for value in ("0.84%", "1.27%", "12.34%"))
+        assert "Daily Watch 3 / 每日观察选股3" in body
+        assert "MarketCap Turnover Proxy" in body and "20%" in body
+        assert "daily_watch_3_core" not in body
+        assert all(ticker in body for ticker in ("MONTHLY", "TREND", "BLUE", "WATCH"))
+        # Four table headers plus the Daily Watch 3 proxy description.
+        assert body.count("Turnover") == 5
+        assert all(value in body for value in ("0.84%", "1.27%", "12.34%", "5.67%"))
         assert "RPS120 >" not in body
         assert "RPS250 >" not in body
     assert result.html_body.count("<html>") == 1
@@ -67,18 +73,20 @@ def test_email_renders_three_sections_turnover_and_explicit_empty_results() -> N
         monthly_reversal_rows=screen_rows("MONTHLY", signal=False),
         trend_reacceleration_rows=screen_rows("TREND", signal=False),
         blue_diamond_rows=screen_rows("BLUE", signal=False),
+        daily_watch_3_rows=screen_rows("WATCH", signal=False),
     )
-    assert empty.text_body.count("Signal count: 0") == 3
-    assert empty.html_body.count("Signal count: <strong>0</strong>") == 3
+    assert empty.text_body.count("Signal count: 0") == 4
+    assert empty.html_body.count("Signal count: <strong>0</strong>") == 4
     for body in (empty.text_body, empty.html_body):
         assert "No new monthly reversal signals" in body
-        assert body.count("No matches.") == 2
+        assert body.count("No matches.") == 3
 
     missing = notification.render_daily_screening_email(
         as_of_date=date(2026, 9, 3),
         monthly_reversal_rows=screen_rows("KEPT", turnover=float("nan")),
         trend_reacceleration_rows=screen_rows("TREND", signal=False),
         blue_diamond_rows=screen_rows("BLUE", signal=False),
+        daily_watch_3_rows=screen_rows("WATCH", signal=False),
     )
     for body in (missing.text_body, missing.html_body):
         assert "KEPT" in body
@@ -188,22 +196,25 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
     monthly = screen_rows("AAA")
     trend = screen_rows("BBB", turnover=0.0127)
     blue = screen_rows("CCC", turnover=0.1234)
+    watch = screen_rows("DDD", turnover=0.0567)
     if empty_strategy in {"monthly", "all"}:
         monthly = monthly.iloc[:0].copy()
     if empty_strategy in {"trend", "all"}:
         trend = trend.iloc[:0].copy()
     if empty_strategy in {"blue", "all"}:
         blue = blue.iloc[:0].copy()
+    if empty_strategy == "all":
+        watch = watch.iloc[:0].copy()
     caps = pd.DataFrame(
         {
-            "date": [session] * 3,
-            "ticker": ["AAA", "BBB", "CCC"],
-            "market_cap": [1_000_000_000.0] * 3,
+            "date": [session] * 4,
+            "ticker": ["AAA", "BBB", "CCC", "DDD"],
+            "market_cap": [1_000_000_000.0] * 4,
         }
     )
     caps.attrs["session_counts"] = {
         session.isoformat(): {
-            "market_cap_available_count": 3,
+            "market_cap_available_count": 4,
             "market_cap_missing_ticker_count": 0,
         }
     }
@@ -248,6 +259,16 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
         assert "config" not in kwargs
         return blue
 
+    def screen_watch(as_of_date: date, **kwargs: object) -> pd.DataFrame:
+        events.append("watch")
+        assert kwargs["signal_only"] is True
+        assert kwargs["rps_snapshots"] is shared
+        assert kwargs["rps_root"] is None
+        assert kwargs["market_cap_rows"] is caps
+        assert "config" not in kwargs
+        watch.attrs["rps_candidate_count"] = len(watch)
+        return watch
+
     def load_turnover(
         as_of_date: date, tickers: tuple[str, ...], **kwargs: object
     ) -> pd.DataFrame:
@@ -271,8 +292,10 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
         assert "Monthly Reversal 6.2" in rendered.text_body
         assert "顺向火车2" in rendered.text_body
         assert "Blue Diamond / 蓝色钻石" in rendered.text_body
+        assert "Daily Watch 3 / 每日观察选股3" in rendered.text_body
+        assert "Core" not in rendered.text_body
         assert rendered.text_body.count("Turnover") == (
-            0 if empty_strategy == "all" else 3
+            1 if empty_strategy == "all" else 5
         )
 
     monkeypatch.setattr(
@@ -284,6 +307,7 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
     monkeypatch.setattr(notification, "screen_monthly_reversal", screen_monthly)
     monkeypatch.setattr(notification, "screen_trend_reacceleration", screen_trend)
     monkeypatch.setattr(notification, "screen_blue_diamond", screen_blue)
+    monkeypatch.setattr(notification, "screen_daily_watch_3", screen_watch)
     monkeypatch.setattr(notification, "load_session_turnover", load_turnover)
     monkeypatch.setattr(notification, "send_rps_email", send)
     if dry_run or prepare_only:
@@ -303,9 +327,18 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
         prepared_email_path=tmp_path / "prepared.json" if prepare_only else None,
     )
     assert events == (
-        ["caps", "prepare", "monthly", "trend", "blue", "turnover"]
+        ["caps", "prepare", "monthly", "trend", "blue", "watch", "turnover"]
         if dry_run
-        else ["caps", "prepare", "persist", "monthly", "trend", "blue", "turnover"]
+        else [
+            "caps",
+            "prepare",
+            "persist",
+            "monthly",
+            "trend",
+            "blue",
+            "watch",
+            "turnover",
+        ]
         + ([] if prepare_only else ["send"])
     )
     assert result.rps_row_count == 2
@@ -313,11 +346,17 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
     assert result.signal_count == len(monthly)
     assert result.trend_signal_count == len(trend)
     assert result.blue_diamond_signal_count == len(blue)
+    assert result.daily_watch_3_signal_count == len(watch)
+    assert result.daily_watch_3_rps_candidate_count == len(watch)
     assert result.as_dict()["trend_candidate_tickers"] == trend["ticker"].tolist()
     assert result.as_dict()["blue_diamond_candidate_tickers"] == blue["ticker"].tolist()
+    assert (
+        result.as_dict()["daily_watch_3_candidate_tickers"] == watch["ticker"].tolist()
+    )
     if dry_run:
         assert "顺向火车2" in preview.getvalue()
         assert "Blue Diamond / 蓝色钻石" in preview.getvalue()
+        assert "Daily Watch 3 / 每日观察选股3" in preview.getvalue()
     if prepare_only:
         import json
 
@@ -325,6 +364,7 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
         assert payload["result"] == result.as_dict()
         assert "顺向火车2" in payload["email"]["text_body"]
         assert "Blue Diamond / 蓝色钻石" in payload["email"]["text_body"]
+        assert "Daily Watch 3 / 每日观察选股3" in payload["email"]["text_body"]
 
 
 def test_persistence_failure_prevents_all_screens_and_email(
@@ -352,6 +392,7 @@ def test_persistence_failure_prevents_all_screens_and_email(
     monkeypatch.setattr(notification, "screen_monthly_reversal", unexpected)
     monkeypatch.setattr(notification, "screen_trend_reacceleration", unexpected)
     monkeypatch.setattr(notification, "screen_blue_diamond", unexpected)
+    monkeypatch.setattr(notification, "screen_daily_watch_3", unexpected)
     monkeypatch.setattr(notification, "load_session_turnover", unexpected)
     monkeypatch.setattr(notification, "send_rps_email", unexpected)
     with pytest.raises(RuntimeError, match="persistence failed"):

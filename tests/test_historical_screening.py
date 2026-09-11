@@ -915,3 +915,53 @@ def test_blue_diamond_core_registry_and_historical_run_need_no_market_cap(
             strategies="blue_diamond",
             market_cap_root=missing_caps,
         )
+
+
+def test_daily_watch_3_registry_core_store_and_formal_market_cap_dependency(
+    dataset: HistoricalDataset, tmp_path: Path
+) -> None:
+    from momentum_screener.signal_ui import STRATEGY_DISPLAY_NAMES
+
+    core = engine.SUPPORTED_STRATEGIES["daily_watch_3_core"]
+    formal = engine.SUPPORTED_STRATEGIES["daily_watch_3"]
+    assert core.version == formal.version == "1.0"
+    assert core.lookbacks == formal.lookbacks == (50, 120, 250)
+    assert core.required_price_rows == formal.required_price_rows == 254
+    assert core.load_sessions == formal.load_sessions == 270
+    assert not core.requires_market_cap and formal.requires_market_cap
+    assert "daily_watch_3_core" not in engine.DEFAULT_STRATEGIES
+    assert "daily_watch_3" not in engine.DEFAULT_STRATEGIES
+    assert STRATEGY_DISPLAY_NAMES["daily_watch_3_core"] == "每日观察选股3 Core"
+    assert STRATEGY_DISPLAY_NAMES["daily_watch_3"] == "每日观察选股3"
+
+    session = date(2026, 9, 4)
+    dataset.rps[["rps50", "rps120", "rps250"]] = -1.0
+    dataset.rps.loc[
+        dataset.rps["ticker"].eq("TREND") & dataset.rps["date"].eq(session),
+        ["rps50", "rps120", "rps250"],
+    ] = [50.0, 97.0, 50.0]
+    dataset.save()
+    missing_caps = tmp_path / "no-daily-watch-3-market-cap"
+
+    summary = dataset.run(
+        session,
+        session,
+        strategies="daily_watch_3_core",
+        market_cap_root=missing_caps,
+    )
+    assert summary.strategy_summaries["daily_watch_3_core"]["signals"] == 1
+    stored = read_strategy_signals("daily_watch_3_core", root=dataset.output_store)
+    assert stored["ticker"].tolist() == ["TREND"]
+    assert stored["strategy_id"].tolist() == ["daily_watch_3_core"]
+    assert stored["strategy_version"].tolist() == ["1.0"]
+    assert stored["core_signal"].tolist() == stored["signal"].tolist() == [True]
+    assert stored["market_cap"].isna().all()
+    assert stored["turnover_market_cap_proxy"].isna().all()
+
+    with pytest.raises(data.StrategyDataError, match="MarketCap data unavailable"):
+        dataset.run(
+            session,
+            session,
+            strategies="daily_watch_3",
+            market_cap_root=missing_caps,
+        )

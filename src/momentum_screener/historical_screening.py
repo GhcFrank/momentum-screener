@@ -38,6 +38,24 @@ from momentum_screener.blue_diamond_core import (
     STRATEGY_VERSION as BLUE_DIAMOND_CORE_STRATEGY_VERSION,
 )
 from momentum_screener.blue_diamond_core import calculate_blue_diamond_core_features
+from momentum_screener.daily_watch_3 import (
+    CORE_STRATEGY_ID as DAILY_WATCH_3_CORE_STRATEGY_ID,
+)
+from momentum_screener.daily_watch_3 import (
+    CORE_STRATEGY_VERSION as DAILY_WATCH_3_CORE_STRATEGY_VERSION,
+)
+from momentum_screener.daily_watch_3 import DEFAULT_CONFIG as DAILY_WATCH_3_CONFIG
+from momentum_screener.daily_watch_3 import LOAD_SESSIONS as DAILY_WATCH_3_LOAD_SESSIONS
+from momentum_screener.daily_watch_3 import RPS_LOOKBACKS as DAILY_WATCH_3_RPS_LOOKBACKS
+from momentum_screener.daily_watch_3 import STRATEGY_ID as DAILY_WATCH_3_STRATEGY_ID
+from momentum_screener.daily_watch_3 import (
+    STRATEGY_VERSION as DAILY_WATCH_3_STRATEGY_VERSION,
+)
+from momentum_screener.daily_watch_3 import (
+    calculate_daily_watch_3_core_features,
+    calculate_daily_watch_3_features,
+    daily_watch_3_rps_mask,
+)
 from momentum_screener.market_cap_storage import DEFAULT_MARKET_CAP_ROOT
 from momentum_screener.monthly_reversal import (
     MONTHLY_REVERSAL_LOAD_SESSIONS,
@@ -172,6 +190,28 @@ SUPPORTED_STRATEGIES: Mapping[str, HistoricalStrategy] = MappingProxyType(
             calculate_features=calculate_blue_diamond_core_features,
             config=MappingProxyType(asdict(BLUE_DIAMOND_CONFIG)),
             requires_market_cap=False,
+        ),
+        DAILY_WATCH_3_CORE_STRATEGY_ID: HistoricalStrategy(
+            strategy_id=DAILY_WATCH_3_CORE_STRATEGY_ID,
+            version=DAILY_WATCH_3_CORE_STRATEGY_VERSION,
+            lookbacks=DAILY_WATCH_3_RPS_LOOKBACKS,
+            required_price_rows=DAILY_WATCH_3_CONFIG.required_price_rows,
+            load_sessions=DAILY_WATCH_3_LOAD_SESSIONS,
+            prior_rps_rows=0,
+            calculate_features=calculate_daily_watch_3_core_features,
+            config=MappingProxyType(asdict(DAILY_WATCH_3_CONFIG)),
+            requires_market_cap=False,
+        ),
+        DAILY_WATCH_3_STRATEGY_ID: HistoricalStrategy(
+            strategy_id=DAILY_WATCH_3_STRATEGY_ID,
+            version=DAILY_WATCH_3_STRATEGY_VERSION,
+            lookbacks=DAILY_WATCH_3_RPS_LOOKBACKS,
+            required_price_rows=DAILY_WATCH_3_CONFIG.required_price_rows,
+            load_sessions=DAILY_WATCH_3_LOAD_SESSIONS,
+            prior_rps_rows=0,
+            calculate_features=calculate_daily_watch_3_features,
+            config=MappingProxyType(asdict(DAILY_WATCH_3_CONFIG)),
+            requires_market_cap=True,
         ),
     }
 )
@@ -390,6 +430,18 @@ def run_historical_screening(
                 rps_rows["date"].isin(sessions) & extreme_rps_mask(rps_rows), "ticker"
             ]
         )
+    daily_watch_3_strategy_ids = {
+        DAILY_WATCH_3_CORE_STRATEGY_ID,
+        DAILY_WATCH_3_STRATEGY_ID,
+    }
+    daily_watch_3_candidates = set()
+    if daily_watch_3_strategy_ids.intersection(item.strategy_id for item in selected):
+        daily_watch_3_candidates = set(
+            rps_rows.loc[
+                rps_rows["date"].isin(sessions) & daily_watch_3_rps_mask(rps_rows),
+                "ticker",
+            ]
+        )
     LOGGER.info(
         "Prepared prices once: sessions=%d rows=%d; shared RPS sessions=%d",
         loaded_count,
@@ -404,6 +456,15 @@ def run_historical_screening(
         for item in selected:
             inputs = ticker_rows
             if item.strategy_id in blue_strategy_ids and ticker not in blue_candidates:
+                if item.strategy_id not in templates:
+                    templates[item.strategy_id] = item.calculate_features(
+                        ticker_rows.iloc[:0]
+                    )
+                continue
+            if (
+                item.strategy_id in daily_watch_3_strategy_ids
+                and ticker not in daily_watch_3_candidates
+            ):
                 if item.strategy_id not in templates:
                     templates[item.strategy_id] = item.calculate_features(
                         ticker_rows.iloc[:0]
