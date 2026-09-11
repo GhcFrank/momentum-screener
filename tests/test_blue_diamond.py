@@ -8,6 +8,9 @@ from momentum_screener.blue_diamond import (
     DEFAULT_CONFIG,
     calculate_blue_diamond_features,
 )
+from momentum_screener.blue_diamond_core import (
+    calculate_blue_diamond_core_features,
+)
 from momentum_screener.strategy_data import resolve_strategy_sessions
 
 
@@ -152,4 +155,40 @@ def test_dynamic_pullback_uses_past_series_latest_high_and_missing_caps_fail_clo
         assert not current["normal_turnover"] and not current["signal"]
         assert current["status"] == (
             "price_unavailable" if column == "close" else "market_cap_unavailable"
+        )
+
+
+def test_core_signal_removes_only_turnover_and_allows_missing_market_cap():
+    for frame in (
+        price_frame().assign(market_cap=np.nan),
+        price_frame().assign(
+            market_cap=lambda rows: rows["close"] * rows["volume"] / 0.10
+        ),
+    ):
+        original = calculate_blue_diamond_features(frame)
+        core = calculate_blue_diamond_core_features(frame)
+        assert original["signal"].equals(
+            original["core_signal"] & original["normal_turnover"]
+        )
+        original_row, core_row = original.iloc[-1], core.iloc[-1]
+        assert all(
+            bool(original_row[column])
+            for column in (
+                "controlled_pullback",
+                "near_250_high",
+                "extreme_rps",
+                "near_ma20",
+                "strong_ma_structure",
+                "long_term_trend",
+                "history_sufficient",
+                "core_signal",
+            )
+        )
+        assert not original_row["normal_turnover"]
+        assert not original_row["signal"]
+        assert core_row["core_signal"] and core_row["signal"] and core_row["setup"]
+        assert core_row["status"] == "ok"
+        pd.testing.assert_frame_equal(
+            core.drop(columns=["signal", "setup", "status"]),
+            original.drop(columns=["signal", "setup", "status"]),
         )

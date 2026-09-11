@@ -31,6 +31,13 @@ from momentum_screener.blue_diamond import (
 from momentum_screener.blue_diamond import (
     STRATEGY_VERSION as BLUE_DIAMOND_STRATEGY_VERSION,
 )
+from momentum_screener.blue_diamond_core import (
+    STRATEGY_ID as BLUE_DIAMOND_CORE_STRATEGY_ID,
+)
+from momentum_screener.blue_diamond_core import (
+    STRATEGY_VERSION as BLUE_DIAMOND_CORE_STRATEGY_VERSION,
+)
+from momentum_screener.blue_diamond_core import calculate_blue_diamond_core_features
 from momentum_screener.market_cap_storage import DEFAULT_MARKET_CAP_ROOT
 from momentum_screener.monthly_reversal import (
     MONTHLY_REVERSAL_LOAD_SESSIONS,
@@ -78,6 +85,15 @@ from momentum_screener.trend_reacceleration import (
 from momentum_screener.trend_reacceleration import (
     STRATEGY_VERSION as TREND_STRATEGY_VERSION,
 )
+from momentum_screener.trend_reacceleration_entry import (
+    STRATEGY_ID as TREND_ENTRY_STRATEGY_ID,
+)
+from momentum_screener.trend_reacceleration_entry import (
+    STRATEGY_VERSION as TREND_ENTRY_STRATEGY_VERSION,
+)
+from momentum_screener.trend_reacceleration_entry import (
+    calculate_trend_reacceleration_entry_features,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -123,6 +139,18 @@ SUPPORTED_STRATEGIES: Mapping[str, HistoricalStrategy] = MappingProxyType(
             calculate_features=calculate_trend_reacceleration_features,
             config=MappingProxyType(asdict(DEFAULT_CONFIG)),
         ),
+        TREND_ENTRY_STRATEGY_ID: HistoricalStrategy(
+            strategy_id=TREND_ENTRY_STRATEGY_ID,
+            version=TREND_ENTRY_STRATEGY_VERSION,
+            lookbacks=TREND_REACCELERATION_RPS_LOOKBACKS,
+            required_price_rows=DEFAULT_CONFIG.required_price_rows,
+            load_sessions=TREND_REACCELERATION_LOAD_SESSIONS,
+            # Warmed prices alone cannot establish the previous setup: its
+            # momentum check also needs RPS on the actual preceding ticker row.
+            prior_rps_rows=1,
+            calculate_features=calculate_trend_reacceleration_entry_features,
+            config=MappingProxyType(asdict(DEFAULT_CONFIG)),
+        ),
         BLUE_DIAMOND_STRATEGY_ID: HistoricalStrategy(
             strategy_id=BLUE_DIAMOND_STRATEGY_ID,
             version=BLUE_DIAMOND_STRATEGY_VERSION,
@@ -133,6 +161,17 @@ SUPPORTED_STRATEGIES: Mapping[str, HistoricalStrategy] = MappingProxyType(
             calculate_features=calculate_blue_diamond_features,
             config=MappingProxyType(asdict(BLUE_DIAMOND_CONFIG)),
             requires_market_cap=True,
+        ),
+        BLUE_DIAMOND_CORE_STRATEGY_ID: HistoricalStrategy(
+            strategy_id=BLUE_DIAMOND_CORE_STRATEGY_ID,
+            version=BLUE_DIAMOND_CORE_STRATEGY_VERSION,
+            lookbacks=BLUE_DIAMOND_RPS_LOOKBACKS,
+            required_price_rows=BLUE_DIAMOND_CONFIG.required_price_rows,
+            load_sessions=BLUE_DIAMOND_LOAD_SESSIONS,
+            prior_rps_rows=0,
+            calculate_features=calculate_blue_diamond_core_features,
+            config=MappingProxyType(asdict(BLUE_DIAMOND_CONFIG)),
+            requires_market_cap=False,
         ),
     }
 )
@@ -208,14 +247,16 @@ def _select_strategies(
     if unknown:
         raise HistoricalScreeningError(f"Unsupported strategies: {unknown}")
     registry = dict(SUPPORTED_STRATEGIES)
-    registry[TREND_STRATEGY_ID] = replace(
-        registry[TREND_STRATEGY_ID],
-        required_price_rows=config.required_price_rows,
-        calculate_features=partial(
-            calculate_trend_reacceleration_features, config=config
-        ),
-        config=asdict(config),
-    )
+    for strategy_id, calculate in (
+        (TREND_STRATEGY_ID, calculate_trend_reacceleration_features),
+        (TREND_ENTRY_STRATEGY_ID, calculate_trend_reacceleration_entry_features),
+    ):
+        registry[strategy_id] = replace(
+            registry[strategy_id],
+            required_price_rows=config.required_price_rows,
+            calculate_features=partial(calculate, config=config),
+            config=asdict(config),
+        )
     return tuple(registry[value] for value in dict.fromkeys(ids))
 
 
@@ -338,8 +379,12 @@ def run_historical_screening(
         rps_snapshots=rps_snapshots,
     )
     prepared = merge_prices_and_rps(prices, rps_rows, lookbacks=lookbacks)
+    blue_strategy_ids = {
+        BLUE_DIAMOND_STRATEGY_ID,
+        BLUE_DIAMOND_CORE_STRATEGY_ID,
+    }
     blue_candidates = set()
-    if caps is not None:
+    if blue_strategy_ids.intersection(item.strategy_id for item in selected):
         blue_candidates = set(
             rps_rows.loc[
                 rps_rows["date"].isin(sessions) & extreme_rps_mask(rps_rows), "ticker"
@@ -358,13 +403,13 @@ def run_historical_screening(
     ):
         for item in selected:
             inputs = ticker_rows
+            if item.strategy_id in blue_strategy_ids and ticker not in blue_candidates:
+                if item.strategy_id not in templates:
+                    templates[item.strategy_id] = item.calculate_features(
+                        ticker_rows.iloc[:0]
+                    )
+                continue
             if item.requires_market_cap:
-                if ticker not in blue_candidates:
-                    if item.strategy_id not in templates:
-                        templates[item.strategy_id] = item.calculate_features(
-                            ticker_rows.iloc[:0]
-                        )
-                    continue
                 inputs = ticker_rows.merge(
                     caps.loc[caps["ticker"].eq(ticker)],
                     on=["date", "ticker"],
