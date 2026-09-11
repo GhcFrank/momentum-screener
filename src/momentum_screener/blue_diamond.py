@@ -146,6 +146,7 @@ BOOLEAN_COLUMNS = (
     "near_ma20",
     "strong_ma_structure",
     "long_term_trend",
+    "core_signal",
     "normal_turnover",
     "rps20_available",
     "rps50_available",
@@ -346,16 +347,16 @@ def calculate_blue_diamond_features(
     result["history_sufficient"] = rolling_every(
         result["adjusted_ohlc_valid"], config.required_price_rows
     )
-    result["signal"] = (
+    result["core_signal"] = (
         result["controlled_pullback"]
         & result["near_250_high"]
         & result["extreme_rps"]
         & result["near_ma20"]
         & result["strong_ma_structure"]
         & result["long_term_trend"]
-        & result["normal_turnover"]
         & result["history_sufficient"]
     )
+    result["signal"] = result["core_signal"] & result["normal_turnover"]
     result["setup"] = result["signal"]
     result["status"] = np.select(
         [

@@ -16,6 +16,12 @@ HOST = "127.0.0.1"
 PORT = 8000
 URL = f"http://{HOST}:{PORT}"
 DEFAULT_SIGNAL_PATH = "/home/gooder/momentum-screener-research/"
+STRATEGY_DISPLAY_NAMES = {
+    "blue_diamond": "蓝色钻石",
+    "blue_diamond_core": "蓝色钻石 Core",
+    "trend_reacceleration": "顺向火车2",
+    "trend_reacceleration_entry": "顺向火车2 · 首次触发（实验）",
+}
 
 
 def render_app() -> None:
@@ -128,6 +134,9 @@ def render_app() -> None:
     selected_strategies = st.pills(
         "Strategies",
         sorted(signals["strategy_id"].unique()),
+        format_func=lambda strategy_id: STRATEGY_DISPLAY_NAMES.get(
+            strategy_id, strategy_id
+        ),
         selection_mode="multi",
         key="selected_strategies",
     )

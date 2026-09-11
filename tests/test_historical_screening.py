@@ -782,3 +782,136 @@ def test_blue_diamond_registry_market_cap_coverage_store_csv_and_live_queries(
     )
     assert read_strategy_signals("blue_diamond", root=dataset.output_store).empty
     assert pd.read_csv(csv).empty
+
+
+def test_entry_registry_is_opt_in_and_applies_the_same_custom_trend_config(dataset):
+    assert engine.DEFAULT_STRATEGIES == ("monthly_reversal", "trend_reacceleration")
+    config = replace(DEFAULT_CONFIG, rps_sum_threshold=199, ma_long_count_window=60)
+    original, entry = engine._select_strategies(
+        ("trend_reacceleration", "trend_reacceleration_entry"), config
+    )
+    assert entry.version == "1.0"
+    assert entry.lookbacks == original.lookbacks
+    assert entry.load_sessions == original.load_sessions
+    assert (
+        entry.required_price_rows
+        == original.required_price_rows
+        == config.required_price_rows
+    )
+    assert not entry.requires_market_cap
+    assert entry.config == original.config
+    prepared = data.merge_prices_and_rps(
+        dataset.prices, dataset.rps, lookbacks=original.lookbacks
+    )
+    ticker = prepared.loc[prepared["ticker"].eq("TREND")]
+    assert calculate_trend_reacceleration_features(ticker)["setup"].any()
+    baseline = original.calculate_features(ticker)
+    experiment = entry.calculate_features(ticker)
+    assert not experiment["setup"].any()  # Default config would pass these rows.
+    pd.testing.assert_frame_equal(
+        experiment.drop(columns="signal"), baseline.drop(columns="signal")
+    )
+
+
+def test_entry_uses_warmed_previous_ticker_setup_before_clipping_requested_range(
+    dataset,
+):
+    # Skip a market session so the predecessor must be the actual ticker row.
+    dataset.prices = dataset.prices.loc[
+        ~(
+            dataset.prices["ticker"].eq("TREND")
+            & dataset.prices["date"].eq(date(2026, 9, 1))
+        )
+    ].copy()
+    dataset.rps.loc[
+        dataset.rps["ticker"].eq("TREND") & dataset.rps["date"].eq(date(2026, 9, 3)),
+        ["rps120", "rps250"],
+    ] = 0.0
+    dataset.save()
+    dataset.run(strategies=("trend_reacceleration", "trend_reacceleration_entry"))
+    original = read_strategy_signals("trend_reacceleration", root=dataset.output_store)
+    entry = read_strategy_signals(
+        "trend_reacceleration_entry", root=dataset.output_store
+    )
+    assert original["ticker"].tolist() == ["TREND", "TREND"]
+    assert original["session"].tolist() == [date(2026, 9, 2), date(2026, 9, 4)]
+    assert entry["ticker"].tolist() == ["TREND"]
+    assert entry["session"].tolist() == [date(2026, 9, 4)]
+    # Explicit entry-only execution must have the same warmed boundary behavior.
+    alone = dataset.run(
+        strategies="trend_reacceleration_entry",
+        output_store=dataset.output_store / "entry-only",
+    )
+    pd.testing.assert_frame_equal(
+        stable(
+            read_strategy_signals("trend_reacceleration_entry", root=alone.output_store)
+        ),
+        stable(entry),
+    )
+
+
+def test_blue_diamond_core_registry_and_historical_run_need_no_market_cap(
+    dataset: HistoricalDataset, tmp_path: Path
+) -> None:
+    from momentum_screener.signal_store import export_signal_csv
+    from momentum_screener.signal_ui_data import LocalFile, read_signal_csv
+
+    original = engine.SUPPORTED_STRATEGIES["blue_diamond"]
+    core = engine.SUPPORTED_STRATEGIES["blue_diamond_core"]
+    assert original.requires_market_cap is True
+    assert core.requires_market_cap is False
+    assert core.version == "1.0"
+    assert core.lookbacks == original.lookbacks == (20, 50)
+    assert core.required_price_rows == original.required_price_rows == 250
+    assert core.load_sessions == original.load_sessions
+    assert core.prior_rps_rows == original.prior_rps_rows == 0
+    assert core.config == original.config
+    assert "blue_diamond_core" not in engine.DEFAULT_STRATEGIES
+
+    session = date(2026, 9, 4)
+    trend = dataset.prices.loc[dataset.prices["ticker"].eq("TREND")].copy()
+    for offset in (-2, -1):
+        closing = trend["adj_close"].iloc[offset - 19 : offset].mean() * 0.999
+        index = trend.index[offset]
+        trend.loc[index, ["open", "close", "adj_close"]] = closing
+        trend.loc[index, "high"] = closing + 0.2
+        trend.loc[index, "low"] = closing - 0.2
+    dataset.prices = pd.concat(
+        [dataset.prices.loc[~dataset.prices["ticker"].eq("TREND")], trend],
+        ignore_index=True,
+    )
+    dataset.rps["rps20"] = -1.0
+    dataset.rps.loc[dataset.rps["ticker"].eq("TREND"), ["rps20", "rps50"]] = [
+        98.0,
+        95.0,
+    ]
+    dataset.save()
+
+    missing_caps = tmp_path / "no-market-cap-history"
+    summary = dataset.run(
+        session,
+        session,
+        strategies="blue_diamond_core",
+        market_cap_root=missing_caps,
+    )
+    assert summary.strategy_summaries["blue_diamond_core"]["signals"] == 1
+    stored = read_strategy_signals("blue_diamond_core", root=dataset.output_store)
+    assert stored["ticker"].tolist() == ["TREND"]
+    assert stored["strategy_version"].tolist() == ["1.0"]
+    assert stored["core_signal"].tolist() == stored["signal"].tolist() == [True]
+    assert stored["market_cap"].isna().all()
+    assert stored["normal_turnover"].tolist() == [False]
+
+    csv = tmp_path / "blue-diamond-core.csv"
+    export_signal_csv(csv, session, session, root=dataset.output_store)
+    ui_rows, warnings = read_signal_csv(LocalFile.inspect(csv))
+    assert not warnings
+    assert set(ui_rows["strategy_id"]) == {"blue_diamond_core"}
+
+    with pytest.raises(data.StrategyDataError, match="MarketCap data unavailable"):
+        dataset.run(
+            session,
+            session,
+            strategies="blue_diamond",
+            market_cap_root=missing_caps,
+        )
