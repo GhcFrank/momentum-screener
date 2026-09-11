@@ -1,4 +1,4 @@
-"""Shared point-in-time price and RPS access for strategy queries.
+"""Shared point-in-time price, RPS and MarketCap access for strategy queries.
 
 This layer reads existing stores and never persists data. RPS fallback always
 ranks the complete Universe, even when only one ticker's result is requested.
@@ -11,6 +11,7 @@ from datetime import date
 from pathlib import Path
 
 import exchange_calendars as xcals  # type: ignore[import-untyped]
+import numpy as np
 import pandas as pd  # type: ignore[import-untyped]
 import pyarrow as pa
 
@@ -43,10 +44,171 @@ from momentum_screener.rps_storage import (
     read_rps_history,
 )
 from momentum_screener.storage_manifest import load_manifest
+from momentum_screener.technical_features import safe_ratio
+from momentum_screener.universe import normalize_ticker
 
 
 class StrategyDataError(RuntimeError):
     """A strategy date range cannot be queried safely."""
+
+
+_TURNOVER_COLUMNS = (
+    "date",
+    "ticker",
+    "raw_close",
+    "volume",
+    "market_cap",
+    "dollar_volume",
+    "turnover",
+    "turnover_available",
+)
+
+
+def calculate_turnover_columns(rows: pd.DataFrame) -> pd.DataFrame:
+    """Add raw-close turnover diagnostics without changing or dropping rows."""
+
+    required = {"close", "volume", "market_cap"}
+    missing = sorted(required.difference(rows.columns))
+    if missing:
+        raise ValueError(f"Turnover input is missing columns: {missing}")
+
+    result = rows.copy()
+    original_attrs = rows.attrs.copy()
+    raw_close = pd.to_numeric(result["close"], errors="coerce").astype("float64")
+    volume = pd.to_numeric(result["volume"], errors="coerce").astype("float64")
+    market_cap = pd.to_numeric(result["market_cap"], errors="coerce").astype("float64")
+    result["raw_close"] = raw_close
+    result["volume"] = volume
+    result["market_cap"] = market_cap
+    result["turnover_available"] = (
+        np.isfinite(market_cap)
+        & market_cap.gt(0)
+        & np.isfinite(raw_close)
+        & raw_close.gt(0)
+        & np.isfinite(volume)
+        & volume.ge(0)
+    )
+    with np.errstate(over="ignore", invalid="ignore"):
+        dollar_volume = raw_close * volume
+    result["dollar_volume"] = dollar_volume.where(np.isfinite(dollar_volume))
+    result["turnover"] = safe_ratio(result["dollar_volume"], market_cap).where(
+        result["turnover_available"]
+    )
+    result.attrs = original_attrs
+    return result
+
+
+def load_session_turnover(
+    session: date,
+    tickers: Iterable[str],
+    *,
+    prices_root: Path = DEFAULT_OUTPUT_ROOT,
+    market_cap_root: Path = DEFAULT_MARKET_CAP_ROOT,
+    universe_path: Path = DEFAULT_UNIVERSE,
+    market_cap_rows: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """Load one exact session once and calculate turnover for requested tickers."""
+
+    requested = coerce_session_date(session)
+    normalized: list[str] = []
+    for ticker in tickers:
+        value = normalize_ticker(ticker)
+        if value is None:
+            raise ValueError(f"Invalid ticker for turnover lookup: {ticker!r}")
+        if value not in normalized:
+            normalized.append(value)
+    if not normalized:
+        return pd.DataFrame(
+            {
+                "date": pd.Series(dtype="object"),
+                "ticker": pd.Series(dtype="string"),
+                "raw_close": pd.Series(dtype="float64"),
+                "volume": pd.Series(dtype="float64"),
+                "market_cap": pd.Series(dtype="float64"),
+                "dollar_volume": pd.Series(dtype="float64"),
+                "turnover": pd.Series(dtype="float64"),
+                "turnover_available": pd.Series(dtype="bool"),
+            }
+        ).loc[:, _TURNOVER_COLUMNS]
+
+    prices, _ = load_strategy_price_history(
+        start_date=requested,
+        end_date=requested,
+        required_sessions=1,
+        tickers=tuple(normalized),
+        prices_root=prices_root,
+        universe_path=universe_path,
+    )
+    prices = prices.loc[
+        prices["date"].eq(requested), ["date", "ticker", "close", "volume"]
+    ]
+    if market_cap_rows is None:
+        caps = load_strategy_market_cap(
+            (requested,), root=market_cap_root, universe_path=universe_path
+        )
+    else:
+        required_caps = {"date", "ticker", "market_cap"}
+        missing_caps = sorted(required_caps.difference(market_cap_rows.columns))
+        if missing_caps:
+            raise ValueError(f"MarketCap rows are missing columns: {missing_caps}")
+        caps = market_cap_rows.loc[:, ["date", "ticker", "market_cap"]].copy()
+        caps["date"] = normalize_date_values(caps["date"])
+        caps = caps.loc[caps["date"].eq(requested)].copy()
+        if caps["ticker"].isna().any():
+            raise ValueError("MarketCap rows contain an invalid ticker")
+        caps["ticker"] = caps["ticker"].map(normalize_ticker).astype("string")
+        if caps["ticker"].isna().any():
+            raise ValueError("MarketCap rows contain an invalid ticker")
+        if bool(caps.duplicated(["date", "ticker"]).any()):
+            raise ValueError("MarketCap rows contain duplicate date/ticker keys")
+
+    keys = pd.DataFrame({"date": requested, "ticker": pd.Series(normalized)})
+    prepared = keys.merge(
+        prices, on=["date", "ticker"], how="left", validate="one_to_one"
+    ).merge(caps, on=["date", "ticker"], how="left", validate="one_to_one")
+    return calculate_turnover_columns(prepared).loc[:, _TURNOVER_COLUMNS]
+
+
+def enrich_signal_turnover(
+    rows: pd.DataFrame, turnover_rows: pd.DataFrame
+) -> pd.DataFrame:
+    """Left-enrich signal rows by exact date/ticker while preserving their attrs."""
+
+    required = {"date", "ticker"}
+    missing = sorted(required.difference(rows.columns))
+    if missing:
+        raise ValueError(f"Signal rows are missing columns: {missing}")
+    lookup_required = {"date", "ticker", "turnover"}
+    lookup_missing = sorted(lookup_required.difference(turnover_rows.columns))
+    if lookup_missing:
+        raise ValueError(f"Turnover rows are missing columns: {lookup_missing}")
+
+    result = rows.copy()
+    original_attrs = rows.attrs.copy()
+    lookup = turnover_rows.loc[:, ["date", "ticker", "turnover"]].copy()
+    lookup["date"] = normalize_date_values(lookup["date"])
+    if lookup["ticker"].isna().any():
+        raise ValueError("Turnover rows contain an invalid ticker")
+    lookup["ticker"] = lookup["ticker"].map(normalize_ticker)
+    if lookup["ticker"].isna().any():
+        raise ValueError("Turnover rows contain an invalid ticker")
+    if bool(lookup.duplicated(["date", "ticker"]).any()):
+        raise ValueError("Turnover rows contain duplicate date/ticker keys")
+
+    dates = normalize_date_values(result["date"])
+    if result["ticker"].isna().any():
+        raise ValueError("Signal rows contain an invalid ticker")
+    tickers_normalized = result["ticker"].map(normalize_ticker)
+    if tickers_normalized.isna().any():
+        raise ValueError("Signal rows contain an invalid ticker")
+    values = lookup.set_index(["date", "ticker"])["turnover"].reindex(
+        pd.MultiIndex.from_arrays([dates, tickers_normalized])
+    )
+    result["turnover"] = pd.to_numeric(
+        pd.Series(values.to_numpy(), index=result.index), errors="coerce"
+    ).astype("float64")
+    result.attrs = original_attrs
+    return result
 
 
 def load_strategy_market_cap(

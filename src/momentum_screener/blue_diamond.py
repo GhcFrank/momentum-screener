@@ -20,6 +20,7 @@ from momentum_screener.rps import INVALID_RPS
 from momentum_screener.rps_storage import DEFAULT_RPS_ROOT
 from momentum_screener.strategy_data import (
     StrategyDataError,
+    calculate_turnover_columns,
     coerce_session_date,
     load_or_calculate_rps,
     load_strategy_market_cap,
@@ -334,21 +335,10 @@ def calculate_blue_diamond_features(
         & result["ma50"].gt(result["ma200"])
         & result["ma50"].gt(result["ma250"])
     )
-    cap, raw, volume = result["market_cap"], result["raw_close"], result["volume"]
-    result["market_cap_available"] = (
-        np.isfinite(cap)
-        & cap.gt(0)
-        & np.isfinite(raw)
-        & raw.gt(0)
-        & np.isfinite(volume)
-        & volume.ge(0)
-    )
-    with np.errstate(over="ignore", invalid="ignore"):
-        dollars = raw * volume
-    result["dollar_volume"] = dollars.where(np.isfinite(dollars))
-    result["turnover"] = safe_ratio(result["dollar_volume"], cap).where(
-        result["market_cap_available"]
-    )
+    turnover = calculate_turnover_columns(result)
+    result["market_cap_available"] = turnover["turnover_available"]
+    result["dollar_volume"] = turnover["dollar_volume"]
+    result["turnover"] = turnover["turnover"]
     result["normal_turnover"] = result["market_cap_available"] & result["turnover"].lt(
         config.turnover_max
     )
@@ -503,6 +493,7 @@ def screen_blue_diamond(
     rps_root: Path | None = DEFAULT_RPS_ROOT,
     market_cap_root: Path = DEFAULT_MARKET_CAP_ROOT,
     rps_snapshots: pd.DataFrame | None = None,
+    market_cap_rows: pd.DataFrame | None = None,
     config: BlueDiamondConfig = DEFAULT_CONFIG,
 ) -> pd.DataFrame:
     """Prefilter exact RPS, then calculate price histories only for candidates.
@@ -511,10 +502,50 @@ def screen_blue_diamond(
     Missing ticker caps fail closed; an absent whole-session snapshot raises.
     """
     requested = coerce_session_date(as_of_date, lookbacks=BLUE_DIAMOND_RPS_LOOKBACKS)
-    caps = load_strategy_market_cap(
-        (requested,), root=market_cap_root, universe_path=universe_path
-    )
-    universe = load_universe(universe_path)
+    if market_cap_rows is None:
+        caps = load_strategy_market_cap(
+            (requested,), root=market_cap_root, universe_path=universe_path
+        )
+        universe = load_universe(universe_path)
+    else:
+        universe = load_universe(universe_path)
+        required_caps = {"date", "ticker", "market_cap"}
+        missing_caps = sorted(required_caps.difference(market_cap_rows.columns))
+        if missing_caps:
+            raise ValueError(f"MarketCap rows are missing columns: {missing_caps}")
+        caps = market_cap_rows.loc[:, ["date", "ticker", "market_cap"]].copy()
+        caps["date"] = normalize_date_values(caps["date"])
+        if caps.empty or not bool(caps["date"].eq(requested).all()):
+            raise ValueError("MarketCap rows must match the requested session exactly")
+        if caps["ticker"].isna().any():
+            raise ValueError("MarketCap rows contain an invalid ticker")
+        caps["ticker"] = caps["ticker"].map(normalize_ticker).astype("string")
+        if caps["ticker"].isna().any():
+            raise ValueError("MarketCap rows contain an invalid ticker")
+        if bool(caps.duplicated(["date", "ticker"]).any()):
+            raise ValueError("MarketCap rows contain duplicate date/ticker keys")
+        unknown = sorted(set(caps["ticker"]).difference(universe))
+        if unknown:
+            raise ValueError(
+                f"MarketCap rows contain tickers outside the Universe: {unknown}"
+            )
+        cap_values = pd.to_numeric(caps["market_cap"], errors="coerce")
+        if not bool((np.isfinite(cap_values) & cap_values.gt(0)).all()):
+            raise ValueError("MarketCap rows contain invalid market_cap values")
+        caps["market_cap"] = cap_values.astype("float64")
+        session_key = requested.isoformat()
+        session_counts = market_cap_rows.attrs.get("session_counts", {})
+        counts = (
+            session_counts.get(session_key)
+            if isinstance(session_counts, dict)
+            else None
+        )
+        if not isinstance(counts, dict):
+            counts = {
+                "market_cap_available_count": len(caps),
+                "market_cap_missing_ticker_count": max(len(universe) - len(caps), 0),
+            }
+        caps.attrs["session_counts"] = {session_key: counts}
     rps_rows = load_or_calculate_rps(
         (requested,),
         lookbacks=BLUE_DIAMOND_RPS_LOOKBACKS,

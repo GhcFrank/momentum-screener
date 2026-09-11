@@ -1,4 +1,4 @@
-"""Share daily RPS preparation and send one email containing both strategies."""
+"""Share daily inputs and send one email containing all production strategies."""
 
 from __future__ import annotations
 
@@ -15,6 +15,12 @@ from typing import TextIO
 import pandas as pd  # type: ignore[import-untyped]
 from dotenv import load_dotenv
 
+from momentum_screener.blue_diamond import (
+    STRATEGY_DESCRIPTION as BLUE_DIAMOND_DESCRIPTION,
+)
+from momentum_screener.blue_diamond import STRATEGY_NAME as BLUE_DIAMOND_NAME
+from momentum_screener.blue_diamond import screen_blue_diamond
+from momentum_screener.market_cap_storage import DEFAULT_MARKET_CAP_ROOT
 from momentum_screener.monthly_reversal import (
     MONTHLY_REVERSAL_SIGNAL_WINDOW,
     screen_monthly_reversal,
@@ -23,6 +29,7 @@ from momentum_screener.monthly_reversal_notification import (
     MonthlyReversalNotificationResult,
     _coerce_as_of_date,
     _format_number,
+    _format_percentage,
     render_monthly_reversal_email,
 )
 from momentum_screener.prices import DEFAULT_OUTPUT_ROOT, DEFAULT_UNIVERSE
@@ -38,7 +45,10 @@ from momentum_screener.rps_storage import DEFAULT_RPS_ROOT, persist_rps_snapshot
 from momentum_screener.storage_manifest import write_json_atomically
 from momentum_screener.strategy_data import (
     coerce_session_date,
+    enrich_signal_turnover,
     load_or_calculate_rps,
+    load_session_turnover,
+    load_strategy_market_cap,
     resolve_strategy_sessions,
 )
 from momentum_screener.trend_reacceleration import (
@@ -54,11 +64,13 @@ LOGGER = logging.getLogger(__name__)
 
 @dataclass(frozen=True, slots=True)
 class DailyScreeningNotificationResult(MonthlyReversalNotificationResult):
-    """Keep Monthly Reversal summary keys and add explicit second-strategy keys."""
+    """Keep Monthly Reversal summary keys and add the other daily strategies."""
 
     trend_momentum_candidate_count: int
     trend_signal_count: int
     trend_candidate_tickers: tuple[str, ...]
+    blue_diamond_signal_count: int
+    blue_diamond_candidate_tickers: tuple[str, ...]
 
     def as_dict(self) -> dict[str, object]:
         result = MonthlyReversalNotificationResult.as_dict(self)
@@ -67,9 +79,76 @@ class DailyScreeningNotificationResult(MonthlyReversalNotificationResult):
                 "trend_momentum_candidate_count": self.trend_momentum_candidate_count,
                 "trend_signal_count": self.trend_signal_count,
                 "trend_candidate_tickers": list(self.trend_candidate_tickers),
+                "blue_diamond_signal_count": self.blue_diamond_signal_count,
+                "blue_diamond_candidate_tickers": list(
+                    self.blue_diamond_candidate_tickers
+                ),
             }
         )
         return result
+
+
+def _render_strategy_section(
+    *,
+    rows: pd.DataFrame,
+    name: str,
+    description: str,
+    columns: tuple[tuple[str, str, int], ...],
+) -> tuple[list[str], str]:
+    """Render one already-selected strategy without changing its signal mask."""
+
+    required = {"ticker", "signal"} | {
+        key for key, _, _ in columns if key not in {"adj_close", "turnover"}
+    }
+    missing = sorted(required.difference(rows.columns))
+    if missing:
+        raise ValueError(f"{name} email rows are missing columns: {missing}")
+    selected = rows.loc[rows["signal"].fillna(False).astype("bool")].sort_values(
+        "ticker", kind="mergesort"
+    )
+    text_lines = [name, description, f"Signal count: {len(selected)}", ""]
+    html = (
+        f"<h2>{escape(name)}</h2><p>{escape(description)}</p>"
+        f"<p>Signal count: <strong>{len(selected)}</strong></p>"
+    )
+    if selected.empty:
+        text_lines.append("No matches.")
+        return text_lines, html + "<p>No matches.</p>"
+
+    headers = (("ticker", "Ticker", 12), *columns)
+    text_lines.append(
+        " ".join(
+            f"{label:<{width}}" if key == "ticker" else f"{label:>{width}}"
+            for key, label, width in headers
+        )
+    )
+    html_rows: list[str] = []
+    for _, row in selected.iterrows():
+        values = [str(row["ticker"])]
+        for key, _, _ in columns:
+            value = row.get(key)
+            values.append(
+                _format_percentage(value)
+                if key == "turnover"
+                else _format_number(value)
+            )
+        text_lines.append(
+            " ".join(
+                f"{value:<{width}}" if index == 0 else f"{value:>{width}}"
+                for index, (value, (_, _, width)) in enumerate(zip(values, headers))
+            )
+        )
+        html_rows.append(
+            "<tr>" + "".join(f"<td>{escape(value)}</td>" for value in values) + "</tr>"
+        )
+    html += (
+        '<table style="border-collapse:collapse"><thead><tr>'
+        + "".join(f"<th>{escape(label)}</th>" for _, label, _ in headers)
+        + "</tr></thead><tbody>"
+        + "".join(html_rows)
+        + "</tbody></table>"
+    )
+    return text_lines, html
 
 
 def render_daily_screening_email(
@@ -77,64 +156,52 @@ def render_daily_screening_email(
     as_of_date: date,
     monthly_reversal_rows: pd.DataFrame,
     trend_reacceleration_rows: pd.DataFrame,
+    blue_diamond_rows: pd.DataFrame | None = None,
 ) -> RenderedRpsEmail:
-    """Render independent signal sections; never suppress yesterday's tickers."""
+    """Render three independent signal sections with presentation turnover."""
 
+    monthly_rows = monthly_reversal_rows.copy()
+    if "turnover" not in monthly_rows:
+        monthly_rows["turnover"] = float("nan")
     monthly = render_monthly_reversal_email(
-        as_of_date=as_of_date, screen_rows=monthly_reversal_rows
+        as_of_date=as_of_date, screen_rows=monthly_rows
     )
-    required = {"ticker", "rps120", "rps250", "signal"}
-    missing = sorted(required.difference(trend_reacceleration_rows.columns))
-    if missing:
-        raise ValueError(
-            f"Trend Re-acceleration email rows are missing columns: {missing}"
+    trend_text, trend_html = _render_strategy_section(
+        rows=trend_reacceleration_rows,
+        name=STRATEGY_NAME,
+        description=STRATEGY_DESCRIPTION,
+        columns=(
+            ("rps120", "RPS120", 8),
+            ("rps250", "RPS250", 8),
+            ("adj_close", "Adj Close", 12),
+            ("turnover", "Turnover", 10),
+        ),
+    )
+    if blue_diamond_rows is None:
+        blue_diamond_rows = pd.DataFrame(
+            columns=("ticker", "rps20", "rps50", "adj_close", "signal")
         )
-    rows = trend_reacceleration_rows.loc[
-        trend_reacceleration_rows["signal"].fillna(False).astype("bool")
-    ].sort_values("ticker", kind="mergesort")
+    blue_text, blue_html = _render_strategy_section(
+        rows=blue_diamond_rows,
+        name=f"Blue Diamond / {BLUE_DIAMOND_NAME}",
+        description=BLUE_DIAMOND_DESCRIPTION,
+        columns=(
+            ("rps20", "RPS20", 8),
+            ("rps50", "RPS50", 8),
+            ("adj_close", "Adj Close", 12),
+            ("turnover", "Turnover", 10),
+        ),
+    )
     title = f"Momentum Screener — {as_of_date.isoformat()}"
     text_lines = [
         title,
         "",
         monthly.text_body.rstrip(),
         "",
-        STRATEGY_NAME,
-        STRATEGY_DESCRIPTION,
-        f"Signal count: {len(rows)}",
+        *trend_text,
         "",
+        *blue_text,
     ]
-    trend_html = (
-        f"<h2>{STRATEGY_NAME}</h2><p>{STRATEGY_DESCRIPTION}</p>"
-        f"<p>Signal count: <strong>{len(rows)}</strong></p>"
-    )
-    if rows.empty:
-        text_lines.append("No matches.")
-        trend_html += "<p>No matches.</p>"
-    else:
-        text_lines.append(
-            f"{'Ticker':<12} {'RPS120':>8} {'RPS250':>8} {'Adj Close':>12}"
-        )
-        table_rows: list[str] = []
-        for _, row in rows.iterrows():
-            values = [
-                str(row["ticker"]),
-                _format_number(row["rps120"]),
-                _format_number(row["rps250"]),
-                _format_number(row.get("adj_close")),
-            ]
-            text_lines.append(
-                f"{values[0]:<12} {values[1]:>8} {values[2]:>8} {values[3]:>12}"
-            )
-            table_rows.append(
-                "<tr>"
-                + "".join(f"<td>{escape(value)}</td>" for value in values)
-                + "</tr>"
-            )
-        trend_html += (
-            '<table style="border-collapse:collapse"><thead><tr>'
-            "<th>Ticker</th><th>RPS120</th><th>RPS250</th><th>Adj Close</th>"
-            "</tr></thead><tbody>" + "".join(table_rows) + "</tbody></table>"
-        )
     monthly_html = monthly.html_body.partition("<body>")[2].rpartition("</body>")[0]
     monthly_html = monthly_html.replace("<h1>", "<h2>").replace("</h1>", "</h2>")
     return RenderedRpsEmail(
@@ -145,6 +212,7 @@ def render_daily_screening_email(
             + f"<h1>{title}</h1>"
             + monthly_html
             + trend_html
+            + blue_html
             + "</body></html>"
         ),
     )
@@ -155,6 +223,7 @@ def run_daily_screening_notification(
     as_of_date: date | str | None = None,
     prices_root: Path = DEFAULT_OUTPUT_ROOT,
     rps_root: Path = DEFAULT_RPS_ROOT,
+    market_cap_root: Path = DEFAULT_MARKET_CAP_ROOT,
     universe_path: Path = DEFAULT_UNIVERSE,
     environ: Mapping[str, str] | None = None,
     dry_run: bool = False,
@@ -162,10 +231,10 @@ def run_daily_screening_notification(
     trend_config: TrendReaccelerationConfig = DEFAULT_CONFIG,
     prepared_email_path: Path | None = None,
 ) -> DailyScreeningNotificationResult:
-    """Load/calculate shared RPS once, persist today's rows once, send one email.
+    """Load shared point-in-time inputs once and send one screening email.
 
     The 15-session batch warms Monthly Reversal's existing first-occurrence
-    logic; Trend Re-acceleration uses only today's RPS from the same batch.
+    logic; Trend and Blue Diamond use today's RPS from the same batch.
     dry_run renders without loading SMTP config, contacting SMTP or persisting.
     """
 
@@ -182,6 +251,9 @@ def run_daily_screening_notification(
         else _coerce_as_of_date(as_of_date)
     )
     LOGGER.info("Daily screening session=%s", session.isoformat())
+    market_cap_rows = load_strategy_market_cap(
+        (session,), root=market_cap_root, universe_path=universe_path
+    )
     sessions = resolve_strategy_sessions(session, MONTHLY_REVERSAL_SIGNAL_WINDOW)
     shared_rps = load_or_calculate_rps(
         sessions,
@@ -192,7 +264,7 @@ def run_daily_screening_notification(
     )
     snapshot = shared_rps.loc[shared_rps["date"].eq(session)].copy()
     LOGGER.info(
-        "Prepared shared RPS50/RPS120/RPS250 sessions=%d current_rows=%d",
+        "Prepared shared RPS20/RPS50/RPS120/RPS250 sessions=%d current_rows=%d",
         len(sessions),
         len(snapshot),
     )
@@ -221,10 +293,39 @@ def run_daily_screening_notification(
         rps_snapshots=shared_rps,
         config=trend_config,
     )
+    blue_diamond = screen_blue_diamond(
+        session,
+        signal_only=True,
+        prices_root=prices_root,
+        universe_path=universe_path,
+        rps_root=None,
+        rps_snapshots=shared_rps,
+        market_cap_root=market_cap_root,
+        market_cap_rows=market_cap_rows,
+    )
+    signal_tickers = tuple(
+        dict.fromkeys(
+            str(ticker)
+            for rows in (monthly, trend, blue_diamond)
+            for ticker in rows["ticker"]
+        )
+    )
+    turnover_rows = load_session_turnover(
+        session,
+        signal_tickers,
+        prices_root=prices_root,
+        market_cap_root=market_cap_root,
+        universe_path=universe_path,
+        market_cap_rows=market_cap_rows,
+    )
+    monthly_email_rows = enrich_signal_turnover(monthly, turnover_rows)
+    trend_email_rows = enrich_signal_turnover(trend, turnover_rows)
+    blue_diamond_email_rows = enrich_signal_turnover(blue_diamond, turnover_rows)
     rendered = render_daily_screening_email(
         as_of_date=session,
-        monthly_reversal_rows=monthly,
-        trend_reacceleration_rows=trend,
+        monthly_reversal_rows=monthly_email_rows,
+        trend_reacceleration_rows=trend_email_rows,
+        blue_diamond_rows=blue_diamond_email_rows,
     )
     result = DailyScreeningNotificationResult(
         as_of_date=session,
@@ -238,13 +339,19 @@ def run_daily_screening_notification(
         trend_momentum_candidate_count=int(trend.attrs["momentum_candidate_count"]),
         trend_signal_count=len(trend),
         trend_candidate_tickers=tuple(str(value) for value in trend["ticker"]),
+        blue_diamond_signal_count=len(blue_diamond),
+        blue_diamond_candidate_tickers=tuple(
+            str(value) for value in blue_diamond["ticker"]
+        ),
         subject=rendered.subject,
         dry_run=dry_run,
     )
     LOGGER.info(
-        "Monthly Reversal signals=%d; Trend Re-acceleration signals=%d",
+        "Monthly Reversal signals=%d; Trend Re-acceleration signals=%d; "
+        "Blue Diamond signals=%d",
         len(monthly),
         len(trend),
+        len(blue_diamond),
     )
     if dry_run:
         if preview_stream is not None:
@@ -287,11 +394,12 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     parser = argparse.ArgumentParser(
         prog="python -m momentum_screener.daily_screening_notification",
-        description="Persist daily RPS and email Monthly Reversal and 顺向火车2 signals.",
+        description="Persist daily RPS and email all production screening signals.",
     )
     parser.add_argument("--as-of-date", type=_parse_date)
     parser.add_argument("--prices-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
     parser.add_argument("--rps-root", type=Path, default=DEFAULT_RPS_ROOT)
+    parser.add_argument("--market-cap-root", type=Path, default=DEFAULT_MARKET_CAP_ROOT)
     parser.add_argument("--universe", type=Path, default=DEFAULT_UNIVERSE)
     parser.add_argument("--result-json", type=Path)
     parser.add_argument(
@@ -314,6 +422,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             as_of_date=args.as_of_date,
             prices_root=args.prices_root,
             rps_root=args.rps_root,
+            market_cap_root=args.market_cap_root,
             universe_path=args.universe,
             dry_run=args.dry_run,
             preview_stream=sys.stdout if args.dry_run else None,

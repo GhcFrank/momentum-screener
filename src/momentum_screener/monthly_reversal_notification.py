@@ -69,6 +69,14 @@ def _format_number(value: Any) -> str:
     return f"{parsed:.2f}" if math.isfinite(parsed) else "N/A"
 
 
+def _format_percentage(value: Any) -> str:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return "N/A"
+    return f"{parsed:.2%}" if math.isfinite(parsed) else "N/A"
+
+
 def _signal_rows(rows: pd.DataFrame) -> pd.DataFrame:
     required = {"ticker", "rps50", "rps120", "signal"}
     missing = sorted(required.difference(rows.columns))
@@ -89,6 +97,7 @@ def render_monthly_reversal_email(
     """Render a concise signal-only email without performing any I/O."""
 
     signals = _signal_rows(screen_rows)
+    include_turnover = "turnover" in signals.columns
     count = len(signals)
     subject = (
         "Momentum Screener — Monthly Reversal — "
@@ -108,29 +117,40 @@ def render_monthly_reversal_email(
             f"<p>No new monthly reversal signals for {as_of_date.isoformat()}.</p>"
         )
     else:
-        text_lines.append(
-            f"{'Ticker':<12} {'RPS50':>8} {'RPS120':>8} {'Adj Close':>12}"
-        )
+        header = f"{'Ticker':<12} {'RPS50':>8} {'RPS120':>8} {'Adj Close':>12}"
+        if include_turnover:
+            header += f" {'Turnover':>10}"
+        text_lines.append(header)
         for _, row in signals.iterrows():
-            text_lines.append(
+            line = (
                 f"{row['ticker']!s:<12} "
                 f"{_format_number(row['rps50']):>8} "
                 f"{_format_number(row['rps120']):>8} "
                 f"{_format_number(row['adj_close']):>12}"
             )
+            if include_turnover:
+                line += f" {_format_percentage(row['turnover']):>10}"
+            text_lines.append(line)
         html_rows = "".join(
             "<tr>"
-            f"<td>{escape(str(row['ticker']))}</td>"
-            f"<td>{_format_number(row['rps50'])}</td>"
-            f"<td>{_format_number(row['rps120'])}</td>"
-            f"<td>{_format_number(row['adj_close'])}</td>"
-            "</tr>"
+            + f"<td>{escape(str(row['ticker']))}</td>"
+            + f"<td>{_format_number(row['rps50'])}</td>"
+            + f"<td>{_format_number(row['rps120'])}</td>"
+            + f"<td>{_format_number(row['adj_close'])}</td>"
+            + (
+                f"<td>{_format_percentage(row['turnover'])}</td>"
+                if include_turnover
+                else ""
+            )
+            + "</tr>"
             for _, row in signals.iterrows()
         )
+        turnover_header = "<th>Turnover</th>" if include_turnover else ""
         html_content = (
             '<table style="border-collapse:collapse">'
             "<thead><tr><th>Ticker</th><th>RPS50</th><th>RPS120</th>"
-            f"<th>Adj Close</th></tr></thead><tbody>{html_rows}</tbody></table>"
+            f"<th>Adj Close</th>{turnover_header}</tr></thead>"
+            f"<tbody>{html_rows}</tbody></table>"
         )
     html_body = (
         "<!doctype html><html><body>"
