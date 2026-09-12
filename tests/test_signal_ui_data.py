@@ -19,6 +19,8 @@ from momentum_screener.signal_ui_data import (
     discover_signal_csvs,
     filter_tickers_by_strategies,
     load_rps_for_session,
+    load_turnover_for_session,
+    local_market_cap_files,
     local_price_files,
     local_rps_files,
     maximum_price_window,
@@ -315,6 +317,131 @@ def test_load_local_rps_snapshot_once_and_refresh_after_replacement(
     assert build_ticker_rps_table(["NVDA"], refreshed).loc[0, "RPS50"] == 99.0
     with pytest.raises(FileNotFoundError):
         local_rps_files(session, tmp_path / "missing")
+
+
+def local_turnover_file_inputs(tmp_path):
+    paths = [
+        tmp_path / "prices-manifest.json",
+        tmp_path / "prices.parquet",
+        tmp_path / "market-cap-manifest.json",
+        tmp_path / "market-cap.parquet",
+    ]
+    for path in paths:
+        path.write_text(path.name)
+    files = [LocalFile.inspect(path) for path in paths]
+    return tuple(files[:2]), tuple(files[2:])
+
+
+def test_session_turnover_uses_raw_close_exact_cap_and_ticker_alignment(
+    tmp_path, monkeypatch
+):
+    session = date(2026, 6, 15)
+    price_files, market_cap_files = local_turnover_file_inputs(tmp_path)
+    price_calls = []
+    cap_calls = []
+
+    def read_prices(tickers, start_date, end_date, files, *, columns):
+        price_calls.append((tickers, start_date, end_date, files, columns))
+        return pd.DataFrame(
+            {
+                "date": [session, session, session],
+                "ticker": ["AAA", "MISSING", "BBB"],
+                "close": [100.0, 50.0, 200.0],
+                "adj_close": [1.0, 2.0, 3.0],
+                "volume": [100.0, 100.0, 100.0],
+            }
+        )
+
+    def read_caps(*, tickers, start_date, end_date, root):
+        cap_calls.append((tickers, start_date, end_date, root))
+        return pd.DataFrame(
+            {
+                "date": [session, session],
+                "ticker": ["BBB", "AAA"],
+                "market_cap": [1_000_000, 100_000],
+            }
+        )
+
+    monkeypatch.setattr(signal_ui_data, "read_local_price_rows", read_prices)
+    monkeypatch.setattr(signal_ui_data, "read_market_cap", read_caps)
+    cap_root = tmp_path / "caps"
+    result = load_turnover_for_session(
+        session,
+        ["BBB", "MISSING", "AAA", "BBB"],
+        price_files,
+        market_cap_files,
+        cap_root,
+    )
+
+    assert result["ticker"].tolist() == ["BBB", "MISSING", "AAA"]
+    assert result.loc[0, "turnover"] == pytest.approx(0.02)
+    assert pd.isna(result.loc[1, "turnover"])
+    assert result.loc[2, "turnover"] == pytest.approx(0.10)
+    assert price_calls == [
+        (
+            ["BBB", "MISSING", "AAA"],
+            session,
+            session,
+            (price_files[1],),
+            ("close", "volume"),
+        )
+    ]
+    assert cap_calls == [(["BBB", "MISSING", "AAA"], session, session, cap_root)]
+
+
+def test_session_turnover_keeps_all_tickers_when_snapshot_date_is_absent(
+    tmp_path, monkeypatch
+):
+    session = date(2025, 1, 2)
+    price_files, market_cap_files = local_turnover_file_inputs(tmp_path)
+    monkeypatch.setattr(
+        signal_ui_data,
+        "read_local_price_rows",
+        lambda *args, **kwargs: pd.DataFrame(
+            {
+                "date": [session, session],
+                "ticker": ["AAA", "BBB"],
+                "close": [10.0, 20.0],
+                "volume": [100.0, 200.0],
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        signal_ui_data,
+        "read_market_cap",
+        lambda **kwargs: pd.DataFrame(columns=["date", "ticker", "market_cap"]),
+    )
+
+    result = load_turnover_for_session(
+        session, ["AAA", "BBB"], price_files, market_cap_files, tmp_path
+    )
+    assert result["ticker"].tolist() == ["AAA", "BBB"]
+    assert result["turnover"].isna().all()
+
+
+def test_market_cap_cache_files_change_after_local_release_replacement(
+    tmp_path, monkeypatch
+):
+    session = date(2026, 6, 15)
+    root = tmp_path / "market-cap"
+    manifest_path = root / "manifest.json"
+    partition_path = root / "daily/year=2026/market_cap.parquet"
+    partition_path.parent.mkdir(parents=True)
+    manifest_path.write_text("old")
+    partition_path.write_text("old partition")
+    monkeypatch.setattr(
+        signal_ui_data,
+        "load_market_cap_manifest",
+        lambda root: {
+            "assets": {"2026": {"local_path": "daily/year=2026/market_cap.parquet"}}
+        },
+    )
+
+    original = local_market_cap_files(session, root)
+    manifest_path.write_text("new manifest payload")
+    partition_path.write_text("new partition payload")
+    updated = local_market_cap_files(session, root)
+    assert updated != original
 
 
 def test_price_window_clipping_and_calendar_offsets():

@@ -21,6 +21,13 @@ from momentum_screener.local_price_data import (
     price_files_in_range,
     read_local_price_rows,
 )
+from momentum_screener.market_cap_storage import (
+    DEFAULT_MARKET_CAP_ROOT,
+    MARKET_CAP_MANIFEST_NAME,
+    MARKET_CAP_SCHEMA,
+    load_market_cap_manifest,
+    read_market_cap,
+)
 from momentum_screener.prices import DEFAULT_OUTPUT_ROOT
 from momentum_screener.rps import RPS_LOOKBACKS
 from momentum_screener.rps_storage import (
@@ -31,6 +38,8 @@ from momentum_screener.rps_storage import (
     read_rps_snapshot,
 )
 from momentum_screener.storage_manifest import resolve_local_asset_path
+from momentum_screener.strategy_data import calculate_turnover_columns
+from momentum_screener.universe import normalize_ticker
 
 SIGNAL_KEY = ["session", "strategy_id", "ticker"]
 
@@ -265,6 +274,108 @@ def build_ticker_rps_table(
     return table.reset_index().rename(
         columns={"ticker": "Ticker", **{column: column.upper() for column in columns}}
     )
+
+
+def local_market_cap_files(
+    session: date, root: Path = DEFAULT_MARKET_CAP_ROOT
+) -> tuple[LocalFile, ...]:
+    """Fingerprint the MarketCap manifest and the requested year's asset.
+
+    A completely absent local MarketCap store is normal for older research
+    environments and returns an empty cache identity. Once a Release is pulled,
+    the new manifest and partition identities produce a different cache key.
+    """
+
+    if not root.exists():
+        return ()
+    manifest_path = root / MARKET_CAP_MANIFEST_NAME
+    source = LocalFile.inspect(manifest_path)
+    manifest = load_market_cap_manifest(root)
+    files = [source]
+    asset = manifest["assets"].get(str(session.year))
+    if asset is not None:
+        files.append(
+            LocalFile.inspect(resolve_local_asset_path(root, asset["local_path"]))
+        )
+    if any(LocalFile.inspect(item.path) != item for item in files):
+        raise ValueError("Local MarketCap changed while loading; retry the selection.")
+    return tuple(files)
+
+
+def load_turnover_for_session(
+    session: date,
+    tickers: Sequence[str],
+    price_files: tuple[LocalFile, ...],
+    market_cap_files: tuple[LocalFile, ...],
+    market_cap_root: Path = DEFAULT_MARKET_CAP_ROOT,
+) -> pd.DataFrame:
+    """Calculate exact-session UI turnover while retaining every requested ticker.
+
+    Turnover is the project's MarketCap proxy ``raw close * volume / market_cap``.
+    It is dynamically enriched for display and never read from or written to a
+    signal CSV. Missing MarketCap stores, sessions and ticker observations remain
+    float NaN; malformed stores and changed cache inputs still raise to the UI.
+    """
+
+    normalized: list[str] = []
+    for ticker in tickers:
+        value = normalize_ticker(ticker)
+        if value is None:
+            raise ValueError(f"Invalid ticker for turnover lookup: {ticker!r}")
+        if value not in normalized:
+            normalized.append(value)
+    if not normalized:
+        return pd.DataFrame(
+            {
+                "ticker": pd.Series(dtype="string"),
+                "turnover": pd.Series(dtype="float64"),
+            }
+        )
+
+    sources = (*price_files, *market_cap_files)
+    if any(LocalFile.inspect(item.path) != item for item in sources):
+        raise ValueError("Local turnover inputs changed; retry the selection.")
+    price_partitions = tuple(
+        item for item in price_files if Path(item.path).suffix == ".parquet"
+    )
+    prices = read_local_price_rows(
+        normalized,
+        session,
+        session,
+        price_partitions,
+        columns=("close", "volume"),
+    )
+    caps = (
+        read_market_cap(
+            tickers=normalized,
+            start_date=session,
+            end_date=session,
+            root=market_cap_root,
+        )
+        if market_cap_files
+        else MARKET_CAP_SCHEMA.empty_table().to_pandas()
+    )
+    keys = pd.DataFrame(
+        {
+            "date": session,
+            "ticker": pd.Series(normalized, dtype="string"),
+        }
+    )
+    prepared = keys.merge(
+        prices.loc[:, ["date", "ticker", "close", "volume"]],
+        on=["date", "ticker"],
+        how="left",
+        validate="one_to_one",
+    ).merge(
+        caps.loc[:, ["date", "ticker", "market_cap"]],
+        on=["date", "ticker"],
+        how="left",
+        validate="one_to_one",
+    )
+    result = calculate_turnover_columns(prepared).loc[:, ["ticker", "turnover"]]
+    if any(LocalFile.inspect(item.path) != item for item in sources):
+        raise ValueError("Local turnover inputs changed; retry the selection.")
+    return result
 
 
 def maximum_price_window(signal_date: date) -> tuple[date, date]:

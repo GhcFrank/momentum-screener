@@ -36,6 +36,7 @@ def render_app() -> None:
         calculate_forward_performance_for_signals,
     )
     from momentum_screener.local_price_data import price_files_in_range
+    from momentum_screener.market_cap_storage import MarketCapStorageError
     from momentum_screener.rps_storage import RpsStorageError
     from momentum_screener.signal_ui_data import (
         LocalFile,
@@ -45,6 +46,8 @@ def render_app() -> None:
         discover_signal_csvs,
         filter_tickers_by_strategies,
         load_rps_for_session,
+        load_turnover_for_session,
+        local_market_cap_files,
         local_price_files,
         local_rps_files,
         read_local_prices,
@@ -60,6 +63,9 @@ def render_app() -> None:
     cached_csv = st.cache_data(read_signal_csv, show_spinner=False, max_entries=32)
     cached_prices = st.cache_data(read_local_prices, show_spinner=False, max_entries=64)
     cached_rps = st.cache_data(load_rps_for_session, show_spinner=False, max_entries=32)
+    cached_turnover = st.cache_data(
+        load_turnover_for_session, show_spinner=False, max_entries=32
+    )
     cached_forward = st.cache_data(
         calculate_forward_performance_for_signals, show_spinner=False, max_entries=32
     )
@@ -175,6 +181,31 @@ def render_app() -> None:
         st.warning(f"Local RPS unavailable; showing N/A. {exc}")
         snapshot = pd.DataFrame()
     table = build_ticker_rps_table(tickers, snapshot)
+    try:
+        turnover = cached_turnover(
+            signal_date,
+            tuple(tickers),
+            price_files_in_range(signal_date, signal_date),
+            local_market_cap_files(signal_date),
+        ).set_index("ticker")
+    except (
+        OSError,
+        ValueError,
+        TypeError,
+        MarketCapStorageError,
+        ManifestError,
+        pa.ArrowException,
+    ) as exc:
+        st.warning(f"Turnover unavailable; showing N/A. {exc}")
+        turnover = pd.DataFrame(columns=["turnover"])
+    table.insert(
+        table.columns.get_loc("RPS250") + 1,
+        "Turnover",
+        pd.to_numeric(
+            turnover["turnover"].reindex(table["Ticker"]), errors="coerce"
+        ).to_numpy(dtype="float64")
+        * 100,
+    )
     forward_columns = {
         "forward_40d_max_drawdown": "40D DD",
         "forward_40d_max_gain": "40D Gain",
@@ -205,7 +236,14 @@ def render_app() -> None:
         placeholder="N/A",
         column_config={
             name: st.column_config.NumberColumn(
-                name, format="%+.1f%%" if name in forward_columns.values() else "%.1f"
+                name,
+                format=(
+                    "%+.1f%%"
+                    if name in forward_columns.values()
+                    else "%.1f%%"
+                    if name == "Turnover"
+                    else "%.1f"
+                ),
             )
             for name in table.columns
             if name != "Ticker"
