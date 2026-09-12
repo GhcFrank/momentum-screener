@@ -16,6 +16,12 @@ from stat import S_ISDIR, S_ISREG
 import numpy as np
 import pandas as pd
 
+from momentum_screener.company_metadata import (
+    METADATA_COLUMNS,
+    enrich_company_metadata,
+    format_metadata_value,
+    load_company_metadata,
+)
 from momentum_screener.local_price_data import (
     LocalFile,
     price_files_in_range,
@@ -274,6 +280,53 @@ def build_ticker_rps_table(
     return table.reset_index().rename(
         columns={"ticker": "Ticker", **{column: column.upper() for column in columns}}
     )
+
+
+def local_company_metadata_file(
+    path: Path,
+) -> LocalFile | None:
+    """Return a cache identity for the tracked metadata CSV, if it exists."""
+
+    try:
+        return LocalFile.inspect(path)
+    except FileNotFoundError:
+        return None
+
+
+def load_company_metadata_for_ui(source: LocalFile | None) -> pd.DataFrame:
+    """Load one fingerprinted metadata file for Streamlit caching."""
+
+    if source is None:
+        return pd.DataFrame(
+            {column: pd.Series(dtype="string") for column in METADATA_COLUMNS}
+        )
+    if LocalFile.inspect(source.path) != source:
+        raise ValueError("Company metadata changed while loading; retry the selection.")
+    metadata = load_company_metadata(Path(source.path))
+    if LocalFile.inspect(source.path) != source:
+        raise ValueError("Company metadata changed while loading; retry the selection.")
+    return metadata
+
+
+def enrich_ticker_table_with_metadata(
+    table: pd.DataFrame, metadata: pd.DataFrame
+) -> pd.DataFrame:
+    """Add display classifications with ticker rows as the left-hand side."""
+
+    if "Ticker" not in table:
+        raise ValueError("Ticker table is missing the 'Ticker' column")
+    enriched = enrich_company_metadata(
+        table.rename(columns={"Ticker": "ticker"}), metadata
+    ).rename(columns={"ticker": "Ticker", "sector": "Sector", "industry": "Industry"})
+    enriched["Sector"] = enriched["Sector"].map(format_metadata_value)
+    enriched["Industry"] = enriched["Industry"].map(format_metadata_value)
+    enriched = enriched.drop(columns="updated_at", errors="ignore")
+    remaining = [
+        column
+        for column in enriched.columns
+        if column not in {"Ticker", "Sector", "Industry"}
+    ]
+    return enriched.loc[:, ["Ticker", "Sector", "Industry", *remaining]]
 
 
 def local_market_cap_files(

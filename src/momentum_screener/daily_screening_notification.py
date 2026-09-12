@@ -20,6 +20,12 @@ from momentum_screener.blue_diamond import (
 )
 from momentum_screener.blue_diamond import STRATEGY_NAME as BLUE_DIAMOND_NAME
 from momentum_screener.blue_diamond import screen_blue_diamond
+from momentum_screener.company_metadata import (
+    DEFAULT_METADATA_PATH,
+    enrich_company_metadata,
+    format_metadata_value,
+    load_company_metadata,
+)
 from momentum_screener.daily_watch_3 import (
     STRATEGY_DESCRIPTION as DAILY_WATCH_3_DESCRIPTION,
 )
@@ -130,16 +136,18 @@ def _render_strategy_section(
         text_lines.append("No matches.")
         return text_lines, html + "<p>No matches.</p>"
 
-    headers = (("ticker", "Ticker", 12), *columns)
+    headers = (("ticker", "Ticker", 12), ("industry", "Industry", 32), *columns)
     text_lines.append(
         " ".join(
-            f"{label:<{width}}" if key == "ticker" else f"{label:>{width}}"
+            f"{label:<{width}}"
+            if key in {"ticker", "industry"}
+            else f"{label:>{width}}"
             for key, label, width in headers
         )
     )
     html_rows: list[str] = []
     for _, row in selected.iterrows():
-        values = [str(row["ticker"])]
+        values = [str(row["ticker"]), format_metadata_value(row.get("industry"))]
         for key, _, _ in columns:
             value = row.get(key)
             values.append(
@@ -149,7 +157,7 @@ def _render_strategy_section(
             )
         text_lines.append(
             " ".join(
-                f"{value:<{width}}" if index == 0 else f"{value:>{width}}"
+                f"{value:<{width}}" if index < 2 else f"{value:>{width}}"
                 for index, (value, (_, _, width)) in enumerate(zip(values, headers))
             )
         )
@@ -174,7 +182,7 @@ def render_daily_screening_email(
     blue_diamond_rows: pd.DataFrame | None = None,
     daily_watch_3_rows: pd.DataFrame | None = None,
 ) -> RenderedRpsEmail:
-    """Render all production signal sections with presentation turnover."""
+    """Render all production signal sections with presentation enrichments."""
 
     monthly_rows = monthly_reversal_rows.copy()
     if "turnover" not in monthly_rows:
@@ -268,6 +276,7 @@ def run_daily_screening_notification(
     rps_root: Path = DEFAULT_RPS_ROOT,
     market_cap_root: Path = DEFAULT_MARKET_CAP_ROOT,
     universe_path: Path = DEFAULT_UNIVERSE,
+    metadata_path: Path = DEFAULT_METADATA_PATH,
     environ: Mapping[str, str] | None = None,
     dry_run: bool = False,
     preview_stream: TextIO | None = None,
@@ -374,12 +383,23 @@ def run_daily_screening_notification(
     monthly_email_rows = enrich_signal_turnover(monthly, turnover_rows)
     trend_email_rows = enrich_signal_turnover(trend, turnover_rows)
     blue_diamond_email_rows = enrich_signal_turnover(blue_diamond, turnover_rows)
+    try:
+        company_metadata = load_company_metadata(metadata_path)
+    except (OSError, UnicodeError, ValueError) as exc:
+        LOGGER.warning("Company metadata unavailable; email will show N/A: %s", exc)
+        company_metadata = pd.DataFrame()
+    monthly_email_rows = enrich_company_metadata(monthly_email_rows, company_metadata)
+    trend_email_rows = enrich_company_metadata(trend_email_rows, company_metadata)
+    blue_diamond_email_rows = enrich_company_metadata(
+        blue_diamond_email_rows, company_metadata
+    )
+    daily_watch_3_email_rows = enrich_company_metadata(daily_watch_3, company_metadata)
     rendered = render_daily_screening_email(
         as_of_date=session,
         monthly_reversal_rows=monthly_email_rows,
         trend_reacceleration_rows=trend_email_rows,
         blue_diamond_rows=blue_diamond_email_rows,
-        daily_watch_3_rows=daily_watch_3,
+        daily_watch_3_rows=daily_watch_3_email_rows,
     )
     result = DailyScreeningNotificationResult(
         as_of_date=session,
@@ -463,6 +483,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--rps-root", type=Path, default=DEFAULT_RPS_ROOT)
     parser.add_argument("--market-cap-root", type=Path, default=DEFAULT_MARKET_CAP_ROOT)
     parser.add_argument("--universe", type=Path, default=DEFAULT_UNIVERSE)
+    parser.add_argument("--company-metadata", type=Path, default=DEFAULT_METADATA_PATH)
     parser.add_argument("--result-json", type=Path)
     parser.add_argument(
         "--prepare-email",
@@ -486,6 +507,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             rps_root=args.rps_root,
             market_cap_root=args.market_cap_root,
             universe_path=args.universe,
+            metadata_path=args.company_metadata,
             dry_run=args.dry_run,
             preview_stream=sys.stdout if args.dry_run else None,
             prepared_email_path=args.prepare_email,

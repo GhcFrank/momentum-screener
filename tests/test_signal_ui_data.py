@@ -17,9 +17,12 @@ from momentum_screener.signal_ui_data import (
     clip_price_window,
     combine_signals,
     discover_signal_csvs,
+    enrich_ticker_table_with_metadata,
     filter_tickers_by_strategies,
+    load_company_metadata_for_ui,
     load_rps_for_session,
     load_turnover_for_session,
+    local_company_metadata_file,
     local_market_cap_files,
     local_price_files,
     local_rps_files,
@@ -268,6 +271,35 @@ def test_ticker_rps_table_joins_snapshot_and_retains_missing_values():
     empty = build_ticker_rps_table(["NVDA"], pd.DataFrame())
     assert empty["Ticker"].tolist() == ["NVDA"]
     assert empty.drop(columns="Ticker").isna().all().all()
+
+
+def test_ticker_metadata_left_join_and_cache_identity_retain_signal_rows(tmp_path):
+    path = tmp_path / "ticker_metadata.csv"
+    path.write_text(
+        "ticker,sector,industry,updated_at\nNVDA,Technology,Semiconductors,2026-09-12\n"
+    )
+    source = local_company_metadata_file(path)
+    assert source is not None
+    metadata = load_company_metadata_for_ui(source)
+    table = pd.DataFrame({"Ticker": ["NVDA", "XYZ"], "RPS20": [99.0, 98.0]})
+
+    enriched = enrich_ticker_table_with_metadata(table, metadata)
+    assert enriched.columns.tolist() == ["Ticker", "Sector", "Industry", "RPS20"]
+    assert enriched["Ticker"].tolist() == ["NVDA", "XYZ"]
+    assert enriched.loc[0, ["Sector", "Industry"]].tolist() == [
+        "Technology",
+        "Semiconductors",
+    ]
+    assert enriched.loc[1, ["Sector", "Industry"]].tolist() == ["N/A", "N/A"]
+
+    path.write_text(
+        "ticker,sector,industry,updated_at\n"
+        "NVDA,Technology,Software - Infrastructure,2026-09-13\n"
+    )
+    os.utime(path, ns=(source.mtime_ns + 1_000_000, source.mtime_ns + 1_000_000))
+    assert local_company_metadata_file(path) != source
+    with pytest.raises(ValueError, match="changed while loading"):
+        load_company_metadata_for_ui(source)
 
 
 def test_load_local_rps_snapshot_once_and_refresh_after_replacement(

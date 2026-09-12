@@ -14,12 +14,17 @@ from momentum_screener.rps_notification import RenderedRpsEmail, SmtpEmailConfig
 
 
 def screen_rows(
-    ticker: str, *, signal: bool = True, turnover: float = 0.0084
+    ticker: str,
+    *,
+    signal: bool = True,
+    turnover: float = 0.0084,
+    industry: object = pd.NA,
 ) -> pd.DataFrame:
     rows = pd.DataFrame(
         {
             "date": [date(2026, 9, 3)],
             "ticker": [ticker],
+            "industry": [industry],
             "rps20": [94.0],
             "rps50": [95.0],
             "rps120": [96.0],
@@ -44,9 +49,15 @@ def screen_rows(
 def test_email_renders_all_sections_turnover_and_explicit_empty_results() -> None:
     result = notification.render_daily_screening_email(
         as_of_date=date(2026, 9, 3),
-        monthly_reversal_rows=screen_rows("MONTHLY", turnover=0.0084),
-        trend_reacceleration_rows=screen_rows("TREND", turnover=0.0127),
-        blue_diamond_rows=screen_rows("BLUE", turnover=0.1234),
+        monthly_reversal_rows=screen_rows(
+            "MONTHLY", turnover=0.0084, industry="Consumer Electronics"
+        ),
+        trend_reacceleration_rows=screen_rows(
+            "TREND", turnover=0.0127, industry="Software - Infrastructure"
+        ),
+        blue_diamond_rows=screen_rows(
+            "BLUE", turnover=0.1234, industry="Semiconductors"
+        ),
         daily_watch_3_rows=screen_rows("WATCH", turnover=0.0567),
     )
     assert result.subject == "Momentum Screener — 2026-09-03"
@@ -60,6 +71,9 @@ def test_email_renders_all_sections_turnover_and_explicit_empty_results() -> Non
         assert "MarketCap Turnover Proxy" in body and "20%" in body
         assert "daily_watch_3_core" not in body
         assert all(ticker in body for ticker in ("MONTHLY", "TREND", "BLUE", "WATCH"))
+        assert "Industry" in body
+        assert "Semiconductors" in body
+        assert "N/A" in body
         # Four table headers plus the Daily Watch 3 proxy description.
         assert body.count("Turnover") == 5
         assert all(value in body for value in ("0.84%", "1.27%", "12.34%", "5.67%"))
@@ -218,6 +232,17 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
             "market_cap_missing_ticker_count": 0,
         }
     }
+    metadata_path = tmp_path / "ticker_metadata.csv"
+    if dry_run:
+        metadata_path.mkdir()
+    else:
+        metadata_path.write_text(
+            "ticker,sector,industry,updated_at\n"
+            "AAA,Technology,Consumer Electronics,2026-09-01\n"
+            "BBB,Technology,Software - Infrastructure,2026-09-01\n"
+            "CCC,Technology,Semiconductors,2026-09-01\n",
+            encoding="utf-8",
+        )
 
     def load_caps(sessions: tuple[date, ...], **kwargs: object) -> pd.DataFrame:
         events.append("caps")
@@ -294,6 +319,11 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
         assert "Blue Diamond / 蓝色钻石" in rendered.text_body
         assert "Daily Watch 3 / 每日观察选股3" in rendered.text_body
         assert "Core" not in rendered.text_body
+        if empty_strategy != "all":
+            assert "Consumer Electronics" in rendered.text_body
+            assert "Software - Infrastructure" in rendered.text_body
+            assert "Semiconductors" in rendered.text_body
+            assert "DDD" in rendered.text_body and "N/A" in rendered.text_body
         assert rendered.text_body.count("Turnover") == (
             1 if empty_strategy == "all" else 5
         )
@@ -321,6 +351,7 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
         prices_root=tmp_path / "prices",
         rps_root=tmp_path / "rps",
         universe_path=tmp_path / "universe.csv",
+        metadata_path=metadata_path,
         environ={} if dry_run else smtp_environment(),
         dry_run=dry_run,
         preview_stream=preview,
@@ -357,6 +388,7 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
         assert "顺向火车2" in preview.getvalue()
         assert "Blue Diamond / 蓝色钻石" in preview.getvalue()
         assert "Daily Watch 3 / 每日观察选股3" in preview.getvalue()
+        assert "N/A" in preview.getvalue()
     if prepare_only:
         import json
 

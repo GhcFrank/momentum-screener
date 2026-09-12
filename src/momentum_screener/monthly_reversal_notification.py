@@ -13,6 +13,7 @@ from typing import Any, TextIO
 
 import pandas as pd  # type: ignore[import-untyped]
 
+from momentum_screener.company_metadata import format_metadata_value
 from momentum_screener.monthly_reversal import screen_monthly_reversal
 from momentum_screener.prices import DEFAULT_OUTPUT_ROOT, DEFAULT_UNIVERSE
 from momentum_screener.rps import RPS_LOOKBACKS, calculate_rps_snapshot
@@ -117,13 +118,17 @@ def render_monthly_reversal_email(
             f"<p>No new monthly reversal signals for {as_of_date.isoformat()}.</p>"
         )
     else:
-        header = f"{'Ticker':<12} {'RPS50':>8} {'RPS120':>8} {'Adj Close':>12}"
+        header = (
+            f"{'Ticker':<12} {'Industry':<32} "
+            f"{'RPS50':>8} {'RPS120':>8} {'Adj Close':>12}"
+        )
         if include_turnover:
             header += f" {'Turnover':>10}"
         text_lines.append(header)
         for _, row in signals.iterrows():
             line = (
                 f"{row['ticker']!s:<12} "
+                f"{format_metadata_value(row.get('industry')):<32} "
                 f"{_format_number(row['rps50']):>8} "
                 f"{_format_number(row['rps120']):>8} "
                 f"{_format_number(row['adj_close']):>12}"
@@ -134,6 +139,7 @@ def render_monthly_reversal_email(
         html_rows = "".join(
             "<tr>"
             + f"<td>{escape(str(row['ticker']))}</td>"
+            + f"<td>{escape(format_metadata_value(row.get('industry')))}</td>"
             + f"<td>{_format_number(row['rps50'])}</td>"
             + f"<td>{_format_number(row['rps120'])}</td>"
             + f"<td>{_format_number(row['adj_close'])}</td>"
@@ -148,7 +154,7 @@ def render_monthly_reversal_email(
         turnover_header = "<th>Turnover</th>" if include_turnover else ""
         html_content = (
             '<table style="border-collapse:collapse">'
-            "<thead><tr><th>Ticker</th><th>RPS50</th><th>RPS120</th>"
+            "<thead><tr><th>Ticker</th><th>Industry</th><th>RPS50</th><th>RPS120</th>"
             f"<th>Adj Close</th>{turnover_header}</tr></thead>"
             f"<tbody>{html_rows}</tbody></table>"
         )

@@ -62,9 +62,11 @@ def _screen_rows() -> pd.DataFrame:
 
 
 def test_email_contains_only_signal_true_not_yxfz_or_high_rps_only() -> None:
+    rows = _screen_rows()
+    rows.loc[rows["ticker"].eq("AAPL"), "industry"] = "Consumer Electronics"
     rendered = render_monthly_reversal_email(
         as_of_date=date(2026, 9, 3),
-        screen_rows=_screen_rows(),
+        screen_rows=rows,
     )
 
     assert rendered.subject == (
@@ -75,6 +77,9 @@ def test_email_contains_only_signal_true_not_yxfz_or_high_rps_only() -> None:
     assert "95.00" in rendered.text_body
     assert "91.00" in rendered.text_body
     assert "230.50" in rendered.text_body
+    assert "Industry" in rendered.text_body
+    assert "Consumer Electronics" in rendered.text_body
+    assert "Consumer Electronics" in rendered.html_body
     assert "MSFT" not in rendered.text_body
     assert "NVDA" not in rendered.text_body
     assert "RPS250" not in rendered.text_body

@@ -32,6 +32,7 @@ def render_app() -> None:
     import pyarrow as pa
     import streamlit as st
 
+    from momentum_screener.company_metadata import DEFAULT_METADATA_PATH
     from momentum_screener.forward_performance import (
         calculate_forward_performance_for_signals,
     )
@@ -44,9 +45,12 @@ def render_app() -> None:
         clip_price_window,
         combine_signals,
         discover_signal_csvs,
+        enrich_ticker_table_with_metadata,
         filter_tickers_by_strategies,
+        load_company_metadata_for_ui,
         load_rps_for_session,
         load_turnover_for_session,
+        local_company_metadata_file,
         local_market_cap_files,
         local_price_files,
         local_rps_files,
@@ -63,6 +67,9 @@ def render_app() -> None:
     cached_csv = st.cache_data(read_signal_csv, show_spinner=False, max_entries=32)
     cached_prices = st.cache_data(read_local_prices, show_spinner=False, max_entries=64)
     cached_rps = st.cache_data(load_rps_for_session, show_spinner=False, max_entries=32)
+    cached_metadata = st.cache_data(
+        load_company_metadata_for_ui, show_spinner=False, max_entries=4
+    )
     cached_turnover = st.cache_data(
         load_turnover_for_session, show_spinner=False, max_entries=32
     )
@@ -182,6 +189,12 @@ def render_app() -> None:
         snapshot = pd.DataFrame()
     table = build_ticker_rps_table(tickers, snapshot)
     try:
+        metadata = cached_metadata(local_company_metadata_file(DEFAULT_METADATA_PATH))
+    except (OSError, UnicodeError, ValueError) as exc:
+        st.warning(f"Company metadata unavailable; showing N/A. {exc}")
+        metadata = pd.DataFrame()
+    table = enrich_ticker_table_with_metadata(table, metadata)
+    try:
         turnover = cached_turnover(
             signal_date,
             tuple(tickers),
@@ -246,7 +259,7 @@ def render_app() -> None:
                 ),
             )
             for name in table.columns
-            if name != "Ticker"
+            if name not in {"Ticker", "Sector", "Industry"}
         },
         on_select="rerun",
         selection_mode="single-row",
@@ -257,9 +270,11 @@ def render_app() -> None:
         st.info("Select a ticker row to view its price chart.")
         return
     # Streamlit returns original integer row positions even after client sorting.
-    ticker = table.iloc[rows[0]]["Ticker"]
+    selected_row = table.iloc[rows[0]]
+    ticker = selected_row["Ticker"]
     strategy = " + ".join(selected_strategies)
     st.text(f"Ticker: {ticker}    Signal Date: {signal_date}    Strategy: {strategy}")
+    st.caption(f"{selected_row['Sector']} · {selected_row['Industry']}")
     details = signals.loc[
         signals["session"].eq(pd.Timestamp(signal_date))
         & signals["ticker"].eq(ticker)
