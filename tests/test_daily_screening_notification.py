@@ -281,6 +281,7 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
         assert kwargs["rps_snapshots"] is shared
         assert kwargs["rps_root"] is None
         assert kwargs["market_cap_rows"] is caps
+        assert kwargs["apply_turnover_filter"] is False
         assert "config" not in kwargs
         return blue
 
@@ -290,6 +291,7 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
         assert kwargs["rps_snapshots"] is shared
         assert kwargs["rps_root"] is None
         assert kwargs["market_cap_rows"] is caps
+        assert kwargs["apply_turnover_filter"] is False
         assert "config" not in kwargs
         watch.attrs["rps_candidate_count"] = len(watch)
         return watch

@@ -413,9 +413,12 @@ uv run python -m momentum_screener.rps_release_storage pull --repository GhcFran
 `market_cap_v1` 是独立的 point-in-time daily market-cap snapshot，位于
 `data/processed/market_cap/daily/year=YYYY/market_cap.parquet`，列为 `date,ticker,market_cap`。
 日期来自有效价格 manifest 的最新已结算 session；`observed_at` 记录实际抓取时间，
-不声称是精确收盘市值，也不允许用今天的市值回填陈旧历史。
+不声称是精确收盘市值。每次 daily refresh 从 `target_session - 7 calendar days`
+开始重试已有 snapshot 中仍缺失的 provider observation；先前 sessions 已保存的有效值不被缺失响应删除，
+7 日窗口之外的历史保持不可变。
 仅保留现有 Universe tickers；missing 不填零、不前向填充，计数逐日保留在 manifest，
-本次 missing 清单写入 `missing_tickers.csv`。
+刷新窗口的 missing 清单写入 `missing_tickers.csv`。MarketCap coverage 不作为 production
+signal/email 的 readiness gate；缺失值在 turnover 中保留为 `NaN`，邮件显示 `N/A`。
 
 ```bash
 uv run python -m momentum_screener.market_cap_release_storage check --repository GhcFrank/momentum-screener

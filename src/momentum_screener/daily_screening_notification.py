@@ -306,6 +306,18 @@ def run_daily_screening_notification(
     market_cap_rows = load_strategy_market_cap(
         (session,), root=market_cap_root, universe_path=universe_path
     )
+    session_counts = market_cap_rows.attrs.get("session_counts", {})
+    market_cap_counts = session_counts.get(session.isoformat(), {})
+    available_cap_count = int(
+        market_cap_counts.get("market_cap_available_count", len(market_cap_rows))
+    )
+    missing_cap_count = int(market_cap_counts.get("market_cap_missing_ticker_count", 0))
+    LOGGER.info(
+        "Daily MarketCap requested=%d available=%d missing=%d",
+        available_cap_count + missing_cap_count,
+        available_cap_count,
+        missing_cap_count,
+    )
     sessions = resolve_strategy_sessions(session, MONTHLY_REVERSAL_SIGNAL_WINDOW)
     shared_rps = load_or_calculate_rps(
         sessions,
@@ -354,6 +366,7 @@ def run_daily_screening_notification(
         rps_snapshots=shared_rps,
         market_cap_root=market_cap_root,
         market_cap_rows=market_cap_rows,
+        apply_turnover_filter=False,
     )
     daily_watch_3 = screen_daily_watch_3(
         session,
@@ -364,6 +377,7 @@ def run_daily_screening_notification(
         rps_snapshots=shared_rps,
         market_cap_root=market_cap_root,
         market_cap_rows=market_cap_rows,
+        apply_turnover_filter=False,
     )
     signal_tickers = tuple(
         dict.fromkeys(

@@ -188,6 +188,13 @@ def test_core_signal_removes_only_turnover_and_allows_missing_market_cap():
         assert not original_row["signal"]
         assert core_row["core_signal"] and core_row["signal"] and core_row["setup"]
         assert core_row["status"] == "ok"
+        optional_row = calculate_blue_diamond_features(
+            frame, apply_turnover_filter=False
+        ).iloc[-1]
+        assert optional_row["core_signal"] and optional_row["signal"]
+        assert bool(optional_row["normal_turnover"]) is False
+        if pd.isna(frame.iloc[-1]["market_cap"]):
+            assert pd.isna(optional_row["turnover"])
         pd.testing.assert_frame_equal(
             core.drop(columns=["signal", "setup", "status"]),
             original.drop(columns=["signal", "setup", "status"]),

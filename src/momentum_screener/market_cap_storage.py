@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import tempfile
 import uuid
 from collections.abc import Callable, Mapping, Sequence
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -39,6 +40,7 @@ from momentum_screener.universe import (
 )
 
 DEFAULT_MARKET_CAP_ROOT = Path("data/processed/market_cap")
+DEFAULT_REFRESH_CALENDAR_DAYS = 7
 MARKET_CAP_SCHEMA_VERSION = "market_cap_v1"
 MARKET_CAP_MANIFEST_NAME = "manifest.json"
 MISSING_TICKERS_NAME = "missing_tickers.csv"
@@ -53,6 +55,9 @@ MARKET_CAP_SCHEMA = pa.schema(
 
 class MarketCapStorageError(RuntimeError):
     """A snapshot or its committed local dataset is invalid."""
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 def _partition_path(root: Path, year: int) -> Path:
@@ -220,16 +225,23 @@ def refresh_market_cap_snapshot(
     prices_root: Path = DEFAULT_OUTPUT_ROOT,
     root: Path = DEFAULT_MARKET_CAP_ROOT,
     universe_path: Path = DEFAULT_UNIVERSE,
+    refresh_calendar_days: int = DEFAULT_REFRESH_CALENDAR_DAYS,
     now: datetime | None = None,
     fetch_func: Callable[[Sequence[str]], Mapping[str, int]] = fetch_market_caps,
 ) -> dict[str, Any]:
-    """Observe fresh caps for the latest settled price session, never backfill.
+    """Refresh the target snapshot and recent missing provider observations.
 
     A snapshot is an observation made at observed_at, labelled by the successful
     price session. It is not an estimate of historical caps or exact closing cap.
-    A stale/future manifest is rejected before contacting Yahoo.
+    Previously stored values are never copied between sessions. Within the rolling
+    calendar-day window, a fresh provider value can fill an observation that was
+    previously missing; established observations are retained. The target session
+    is always replaced by the current provider response. A stale/future manifest
+    is rejected before contacting Yahoo.
     """
 
+    if refresh_calendar_days < 0:
+        raise ValueError("refresh_calendar_days cannot be negative")
     observed_at = now or datetime.now(UTC)
     price_manifest = load_manifest(prices_root / "manifest.json")
     session = date.fromisoformat(price_manifest["latest_session"])
@@ -260,47 +272,114 @@ def refresh_market_cap_snapshot(
         and type(caps[ticker]) is int
         and 0 < caps[ticker] <= 2**63 - 1
     }
-    missing = sorted(set(universe).difference(valid))
-    daily = _normalize(
+    target_rows = _normalize(
         pd.DataFrame(
             [(session, ticker, value) for ticker, value in valid.items()],
             columns=MARKET_CAP_SCHEMA.names,
         )
     )
-    info = {
-        "requested_ticker_count": len(universe),
-        "stored_ticker_count": len(daily),
-        "missing_ticker_count": len(missing),
-        "observed_at": observed_at.isoformat(),
-    }
+    refresh_start = session - timedelta(days=refresh_calendar_days)
     snapshots = dict(previous["snapshots"]) if previous else {}
-    snapshots[session.isoformat()] = info
-    path = _partition_path(root, session.year)
-    rows = _read_partition(path, session.year) if path.exists() else daily.iloc[:0]
-    rows = _normalize(
-        pd.concat([rows.loc[rows["date"].ne(session)], daily], ignore_index=True)
+    refresh_sessions = tuple(
+        sorted(
+            {
+                session,
+                *(
+                    date.fromisoformat(value)
+                    for value in snapshots
+                    if refresh_start <= date.fromisoformat(value) <= session
+                ),
+            }
+        )
+    )
+    years = tuple(sorted({value.year for value in refresh_sessions}))
+    partition_rows = {
+        year: (
+            _read_partition(_partition_path(root, year), year)
+            if _partition_path(root, year).exists()
+            else target_rows.iloc[:0].copy()
+        )
+        for year in years
+    }
+    refreshed_rows: dict[date, pd.DataFrame] = {}
+    missing_rows: list[tuple[date, str, str]] = []
+    for refresh_session in refresh_sessions:
+        existing = partition_rows[refresh_session.year]
+        existing = existing.loc[existing["date"].eq(refresh_session)].copy()
+        if refresh_session == session:
+            refreshed = target_rows
+        else:
+            additions = target_rows.loc[
+                ~target_rows["ticker"].isin(existing["ticker"])
+            ].assign(date=refresh_session)
+            refreshed = _normalize(pd.concat([existing, additions], ignore_index=True))
+        refreshed_rows[refresh_session] = refreshed
+        missing_for_session = sorted(set(universe).difference(refreshed["ticker"]))
+        missing_rows.extend(
+            (refresh_session, ticker, "missing_or_invalid_yahoo_market_cap")
+            for ticker in missing_for_session
+        )
+        snapshots[refresh_session.isoformat()] = {
+            "requested_ticker_count": len(universe),
+            "stored_ticker_count": len(refreshed),
+            "missing_ticker_count": len(missing_for_session),
+            "observed_at": observed_at.isoformat(),
+        }
+
+    updated_partitions: dict[int, pd.DataFrame] = {}
+    for year, rows in partition_rows.items():
+        refreshed_dates = {value for value in refresh_sessions if value.year == year}
+        replacement = [refreshed_rows[value] for value in sorted(refreshed_dates)]
+        updated_partitions[year] = _normalize(
+            pd.concat(
+                [rows.loc[~rows["date"].isin(refreshed_dates)], *replacement],
+                ignore_index=True,
+            )
+        )
+
+    target_info = snapshots[session.isoformat()]
+    requested_observation_count = len(refresh_sessions) * len(universe)
+    stored_observation_count = sum(len(rows) for rows in refreshed_rows.values())
+    missing_observation_count = requested_observation_count - stored_observation_count
+    LOGGER.info(
+        "MarketCap refresh %s..%s sessions=%d requested=%d stored=%d missing=%d; "
+        "target tickers requested=%d stored=%d missing=%d",
+        refresh_start.isoformat(),
+        session.isoformat(),
+        len(refresh_sessions),
+        requested_observation_count,
+        stored_observation_count,
+        missing_observation_count,
+        len(universe),
+        target_info["stored_ticker_count"],
+        target_info["missing_ticker_count"],
     )
     root.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(
         prefix=".market-cap-refresh-", dir=root.parent
     ) as temp:
         staging = Path(temp)
-        staged = _partition_path(staging, session.year)
-        staged.parent.mkdir(parents=True)
-        pq.write_table(
-            pa.Table.from_pandas(rows, schema=MARKET_CAP_SCHEMA, preserve_index=False),
-            staged,
-            compression="zstd",
-        )
         assets = dict(previous["assets"]) if previous else {}
-        relative = str(staged.relative_to(staging))
-        assets[str(session.year)] = build_asset_record(
-            staged,
-            asset_name=f"market-cap-year-{session.year}.parquet",
-            local_path=relative,
-        )
         counts = dict(previous["partition_row_counts"]) if previous else {}
-        counts[str(session.year)] = len(rows)
+        paths: list[str] = []
+        for year, rows in updated_partitions.items():
+            staged = _partition_path(staging, year)
+            staged.parent.mkdir(parents=True, exist_ok=True)
+            pq.write_table(
+                pa.Table.from_pandas(
+                    rows, schema=MARKET_CAP_SCHEMA, preserve_index=False
+                ),
+                staged,
+                compression="zstd",
+            )
+            relative = str(staged.relative_to(staging))
+            paths.append(relative)
+            assets[str(year)] = build_asset_record(
+                staged,
+                asset_name=f"market-cap-year-{year}.parquet",
+                local_path=relative,
+            )
+            counts[str(year)] = len(rows)
         manifest = {
             "schema_version": MARKET_CAP_SCHEMA_VERSION,
             "dataset_type": "point_in_time_market_cap",
@@ -317,18 +396,14 @@ def refresh_market_cap_snapshot(
         }
         validate_market_cap_manifest(manifest)
         write_json_atomically(staging / MARKET_CAP_MANIFEST_NAME, manifest)
-        pd.DataFrame(
-            {
-                "date": [session] * len(missing),
-                "ticker": missing,
-                "reason": ["missing_or_invalid_yahoo_market_cap"] * len(missing),
-            }
-        ).to_csv(staging / MISSING_TICKERS_NAME, index=False)
+        pd.DataFrame(missing_rows, columns=("date", "ticker", "reason")).to_csv(
+            staging / MISSING_TICKERS_NAME, index=False
+        )
         backup = root.parent / f".market-cap-backup-{uuid.uuid4().hex}"
         replace_files_transactionally(
             root,
             staging,
-            [relative, MISSING_TICKERS_NAME, MARKET_CAP_MANIFEST_NAME],
+            [*paths, MISSING_TICKERS_NAME, MARKET_CAP_MANIFEST_NAME],
             backup_root=backup,
             validate_after=lambda: validate_market_cap_dataset(
                 root, universe_path=universe_path
@@ -338,7 +413,13 @@ def refresh_market_cap_snapshot(
     return {
         "success": True,
         "snapshot_date": session.isoformat(),
-        **info,
+        "refresh_start": refresh_start.isoformat(),
+        "refresh_end": session.isoformat(),
+        "refreshed_session_count": len(refresh_sessions),
+        "requested_observation_count": requested_observation_count,
+        "stored_observation_count": stored_observation_count,
+        "missing_observation_count": missing_observation_count,
+        **target_info,
         "missing_tickers_csv": str(root / MISSING_TICKERS_NAME),
     }
 
@@ -390,12 +471,21 @@ def get_market_cap(
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Observe today's MarketCap aligned to the latest settled price session; no historical backfill."
+        description=(
+            "Refresh MarketCap for the latest settled price session and retry "
+            "missing observations from the recent calendar-day window."
+        )
     )
     parser.add_argument("command", choices=["refresh", "validate"])
     parser.add_argument("--prices-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
     parser.add_argument("--root", type=Path, default=DEFAULT_MARKET_CAP_ROOT)
     parser.add_argument("--universe", type=Path, default=DEFAULT_UNIVERSE)
+    parser.add_argument(
+        "--refresh-calendar-days",
+        type=int,
+        default=DEFAULT_REFRESH_CALENDAR_DAYS,
+        help="retry missing observations this many calendar days before the target",
+    )
     parser.add_argument("--result-json", type=Path)
     args = parser.parse_args(argv)
     try:
@@ -404,6 +494,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 prices_root=args.prices_root,
                 root=args.root,
                 universe_path=args.universe,
+                refresh_calendar_days=args.refresh_calendar_days,
             )
             if args.command == "refresh"
             else validate_market_cap_dataset(args.root, universe_path=args.universe)

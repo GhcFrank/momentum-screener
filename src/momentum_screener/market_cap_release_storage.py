@@ -7,6 +7,7 @@ import json
 import tempfile
 import uuid
 from collections.abc import Mapping, Sequence
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError
@@ -14,6 +15,7 @@ from urllib.parse import quote
 
 from momentum_screener.market_cap_storage import (
     DEFAULT_MARKET_CAP_ROOT,
+    DEFAULT_REFRESH_CALENDAR_DAYS,
     MARKET_CAP_MANIFEST_NAME,
     MarketCapStorageError,
     validate_market_cap_dataset,
@@ -194,13 +196,17 @@ def sync_market_cap_release(
         }
 
     if remote is not None:
+        mutable_from = date.fromisoformat(local["latest_session"]) - timedelta(
+            days=DEFAULT_REFRESH_CALENDAR_DAYS
+        )
         for session, info in remote["snapshots"].items():
             if session not in local["snapshots"] or (
-                session != local["latest_session"]
+                date.fromisoformat(session) < mutable_from
                 and local["snapshots"][session] != info
             ):
                 raise MarketCapStorageError(
-                    "Local MarketCap would lose/change prior snapshots; pull full remote history first"
+                    "Local MarketCap would lose/change history outside the rolling "
+                    "refresh window; pull full remote history first"
                 )
     changed = [
         year

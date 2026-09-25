@@ -133,7 +133,7 @@ jobs:
           --allow-bootstrap
           --result-json "$RUNNER_TEMP/market-cap-pull.json"
 
-      - name: Refresh MarketCap for the latest successful price session
+      - name: Refresh the 7-calendar-day MarketCap window
         id: market_cap_refresh
         if: success() && steps.preflight.outputs.action == 'run' && steps.refresh.outputs.ready == 'true'
         run: >-

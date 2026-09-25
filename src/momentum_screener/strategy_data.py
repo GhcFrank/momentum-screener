@@ -217,10 +217,12 @@ def load_strategy_market_cap(
     root: Path = DEFAULT_MARKET_CAP_ROOT,
     universe_path: Path = DEFAULT_UNIVERSE,
 ) -> pd.DataFrame:
-    """Require observations for every target session; retain missing ticker rows.
+    """Require snapshot metadata for each session; allow zero stored observations.
 
     No warmup snapshots are required. Only exact date/ticker observations are
     returned, with per-session coverage diagnostics for the current Universe.
+    Provider-level missing observations are represented by absent rows and
+    become NaN after a strategy's left join.
     """
 
     requested = tuple(sorted(set(sessions)))
@@ -231,10 +233,7 @@ def load_strategy_market_cap(
         missing = [
             day.isoformat()
             for day in requested
-            if manifest["snapshots"]
-            .get(day.isoformat(), {})
-            .get("stored_ticker_count", 0)
-            == 0
+            if day.isoformat() not in manifest["snapshots"]
         ]
         if missing:
             raise StrategyDataError(
