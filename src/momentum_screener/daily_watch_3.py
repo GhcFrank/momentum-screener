@@ -179,7 +179,10 @@ def daily_watch_3_rps_mask(
 
 
 def calculate_daily_watch_3_features(
-    frame: pd.DataFrame, *, config: DailyWatch3Config = DEFAULT_CONFIG
+    frame: pd.DataFrame,
+    *,
+    config: DailyWatch3Config = DEFAULT_CONFIG,
+    apply_turnover_filter: bool = True,
 ) -> pd.DataFrame:
     """Calculate the shared Core and formal signal diagnostics once per ticker.
 
@@ -294,7 +297,9 @@ def calculate_daily_watch_3_features(
     result["normal_turnover"] = result["turnover_market_cap_proxy_available"] & result[
         "turnover_market_cap_proxy"
     ].lt(config.max_turnover_proxy)
-    result["signal"] = result["core_signal"] & result["normal_turnover"]
+    result["signal"] = result["core_signal"] & (
+        result["normal_turnover"] if apply_turnover_filter else True
+    )
     result["setup"] = result["signal"]
     result["status"] = np.select(
         [
@@ -346,7 +351,7 @@ def _injected_market_cap_rows(
         raise ValueError(f"MarketCap rows are missing columns: {missing}")
     caps = rows.loc[:, ["date", "ticker", "market_cap"]].copy()
     caps["date"] = normalize_date_values(caps["date"])
-    if caps.empty or not bool(caps["date"].eq(session).all()):
+    if not caps.empty and not bool(caps["date"].eq(session).all()):
         raise ValueError("MarketCap rows must match the requested session exactly")
     caps["ticker"] = caps["ticker"].map(normalize_ticker).astype("string")
     if caps["ticker"].isna().any():
@@ -385,8 +390,13 @@ def screen_daily_watch_3(
     rps_snapshots: pd.DataFrame | None = None,
     market_cap_rows: pd.DataFrame | None = None,
     config: DailyWatch3Config = DEFAULT_CONFIG,
+    apply_turnover_filter: bool = True,
 ) -> pd.DataFrame:
-    """Screen the formal signal with shared RPS and exact-session MarketCap."""
+    """Screen with optional turnover eligibility and exact-session diagnostics.
+
+    The default preserves the formal research strategy. Disabling the filter
+    still calculates and returns turnover whenever MarketCap is available.
+    """
 
     requested = coerce_session_date(as_of_date, lookbacks=RPS_LOOKBACKS)
     universe = load_universe(universe_path)
@@ -424,7 +434,11 @@ def screen_daily_watch_3(
             caps, on=["date", "ticker"], how="left", validate="one_to_one"
         )
         for _, ticker_rows in prepared.groupby("ticker", sort=False):
-            features = calculate_daily_watch_3_features(ticker_rows, config=config)
+            features = calculate_daily_watch_3_features(
+                ticker_rows,
+                config=config,
+                apply_turnover_filter=apply_turnover_filter,
+            )
             current_rows.append(features.loc[features["date"].eq(requested)])
 
     result = _empty_result()

@@ -249,7 +249,10 @@ def _no_deep_pullback_since_high(
 
 
 def calculate_blue_diamond_features(
-    frame: pd.DataFrame, *, config: BlueDiamondConfig = DEFAULT_CONFIG
+    frame: pd.DataFrame,
+    *,
+    config: BlueDiamondConfig = DEFAULT_CONFIG,
+    apply_turnover_filter: bool = True,
 ) -> pd.DataFrame:
     """Full trailing diagnostics for one ticker; adjusted OHLC exactly once.
 
@@ -356,7 +359,9 @@ def calculate_blue_diamond_features(
         & result["long_term_trend"]
         & result["history_sufficient"]
     )
-    result["signal"] = result["core_signal"] & result["normal_turnover"]
+    result["signal"] = result["core_signal"] & (
+        result["normal_turnover"] if apply_turnover_filter else True
+    )
     result["setup"] = result["signal"]
     result["status"] = np.select(
         [
@@ -389,6 +394,7 @@ def calculate_blue_diamond_history(
     market_cap_root: Path = DEFAULT_MARKET_CAP_ROOT,
     rps_snapshots: pd.DataFrame | None = None,
     config: BlueDiamondConfig = DEFAULT_CONFIG,
+    apply_turnover_filter: bool = True,
 ) -> pd.DataFrame:
     """Read exact target observations and warmed price history for one ticker."""
     universe = load_universe(universe_path)
@@ -431,6 +437,7 @@ def calculate_blue_diamond_history(
     features = calculate_blue_diamond_features(
         prepared.merge(caps, on=["date", "ticker"], how="left", validate="one_to_one"),
         config=config,
+        apply_turnover_filter=apply_turnover_filter,
     )
     result = features.loc[features["date"].between(start, end)].reset_index(drop=True)
     result.attrs.update(
@@ -455,6 +462,7 @@ def evaluate_blue_diamond(
     market_cap_root: Path = DEFAULT_MARKET_CAP_ROOT,
     rps_snapshots: pd.DataFrame | None = None,
     config: BlueDiamondConfig = DEFAULT_CONFIG,
+    apply_turnover_filter: bool = True,
 ) -> pd.Series:
     """Return exact-session diagnostics, or an explicit missing-price result."""
     requested = coerce_session_date(as_of_date, lookbacks=BLUE_DIAMOND_RPS_LOOKBACKS)
@@ -468,6 +476,7 @@ def evaluate_blue_diamond(
         market_cap_root=market_cap_root,
         rps_snapshots=rps_snapshots,
         config=config,
+        apply_turnover_filter=apply_turnover_filter,
     )
     if not history.empty:
         return history.iloc[0].copy()
@@ -495,11 +504,13 @@ def screen_blue_diamond(
     rps_snapshots: pd.DataFrame | None = None,
     market_cap_rows: pd.DataFrame | None = None,
     config: BlueDiamondConfig = DEFAULT_CONFIG,
+    apply_turnover_filter: bool = True,
 ) -> pd.DataFrame:
     """Prefilter exact RPS, then calculate price histories only for candidates.
 
     signal_only=False selects setup, identical to signal for this strategy.
-    Missing ticker caps fail closed; an absent whole-session snapshot raises.
+    Turnover remains calculated when apply_turnover_filter=False, but it does
+    not decide eligibility. The default preserves the research strategy.
     """
     requested = coerce_session_date(as_of_date, lookbacks=BLUE_DIAMOND_RPS_LOOKBACKS)
     if market_cap_rows is None:
@@ -515,7 +526,7 @@ def screen_blue_diamond(
             raise ValueError(f"MarketCap rows are missing columns: {missing_caps}")
         caps = market_cap_rows.loc[:, ["date", "ticker", "market_cap"]].copy()
         caps["date"] = normalize_date_values(caps["date"])
-        if caps.empty or not bool(caps["date"].eq(requested).all()):
+        if not caps.empty and not bool(caps["date"].eq(requested).all()):
             raise ValueError("MarketCap rows must match the requested session exactly")
         if caps["ticker"].isna().any():
             raise ValueError("MarketCap rows contain an invalid ticker")
@@ -577,7 +588,11 @@ def screen_blue_diamond(
             caps, on=["date", "ticker"], how="left", validate="one_to_one"
         )
         for _, ticker_rows in prepared.groupby("ticker", sort=False):
-            features = calculate_blue_diamond_features(ticker_rows, config=config)
+            features = calculate_blue_diamond_features(
+                ticker_rows,
+                config=config,
+                apply_turnover_filter=apply_turnover_filter,
+            )
             current_rows.append(features.loc[features["date"].eq(requested)])
     result = _empty_result()
     insufficient_count = 0

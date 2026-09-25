@@ -10,6 +10,7 @@ from momentum_screener import market_cap_storage as storage
 from momentum_screener.market_cap_release_storage import sync_market_cap_release
 from momentum_screener.prices import load_universe, universe_sha256
 from momentum_screener.release_storage import ReleaseStorageError
+from momentum_screener.strategy_data import load_strategy_market_cap
 from momentum_screener.universe import fetch_market_caps
 
 
@@ -80,11 +81,15 @@ def test_snapshot_upsert_missing_and_history_are_explicit(cap_dataset):
         root=root,
         universe_path=universe,
         now=datetime(2026, 9, 9, 22, tzinfo=UTC),
-        fetch_func=lambda _: {"AAA": False, "BBB": -1},
+        fetch_func=lambda _: {"AAA": False, "BBB": 2100},
     )
-    assert result["stored_ticker_count"] == 0 and result["missing_ticker_count"] == 2
+    assert result["stored_ticker_count"] == 1 and result["missing_ticker_count"] == 1
+    assert result["refresh_start"] == "2026-09-02"
+    assert result["refreshed_session_count"] == 2
     assert storage.get_market_cap("AAA", date(2026, 9, 8), root=root) == 1100
+    assert storage.get_market_cap("BBB", date(2026, 9, 8), root=root) == 2100
     assert storage.get_market_cap("AAA", date(2026, 9, 9), root=root) is None
+    assert storage.get_market_cap("BBB", date(2026, 9, 9), root=root) == 2100
     assert universe.read_bytes() == original_universe
     rows = storage.read_market_cap(root=root)
     assert not rows.duplicated(["date", "ticker"]).any()
@@ -98,6 +103,14 @@ def test_snapshot_upsert_missing_and_history_are_explicit(cap_dataset):
     )
     assert result["stored_ticker_count"] == 0
     assert storage.read_market_cap(root=empty_root).empty
+    available = load_strategy_market_cap(
+        (date(2026, 9, 9),), root=empty_root, universe_path=universe
+    )
+    assert available.empty
+    assert available.attrs["session_counts"]["2026-09-09"] == {
+        "market_cap_available_count": 0,
+        "market_cap_missing_ticker_count": 2,
+    }
     with pytest.raises(storage.MarketCapStorageError, match="stale or unsettled"):
         refresh({"AAA": 999})
 

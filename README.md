@@ -65,11 +65,12 @@ uv run python -m momentum_screener.historical_screening \
 `blue_diamond` v1.0 使用 RPS20/50、受控回撤、MA20 附近的强均线结构和长期趋势，
 每个满足条件的交易日都产生信号。技术形态仅使用 adjusted OHLC；turnover 使用
 `raw_close * volume / market_cap`。RPS 优先复用本地持久化数据，MarketCap 必须按
-`date,ticker` exact join，不填补缺失，也不使用当前市值回填历史。
+`date,ticker` exact join，不用零或相邻日期填补缺失。
 
 只有显式选择蓝色钻石才读取 MarketCap；未指定策略时仍运行原有两个策略。
-目标区间任何 session 没有 MarketCap 观测则在替换 signal store 前失败；单个 ticker
-缺失则不产生信号。可筛选范围从实际 MarketCap 记录开始日期起，不提供历史 backfill。
+研究/回测 API 的 `apply_turnover_filter=True` 默认保留原策略：turnover 缺失时不通过筛选；
+设为 `False` 只取消 turnover 的资格条件，仍计算并输出可用的 turnover。Production daily
+对蓝色钻石和每日观察选股3显式使用 `False`，因此 MarketCap 缺失不会改变入选结果。
 
 ```bash
 uv run python -m momentum_screener.historical_screening \
@@ -90,4 +91,5 @@ UI 点击 **Load Signals** 后，CSV 中的 `blue_diamond` 自动进入 Strategi
 从同一配置生成。旧 `rpsData` 需要一次性迁移，保留既有指标，仅补算缺少的 horizon。
 新增独立的 **point-in-time daily market-cap snapshot**：固定 Universe，按成功 price session
 保存到 `data/processed/market_cap/`，并通过 `marketCapData` Release 保留历史；缺失值显式报告。
+每日刷新目标 session，并重试前 7 个日历日内已有 snapshot 的缺失观察，不做零值或相邻日填充。
 [迁移命令与 MarketCap bootstrap](docs/github-actions-data-bootstrap.md#existing-rps_v1-one-time-migration-before-enabling-daily-jobs)。

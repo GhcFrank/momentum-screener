@@ -94,10 +94,15 @@ def test_core_ignores_market_cap_proxy_while_formal_signal_fails_closed() -> Non
     missing = boundary.copy()
     missing.loc[current, "market_cap"] = np.nan
     formal_missing = calculate_daily_watch_3_features(missing).iloc[-1]
+    optional_missing = calculate_daily_watch_3_features(
+        missing, apply_turnover_filter=False
+    ).iloc[-1]
     core_missing = calculate_daily_watch_3_core_features(missing).iloc[-1]
     assert not formal_missing["market_cap_available"]
     assert formal_missing["core_signal"] and not formal_missing["signal"]
     assert formal_missing["status"] == "market_cap_unavailable"
+    assert optional_missing["core_signal"] and optional_missing["signal"]
+    assert pd.isna(optional_missing["turnover_market_cap_proxy"])
     assert core_missing["signal"] and core_missing["status"] == "ok"
 
     missing_rps = boundary.copy()
