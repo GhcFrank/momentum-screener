@@ -7,6 +7,7 @@ import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
+from functools import partial
 from html import escape
 from pathlib import Path
 from typing import Any, TextIO
@@ -14,6 +15,10 @@ from typing import Any, TextIO
 import pandas as pd  # type: ignore[import-untyped]
 
 from momentum_screener.company_metadata import format_metadata_value
+from momentum_screener.historical_screening import (
+    get_strategy_identity,
+    recompute_signal_context,
+)
 from momentum_screener.monthly_reversal import screen_monthly_reversal
 from momentum_screener.prices import DEFAULT_OUTPUT_ROOT, DEFAULT_UNIVERSE
 from momentum_screener.rps import RPS_LOOKBACKS, calculate_rps_snapshot
@@ -28,6 +33,8 @@ from momentum_screener.rps_storage import (
     DEFAULT_RPS_ROOT,
     persist_rps_snapshot,
 )
+from momentum_screener.signal_store import DEFAULT_SIGNAL_ROOT
+from momentum_screener.signal_streak import resolve_current_signal_streaks
 
 LOGGER = logging.getLogger(__name__)
 
@@ -78,6 +85,18 @@ def _format_percentage(value: Any) -> str:
     return f"{parsed:.2%}" if math.isfinite(parsed) else "N/A"
 
 
+def _format_streak(value: Any) -> str:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return "N/A"
+    return (
+        str(int(parsed))
+        if math.isfinite(parsed) and parsed >= 1 and parsed.is_integer()
+        else "N/A"
+    )
+
+
 def _signal_rows(rows: pd.DataFrame) -> pd.DataFrame:
     required = {"ticker", "rps50", "rps120", "signal"}
     missing = sorted(required.difference(rows.columns))
@@ -87,6 +106,8 @@ def _signal_rows(rows: pd.DataFrame) -> pd.DataFrame:
     selected = rows.loc[signal].copy()
     if "adj_close" not in selected:
         selected["adj_close"] = float("nan")
+    if "signal_streak" not in selected:
+        selected["signal_streak"] = pd.NA
     return selected.sort_values("ticker", kind="mergesort", ignore_index=True)
 
 
@@ -120,7 +141,7 @@ def render_monthly_reversal_email(
     else:
         header = (
             f"{'Ticker':<12} {'Industry':<32} "
-            f"{'RPS50':>8} {'RPS120':>8} {'Adj Close':>12}"
+            f"{'Streak':>8} {'RPS50':>8} {'RPS120':>8} {'Adj Close':>12}"
         )
         if include_turnover:
             header += f" {'Turnover':>10}"
@@ -129,6 +150,7 @@ def render_monthly_reversal_email(
             line = (
                 f"{row['ticker']!s:<12} "
                 f"{format_metadata_value(row.get('industry')):<32} "
+                f"{_format_streak(row['signal_streak']):>8} "
                 f"{_format_number(row['rps50']):>8} "
                 f"{_format_number(row['rps120']):>8} "
                 f"{_format_number(row['adj_close']):>12}"
@@ -140,6 +162,7 @@ def render_monthly_reversal_email(
             "<tr>"
             + f"<td>{escape(str(row['ticker']))}</td>"
             + f"<td>{escape(format_metadata_value(row.get('industry')))}</td>"
+            + f"<td>{_format_streak(row['signal_streak'])}</td>"
             + f"<td>{_format_number(row['rps50'])}</td>"
             + f"<td>{_format_number(row['rps120'])}</td>"
             + f"<td>{_format_number(row['adj_close'])}</td>"
@@ -154,7 +177,7 @@ def render_monthly_reversal_email(
         turnover_header = "<th>Turnover</th>" if include_turnover else ""
         html_content = (
             '<table style="border-collapse:collapse">'
-            "<thead><tr><th>Ticker</th><th>Industry</th><th>RPS50</th><th>RPS120</th>"
+            "<thead><tr><th>Ticker</th><th>Industry</th><th>Streak</th><th>RPS50</th><th>RPS120</th>"
             f"<th>Adj Close</th>{turnover_header}</tr></thead>"
             f"<tbody>{html_rows}</tbody></table>"
         )
@@ -188,6 +211,7 @@ def run_daily_monthly_reversal_notification(
     as_of_date: date | str | None = None,
     prices_root: Path = DEFAULT_OUTPUT_ROOT,
     rps_root: Path = DEFAULT_RPS_ROOT,
+    signal_root: Path = DEFAULT_SIGNAL_ROOT,
     universe_path: Path = DEFAULT_UNIVERSE,
     environ: Mapping[str, str] | None = None,
     dry_run: bool = False,
@@ -229,6 +253,19 @@ def run_daily_monthly_reversal_notification(
         rps_root=rps_root,
         rps_snapshots=snapshot,
     )
+    identity = get_strategy_identity("monthly_reversal")
+    screen = resolve_current_signal_streaks(
+        session,
+        {identity.strategy_id: screen},
+        {identity.strategy_id: identity},
+        signal_root=signal_root,
+        context_recompute=partial(
+            recompute_signal_context,
+            prices_root=prices_root,
+            rps_root=rps_root,
+            universe_path=universe_path,
+        ),
+    )[identity.strategy_id]
     rendered = render_monthly_reversal_email(
         as_of_date=session,
         screen_rows=screen,

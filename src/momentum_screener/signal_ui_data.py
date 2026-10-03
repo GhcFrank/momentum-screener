@@ -7,7 +7,7 @@ later supply the same normalized frame.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Collection, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -48,6 +48,9 @@ from momentum_screener.strategy_data import calculate_turnover_columns
 from momentum_screener.universe import normalize_ticker
 
 SIGNAL_KEY = ["session", "strategy_id", "ticker"]
+SELECTION_CLEAR_MARKER_COLUMN = "__selection_clear_marker__"
+HiddenTickerContext = tuple[str, tuple[str, ...]]
+TickerTableContext = tuple[int, str, tuple[str, ...]]
 
 
 def discover_signal_csvs(paths: Sequence[str]) -> tuple[list[Path], list[str]]:
@@ -171,6 +174,16 @@ def read_signal_csv(source: LocalFile) -> tuple[pd.DataFrame, list[str]]:
         frame["strategy_version"] = pd.NA
     # Normalize blank diagnostics to missing, including unioned CSV columns.
     frame = frame.replace("", pd.NA)
+    if "signal_streak" not in frame:
+        frame["signal_streak"] = pd.Series(pd.NA, index=frame.index, dtype="Int64")
+    else:
+        streak = pd.to_numeric(frame["signal_streak"], errors="coerce")
+        invalid = streak.notna() & (~streak.ge(1) | ~streak.eq(streak.round()))
+        if invalid.any():
+            warnings.append(
+                f"Displayed N/A for {int(invalid.sum())} invalid signal streak value(s)."
+            )
+        frame["signal_streak"] = streak.mask(invalid).astype("Int64")
     frame["source_file"] = source.path
     if LocalFile.inspect(source.path) != source:
         raise ValueError("CSV changed while loading; click Load Signals again.")
@@ -182,7 +195,12 @@ def combine_signals(frames: list[pd.DataFrame]) -> tuple[pd.DataFrame, list[str]
 
     if not frames:
         return pd.DataFrame(
-            columns=[*SIGNAL_KEY, "strategy_version", "source_file"]
+            columns=[
+                *SIGNAL_KEY,
+                "strategy_version",
+                "signal_streak",
+                "source_file",
+            ]
         ), []
     combined = pd.concat(frames, ignore_index=True, sort=False)
     duplicated = combined.duplicated(SIGNAL_KEY, keep=False)
@@ -225,6 +243,133 @@ def filter_tickers_by_strategies(
     ]
     counts = rows.groupby("ticker")["strategy_id"].nunique()
     return sorted(counts.index[counts.eq(len(selected))].tolist())
+
+
+def hidden_ticker_context(
+    session: date, selected_strategies: Sequence[str]
+) -> HiddenTickerContext:
+    """Identify one date/strategy-combination presentation context."""
+
+    return session.isoformat(), tuple(sorted(set(selected_strategies)))
+
+
+def filter_hidden_tickers(
+    tickers: Sequence[str],
+    hidden_by_context: Mapping[HiddenTickerContext, Collection[str]],
+    session: date,
+    selected_strategies: Sequence[str],
+) -> list[str]:
+    """Exclude session-only UI choices without changing signal semantics."""
+
+    hidden = set(
+        hidden_by_context.get(hidden_ticker_context(session, selected_strategies), ())
+    )
+    return [ticker for ticker in tickers if ticker not in hidden]
+
+
+def ticker_table_context(
+    load_revision: int, session: date, selected_strategies: Sequence[str]
+) -> TickerTableContext:
+    """Identify the dataset/date/strategy widget, independent of visible rows."""
+
+    return (
+        load_revision,
+        session.isoformat(),
+        tuple(sorted(set(selected_strategies))),
+    )
+
+
+def ticker_table_key(context: TickerTableContext) -> str:
+    """Return the stable Streamlit key for one genuine table context."""
+
+    revision, session, strategies = context
+    return f"ticker_results:{revision}:{session}:{'|'.join(strategies)}"
+
+
+def ticker_table_selection_clear_key(context: TickerTableContext) -> str:
+    """Return the pending-clear key scoped to one stable table context."""
+
+    return f"{ticker_table_key(context)}:selection_clear_pending"
+
+
+def cleared_table_selection() -> dict[str, dict[str, list[object]]]:
+    """Construct the Streamlit 1.63 dataframe selection state."""
+
+    return {"selection": {"rows": [], "columns": [], "cells": []}}
+
+
+def _selection_clear_state(
+    use_marker: bool,
+) -> dict[str, dict[str, list[object]]]:
+    """Return a frontend-empty selection pulse distinct from the prior clear."""
+
+    state = cleared_table_selection()
+    if use_marker:
+        # Streamlit 1.63 ignores repeated identical selection_state JSON. This
+        # cell targets a hidden column, so the frontend resolves it to an empty
+        # grid selection while still observing a different programmatic state.
+        state["selection"]["cells"] = [[0, SELECTION_CLEAR_MARKER_COLUMN]]
+    return state
+
+
+def consume_selection_clear_pending(
+    state: MutableMapping[str, object], pending_key: str
+) -> dict[str, dict[str, list[object]]] | None:
+    """Consume a pending flag and return state to apply before dataframe render."""
+
+    if not state.pop(pending_key, False):
+        return None
+    pulse_key = f"{pending_key}:pulse"
+    use_marker = bool(state.get(pulse_key, False))
+    state[pulse_key] = not use_marker
+    return _selection_clear_state(use_marker)
+
+
+def apply_hide_selection(
+    hidden_by_context: MutableMapping[HiddenTickerContext, set[str]],
+    context: HiddenTickerContext,
+    tickers_by_position: Sequence[str],
+    selected_rows: Sequence[int],
+) -> bool:
+    """Resolve original row positions to ticker identities and record them."""
+
+    selected = {
+        tickers_by_position[position]
+        for position in selected_rows
+        if 0 <= position < len(tickers_by_position)
+    }
+    if selected:
+        hidden_by_context.setdefault(context, set()).update(selected)
+    return bool(selected)
+
+
+def build_signal_streak_table(
+    tickers: Sequence[str],
+    signals: pd.DataFrame,
+    session: date,
+    selected_strategies: Sequence[str],
+    display_names: dict[str, str],
+) -> pd.DataFrame:
+    """Build display-only streak columns for one strategy or an intersection."""
+
+    table = pd.DataFrame({"Ticker": sorted(set(tickers))})
+    strategy_ids = tuple(dict.fromkeys(selected_strategies))
+    rows = signals.loc[
+        signals["session"].eq(pd.Timestamp(session))
+        & signals["strategy_id"].isin(strategy_ids)
+    ]
+    for strategy_id in strategy_ids:
+        selected = rows.loc[rows["strategy_id"].eq(strategy_id)]
+        if selected["ticker"].duplicated().any():
+            raise ValueError(f"Duplicate signal streak rows for {strategy_id}.")
+        lookup = selected.set_index("ticker")["signal_streak"]
+        column = (
+            "Streak"
+            if len(strategy_ids) == 1
+            else f"{display_names.get(strategy_id, strategy_id)} Streak"
+        )
+        table[column] = pd.array(table["Ticker"].map(lookup), dtype="Int64")
+    return table
 
 
 def local_rps_files(
@@ -453,7 +598,7 @@ class PriceWindow:
 def clip_price_window(
     signal_date: date, available_start: date, available_end: date
 ) -> PriceWindow | None:
-    """Intersect maximum/default windows with actual data; None means no overlap.
+    """Clip the maximum range and default one-year pre-signal viewport.
 
     If the default viewport has no span of available data, show the available
     maximum window instead of returning an inverted or zero-width viewport.
@@ -466,8 +611,8 @@ def clip_price_window(
     if start > end:
         return None
     signal = pd.Timestamp(signal_date)
-    view_start = max(start, (signal - pd.DateOffset(months=3)).date())
-    view_end = min(end, (signal + pd.DateOffset(months=1)).date())
+    view_start = max(start, (signal - pd.DateOffset(years=1)).date())
+    view_end = min(end, signal.date())
     fallback = view_start >= view_end
     if fallback:
         view_start, view_end = start, end

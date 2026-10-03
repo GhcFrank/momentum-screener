@@ -39,14 +39,26 @@ def render_app() -> None:
     from momentum_screener.local_price_data import price_files_in_range
     from momentum_screener.market_cap_storage import MarketCapStorageError
     from momentum_screener.rps_storage import RpsStorageError
+    from momentum_screener.signal_notebook import (
+        normalize_notebook_context,
+        notebook_path,
+        read_signal_notebook,
+        replace_notebook_context,
+    )
     from momentum_screener.signal_ui_data import (
+        SELECTION_CLEAR_MARKER_COLUMN,
         LocalFile,
+        apply_hide_selection,
+        build_signal_streak_table,
         build_ticker_rps_table,
         clip_price_window,
         combine_signals,
+        consume_selection_clear_pending,
         discover_signal_csvs,
         enrich_ticker_table_with_metadata,
+        filter_hidden_tickers,
         filter_tickers_by_strategies,
+        hidden_ticker_context,
         load_company_metadata_for_ui,
         load_rps_for_session,
         load_turnover_for_session,
@@ -56,6 +68,9 @@ def render_app() -> None:
         local_rps_files,
         read_local_prices,
         read_signal_csv,
+        ticker_table_context,
+        ticker_table_key,
+        ticker_table_selection_clear_key,
     )
     from momentum_screener.storage_manifest import ManifestError
 
@@ -120,6 +135,31 @@ def render_app() -> None:
             st.session_state["signals"] = combined
             st.session_state["signal_files"] = metadata
             st.session_state["load_reports"] = reports
+            if metadata:
+                research_root = Path(metadata[0].path).parent.resolve()
+                signal_notebook_path = notebook_path(research_root)
+                st.session_state["research_root"] = research_root
+                st.session_state["signal_notebook_path"] = signal_notebook_path
+                try:
+                    st.session_state["signal_notebook"] = read_signal_notebook(
+                        signal_notebook_path
+                    )
+                except (OSError, UnicodeError, ValueError) as exc:
+                    st.session_state["signal_notebook"] = None
+                    st.session_state["signal_notebook_error"] = str(exc)
+                else:
+                    st.session_state.pop("signal_notebook_error", None)
+            else:
+                for key in (
+                    "research_root",
+                    "signal_notebook_path",
+                    "signal_notebook",
+                    "signal_notebook_error",
+                ):
+                    st.session_state.pop(key, None)
+            st.session_state["signal_load_revision"] = (
+                st.session_state.get("signal_load_revision", 0) + 1
+            )
             # Reset date/row selection on reload; preserve only strategies that
             # still exist in the new collection, including an empty selection.
             st.session_state["selected_strategies"] = [
@@ -127,7 +167,12 @@ def render_app() -> None:
                 for item in st.session_state.get("selected_strategies", [])
                 if item in set(combined["strategy_id"])
             ]
-            for key in ("signal_date", "ticker_table_context"):
+            for key in (
+                "signal_date",
+                "ticker_table_context",
+                "ticker_table_revision",
+                "hidden_tickers_by_context",
+            ):
                 st.session_state.pop(key, None)
         for level, message in st.session_state.get("load_reports", []):
             getattr(st, level)(message)
@@ -136,6 +181,74 @@ def render_app() -> None:
     if signals is None or signals.empty:
         st.info("Load one or more signal CSV files to begin.")
         return
+
+    def render_research_notebook() -> None:
+        notebook = st.session_state.get("signal_notebook")
+        error = st.session_state.get("signal_notebook_error")
+        path = st.session_state.get("signal_notebook_path")
+        with st.expander("Research Notebook"):
+            if path is not None:
+                st.caption(str(path))
+            if error:
+                st.error(f"Unable to read Research Notebook: {error}")
+                return
+            if notebook is None:
+                st.info("Load signals from a research directory to view its notebook.")
+                return
+
+            if notebook.empty:
+                st.info("Research Notebook is empty.")
+            else:
+                summary = (
+                    notebook.groupby(
+                        ["signal_date", "strategy_ids", "strategy_name"],
+                        as_index=False,
+                        sort=False,
+                    )
+                    .size()
+                    .rename(
+                        columns={
+                            "signal_date": "Signal Date",
+                            "strategy_name": "Strategy",
+                            "size": "Tickers",
+                        }
+                    )
+                    .sort_values(
+                        ["Signal Date", "Strategy"],
+                        ascending=[False, True],
+                        ignore_index=True,
+                    )
+                )
+                st.dataframe(
+                    summary.loc[:, ["Signal Date", "Strategy", "Tickers"]],
+                    hide_index=True,
+                    width="stretch",
+                )
+                details = notebook.rename(
+                    columns={
+                        "signal_date": "Signal Date",
+                        "strategy_name": "Strategy",
+                        "ticker": "Ticker",
+                        "saved_at": "Saved At",
+                    }
+                )
+                st.dataframe(
+                    details.loc[
+                        :, ["Signal Date", "Strategy", "Ticker", "Saved At"]
+                    ],
+                    hide_index=True,
+                    width="stretch",
+                )
+            st.download_button(
+                "Download Notebook CSV",
+                data=notebook.to_csv(index=False, lineterminator="\n").encode(
+                    "utf-8"
+                ),
+                file_name="signal_notebook.csv",
+                mime="text/csv",
+                disabled=notebook.empty,
+                key=f"download_notebook:{path}",
+            )
 
     first_date = signals["session"].min().date()
     last_date = signals["session"].max().date()
@@ -155,23 +268,127 @@ def render_app() -> None:
         selection_mode="multi",
         key="selected_strategies",
     )
-    tickers = filter_tickers_by_strategies(signals, signal_date, selected_strategies)
-    table_context = (signal_date, tuple(sorted(selected_strategies)), tuple(tickers))
-    if st.session_state.get("ticker_table_context") != table_context:
-        # Dataframe selection state is read-only. A new widget key discards old
-        # row positions when date, strategies, results, or loaded CSVs change.
-        st.session_state["ticker_table_context"] = table_context
-        st.session_state["ticker_table_revision"] = (
-            st.session_state.get("ticker_table_revision", 0) + 1
-        )
+    matching_tickers = filter_tickers_by_strategies(
+        signals, signal_date, selected_strategies
+    )
     if not selected_strategies:
         st.info("Select at least one strategy.")
+        render_research_notebook()
         return
     if not signals["session"].eq(pd.Timestamp(signal_date)).any():
         st.info("No signals for this date.")
+        render_research_notebook()
         return
-    if not tickers:
+    if not matching_tickers:
         st.info(f"No matching signals for the selected strategies on {signal_date}.")
+        render_research_notebook()
+        return
+
+    table_context = ticker_table_context(
+        st.session_state.get("signal_load_revision", 0),
+        signal_date,
+        selected_strategies,
+    )
+    table_widget_key = ticker_table_key(table_context)
+    selection_clear_pending_key = ticker_table_selection_clear_key(table_context)
+    st.session_state["ticker_table_context"] = table_context
+    cleared_selection = consume_selection_clear_pending(
+        st.session_state, selection_clear_pending_key
+    )
+    if cleared_selection is not None:
+        # This must happen before st.dataframe receives the filtered rows.
+        st.session_state[table_widget_key] = cleared_selection
+
+    context_key = hidden_ticker_context(signal_date, selected_strategies)
+    if "hidden_tickers_by_context" not in st.session_state:
+        st.session_state["hidden_tickers_by_context"] = {}
+    hidden_by_context = st.session_state["hidden_tickers_by_context"]
+    hidden = set(hidden_by_context.get(context_key, ())).intersection(matching_tickers)
+    tickers = filter_hidden_tickers(
+        matching_tickers,
+        hidden_by_context,
+        signal_date,
+        selected_strategies,
+    )
+    # Always reserve this element position. Conditionally inserting the button
+    # would shift the dataframe's delta path after the first hide and remount
+    # the frontend component even though its explicit key stayed unchanged.
+    reset_hidden_slot = st.empty()
+    if hidden and reset_hidden_slot.button(
+        "Reset hidden",
+        key=f"reset_hidden:{context_key[0]}:{'|'.join(context_key[1])}",
+    ):
+        hidden_by_context.pop(context_key, None)
+        st.session_state[selection_clear_pending_key] = True
+        st.rerun()
+    if hidden:
+        st.caption(f"{len(tickers)} visible · {len(hidden)} hidden")
+    else:
+        st.caption(f"{len(tickers)} matching tickers")
+
+    notebook_file = st.session_state.get("signal_notebook_path")
+    notebook = st.session_state.get("signal_notebook")
+    notebook_error = st.session_state.get("signal_notebook_error")
+    notebook_session, notebook_strategy_ids, notebook_strategy_name = (
+        normalize_notebook_context(
+            signal_date, selected_strategies, STRATEGY_DISPLAY_NAMES
+        )
+    )
+    save_notebook = st.button(
+        "Save / Update Notebook",
+        disabled=(
+            not tickers
+            or notebook_file is None
+            or notebook is None
+            or notebook_error is not None
+        ),
+        key=f"save_notebook:{notebook_session}:{notebook_strategy_ids}",
+    )
+    notebook_status_slot = st.empty()
+    notebook_feedback_slot = st.empty()
+    if save_notebook:
+        try:
+            notebook = replace_notebook_context(
+                notebook_file,
+                signal_date=signal_date,
+                strategy_ids=selected_strategies,
+                display_names=STRATEGY_DISPLAY_NAMES,
+                tickers=tickers,
+            )
+        except (OSError, UnicodeError, ValueError) as exc:
+            st.session_state["signal_notebook"] = None
+            st.session_state["signal_notebook_error"] = str(exc)
+            notebook_error = str(exc)
+            notebook_feedback_slot.error(
+                f"Unable to save Research Notebook: {exc}"
+            )
+        else:
+            st.session_state["signal_notebook"] = notebook
+            st.session_state.pop("signal_notebook_error", None)
+            notebook_feedback_slot.success(
+                f"Saved {len(tickers)} tickers\n\n"
+                f"{notebook_session} · {notebook_strategy_name}"
+            )
+    if notebook_error:
+        notebook_status_slot.error(
+            f"Unable to read Research Notebook: {notebook_error}"
+        )
+    elif not tickers:
+        notebook_status_slot.caption("No visible tickers to save.")
+    elif notebook is not None:
+        saved_count = int(
+            (
+                notebook["signal_date"].eq(notebook_session)
+                & notebook["strategy_ids"].eq(notebook_strategy_ids)
+            ).sum()
+        )
+        if saved_count:
+            notebook_status_slot.caption(
+                f"Notebook: {saved_count} saved tickers"
+            )
+    if not tickers:
+        st.info("All matching tickers are hidden for this selection.")
+        render_research_notebook()
         return
 
     try:
@@ -194,6 +411,23 @@ def render_app() -> None:
         st.warning(f"Company metadata unavailable; showing N/A. {exc}")
         metadata = pd.DataFrame()
     table = enrich_ticker_table_with_metadata(table, metadata)
+    streaks = build_signal_streak_table(
+        tickers,
+        signals,
+        signal_date,
+        selected_strategies,
+        STRATEGY_DISPLAY_NAMES,
+    )
+    table = table.merge(streaks, on="Ticker", how="left", validate="one_to_one")
+    streak_columns = [column for column in streaks if column != "Ticker"]
+    other_columns = [
+        column
+        for column in table
+        if column not in {"Ticker", "Sector", "Industry", *streak_columns}
+    ]
+    table = table.loc[
+        :, ["Ticker", "Sector", "Industry", *streak_columns, *other_columns]
+    ]
     try:
         turnover = cached_turnover(
             signal_date,
@@ -238,39 +472,62 @@ def render_app() -> None:
         table[label] = (
             performance[metric].reindex(table["Ticker"]).to_numpy(dtype="float64") * 100
         )
-    st.caption(f"{len(table)} matching tickers")
     st.caption(
         "Forward performance uses raw signal Close and future High/Low; incomplete 40/120-session windows use available data."
     )
+    st.caption(
+        "Use row checkboxes to hide tickers; select any data cell to view its price chart."
+    )
+
+    dataframe_table = table.assign(**{SELECTION_CLEAR_MARKER_COLUMN: False})
+    dataframe_column_config = {
+        name: st.column_config.NumberColumn(
+            name,
+            format=(
+                "%d"
+                if name == "Streak" or name.endswith(" Streak")
+                else "%+.1f%%"
+                if name in forward_columns.values()
+                else "%.1f%%"
+                if name == "Turnover"
+                else "%.1f"
+            ),
+        )
+        for name in table.columns
+        if name not in {"Ticker", "Sector", "Industry"}
+    }
+    dataframe_column_config[SELECTION_CLEAR_MARKER_COLUMN] = None
+
     selection = st.dataframe(
-        table,
+        dataframe_table,
         hide_index=True,
         width="stretch",
         placeholder="N/A",
-        column_config={
-            name: st.column_config.NumberColumn(
-                name,
-                format=(
-                    "%+.1f%%"
-                    if name in forward_columns.values()
-                    else "%.1f%%"
-                    if name == "Turnover"
-                    else "%.1f"
-                ),
-            )
-            for name in table.columns
-            if name not in {"Ticker", "Sector", "Industry"}
-        },
+        column_config=dataframe_column_config,
         on_select="rerun",
-        selection_mode="single-row",
-        key=f"ticker_results:{st.session_state['ticker_table_revision']}",
+        selection_mode=["multi-row", "single-cell"],
+        key=table_widget_key,
     )
     rows = selection.selection.rows
-    if not rows or not 0 <= rows[0] < len(table):
+    if rows and apply_hide_selection(
+        hidden_by_context,
+        context_key,
+        table["Ticker"].astype(str).tolist(),
+        rows,
+    ):
+        st.session_state[selection_clear_pending_key] = True
+        st.rerun()
+    render_research_notebook()
+    cells = [
+        cell
+        for cell in selection.selection.cells
+        if cell[1] != SELECTION_CLEAR_MARKER_COLUMN
+    ]
+    if not cells or not 0 <= cells[0][0] < len(table):
         st.info("Select a ticker row to view its price chart.")
         return
     # Streamlit returns original integer row positions even after client sorting.
-    selected_row = table.iloc[rows[0]]
+    selected_row = table.iloc[cells[0][0]]
     ticker = selected_row["Ticker"]
     strategy = " + ".join(selected_strategies)
     st.text(f"Ticker: {ticker}    Signal Date: {signal_date}    Strategy: {strategy}")

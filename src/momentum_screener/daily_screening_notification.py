@@ -8,6 +8,7 @@ import sys
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass
 from datetime import date
+from functools import partial
 from html import escape
 from pathlib import Path
 from typing import TextIO
@@ -20,11 +21,17 @@ from momentum_screener.blue_diamond import (
 )
 from momentum_screener.blue_diamond import STRATEGY_NAME as BLUE_DIAMOND_NAME
 from momentum_screener.blue_diamond import screen_blue_diamond
+from momentum_screener.blue_diamond_core import (
+    STRATEGY_ID as BLUE_DIAMOND_CORE_STRATEGY_ID,
+)
 from momentum_screener.company_metadata import (
     DEFAULT_METADATA_PATH,
     enrich_company_metadata,
     format_metadata_value,
     load_company_metadata,
+)
+from momentum_screener.daily_watch_3 import (
+    CORE_STRATEGY_ID as DAILY_WATCH_3_CORE_STRATEGY_ID,
 )
 from momentum_screener.daily_watch_3 import (
     STRATEGY_DESCRIPTION as DAILY_WATCH_3_DESCRIPTION,
@@ -41,6 +48,7 @@ from momentum_screener.monthly_reversal_notification import (
     _coerce_as_of_date,
     _format_number,
     _format_percentage,
+    _format_streak,
     render_monthly_reversal_email,
 )
 from momentum_screener.prices import DEFAULT_OUTPUT_ROOT, DEFAULT_UNIVERSE
@@ -53,6 +61,8 @@ from momentum_screener.rps_notification import (
     send_rps_email,
 )
 from momentum_screener.rps_storage import DEFAULT_RPS_ROOT, persist_rps_snapshot
+from momentum_screener.signal_store import DEFAULT_SIGNAL_ROOT
+from momentum_screener.signal_streak import resolve_current_signal_streaks
 from momentum_screener.storage_manifest import write_json_atomically
 from momentum_screener.strategy_data import (
     coerce_session_date,
@@ -69,6 +79,7 @@ from momentum_screener.trend_reacceleration import (
     TrendReaccelerationConfig,
     screen_trend_reacceleration,
 )
+from momentum_screener.trend_reacceleration import STRATEGY_ID as TREND_STRATEGY_ID
 
 LOGGER = logging.getLogger(__name__)
 
@@ -136,7 +147,12 @@ def _render_strategy_section(
         text_lines.append("No matches.")
         return text_lines, html + "<p>No matches.</p>"
 
-    headers = (("ticker", "Ticker", 12), ("industry", "Industry", 32), *columns)
+    headers = (
+        ("ticker", "Ticker", 12),
+        ("industry", "Industry", 32),
+        ("signal_streak", "Streak", 8),
+        *columns,
+    )
     text_lines.append(
         " ".join(
             f"{label:<{width}}"
@@ -147,7 +163,11 @@ def _render_strategy_section(
     )
     html_rows: list[str] = []
     for _, row in selected.iterrows():
-        values = [str(row["ticker"]), format_metadata_value(row.get("industry"))]
+        values = [
+            str(row["ticker"]),
+            format_metadata_value(row.get("industry")),
+            _format_streak(row.get("signal_streak")),
+        ]
         for key, _, _ in columns:
             value = row.get(key)
             values.append(
@@ -275,6 +295,7 @@ def run_daily_screening_notification(
     prices_root: Path = DEFAULT_OUTPUT_ROOT,
     rps_root: Path = DEFAULT_RPS_ROOT,
     market_cap_root: Path = DEFAULT_MARKET_CAP_ROOT,
+    signal_root: Path = DEFAULT_SIGNAL_ROOT,
     universe_path: Path = DEFAULT_UNIVERSE,
     metadata_path: Path = DEFAULT_METADATA_PATH,
     environ: Mapping[str, str] | None = None,
@@ -379,6 +400,42 @@ def run_daily_screening_notification(
         market_cap_rows=market_cap_rows,
         apply_turnover_filter=False,
     )
+    from momentum_screener.historical_screening import (
+        get_strategy_identity,
+        recompute_signal_context,
+    )
+
+    effective_rows = {
+        "monthly_reversal": monthly,
+        TREND_STRATEGY_ID: trend,
+        BLUE_DIAMOND_CORE_STRATEGY_ID: blue_diamond,
+        DAILY_WATCH_3_CORE_STRATEGY_ID: daily_watch_3,
+    }
+    identities = {
+        strategy_id: get_strategy_identity(
+            strategy_id,
+            trend_config=trend_config,
+        )
+        for strategy_id in effective_rows
+    }
+    streak_rows = resolve_current_signal_streaks(
+        session,
+        effective_rows,
+        identities,
+        signal_root=signal_root,
+        context_recompute=partial(
+            recompute_signal_context,
+            prices_root=prices_root,
+            rps_root=rps_root,
+            market_cap_root=market_cap_root,
+            universe_path=universe_path,
+            trend_config=trend_config,
+        ),
+    )
+    monthly = streak_rows["monthly_reversal"]
+    trend = streak_rows[TREND_STRATEGY_ID]
+    blue_diamond = streak_rows[BLUE_DIAMOND_CORE_STRATEGY_ID]
+    daily_watch_3 = streak_rows[DAILY_WATCH_3_CORE_STRATEGY_ID]
     signal_tickers = tuple(
         dict.fromkeys(
             str(ticker)
@@ -496,6 +553,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--prices-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
     parser.add_argument("--rps-root", type=Path, default=DEFAULT_RPS_ROOT)
     parser.add_argument("--market-cap-root", type=Path, default=DEFAULT_MARKET_CAP_ROOT)
+    parser.add_argument("--signal-root", type=Path, default=DEFAULT_SIGNAL_ROOT)
     parser.add_argument("--universe", type=Path, default=DEFAULT_UNIVERSE)
     parser.add_argument("--company-metadata", type=Path, default=DEFAULT_METADATA_PATH)
     parser.add_argument("--result-json", type=Path)
@@ -520,6 +578,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             prices_root=args.prices_root,
             rps_root=args.rps_root,
             market_cap_root=args.market_cap_root,
+            signal_root=args.signal_root,
             universe_path=args.universe,
             metadata_path=args.company_metadata,
             dry_run=args.dry_run,

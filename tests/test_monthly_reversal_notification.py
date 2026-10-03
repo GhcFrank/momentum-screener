@@ -32,6 +32,7 @@ def _screen_rows() -> pd.DataFrame:
         [
             {
                 "ticker": "AAPL",
+                "signal_streak": 4,
                 "rps50": 95.0,
                 "rps120": 91.0,
                 "rps250": 20.0,
@@ -78,6 +79,8 @@ def test_email_contains_only_signal_true_not_yxfz_or_high_rps_only() -> None:
     assert "91.00" in rendered.text_body
     assert "230.50" in rendered.text_body
     assert "Industry" in rendered.text_body
+    assert "Streak" in rendered.text_body
+    assert "4" in rendered.text_body
     assert "Consumer Electronics" in rendered.text_body
     assert "Consumer Electronics" in rendered.html_body
     assert "MSFT" not in rendered.text_body
@@ -131,6 +134,11 @@ def test_daily_orchestration_calculates_once_persists_before_screen_and_sends(
     monkeypatch.setattr(notification, "calculate_rps_snapshot", fake_calculate)
     monkeypatch.setattr(notification, "persist_rps_snapshot", fake_persist)
     monkeypatch.setattr(notification, "screen_monthly_reversal", fake_screen)
+    monkeypatch.setattr(
+        notification,
+        "resolve_current_signal_streaks",
+        lambda session, rows, identities, **kwargs: rows,
+    )
     monkeypatch.setattr(notification, "send_rps_email", fake_send)
 
     result = run_daily_monthly_reversal_notification(
@@ -215,6 +223,11 @@ def test_dry_run_calculates_and_renders_without_persisting_or_smtp(
     )
     monkeypatch.setattr(
         notification, "screen_monthly_reversal", lambda *args, **kwargs: screen
+    )
+    monkeypatch.setattr(
+        notification,
+        "resolve_current_signal_streaks",
+        lambda session, rows, identities, **kwargs: rows,
     )
 
     def unexpected(*args: object, **kwargs: object) -> None:

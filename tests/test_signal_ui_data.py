@@ -12,13 +12,20 @@ import pytest
 from momentum_screener import signal_ui_data
 from momentum_screener.rps_storage import RpsStorageError, persist_rps_snapshot
 from momentum_screener.signal_ui_data import (
+    SELECTION_CLEAR_MARKER_COLUMN,
     LocalFile,
+    apply_hide_selection,
+    build_signal_streak_table,
     build_ticker_rps_table,
+    cleared_table_selection,
     clip_price_window,
     combine_signals,
+    consume_selection_clear_pending,
     discover_signal_csvs,
     enrich_ticker_table_with_metadata,
+    filter_hidden_tickers,
     filter_tickers_by_strategies,
+    hidden_ticker_context,
     load_company_metadata_for_ui,
     load_rps_for_session,
     load_turnover_for_session,
@@ -29,6 +36,9 @@ from momentum_screener.signal_ui_data import (
     maximum_price_window,
     read_local_prices,
     read_signal_csv,
+    ticker_table_context,
+    ticker_table_key,
+    ticker_table_selection_clear_key,
 )
 from momentum_screener.storage_manifest import (
     PRICE_SCHEMA,
@@ -147,7 +157,31 @@ def test_date_and_strategy_filename_fallback(tmp_path):
     assert frame.loc[0, "session"] == pd.Timestamp("2026-06-15")
     assert frame.loc[0, "strategy_id"] == "custom_strategy"
     assert frame["strategy_version"].isna().all()
+    assert frame["signal_streak"].isna().all()
+    assert str(frame["signal_streak"].dtype) == "Int64"
     assert warnings == []
+
+
+def test_signal_streak_table_uses_one_or_per_strategy_columns():
+    session = date(2026, 6, 15)
+    signals = pd.DataFrame(
+        {
+            "session": pd.Timestamp(session),
+            "strategy_id": ["trend", "watch"],
+            "ticker": ["NVDA", "NVDA"],
+            "signal_streak": pd.array([4, 11], dtype="Int64"),
+        }
+    )
+    display = {"trend": "Trend", "watch": "Daily Watch"}
+
+    single = build_signal_streak_table(["NVDA"], signals, session, ["trend"], display)
+    assert single.to_dict("records") == [{"Ticker": "NVDA", "Streak": 4}]
+    multiple = build_signal_streak_table(
+        ["NVDA"], signals, session, ["trend", "watch"], display
+    )
+    assert multiple.to_dict("records") == [
+        {"Ticker": "NVDA", "Trend Streak": 4, "Daily Watch Streak": 11}
+    ]
 
 
 @pytest.mark.parametrize("contents", ["ticker\nAAPL\n", "session\n2026-06-15\n"])
@@ -232,6 +266,81 @@ def test_filter_tickers_by_strategy_intersection(selected, expected):
         filter_tickers_by_strategies(signals, date(2026, 6, 15), selected) == expected
     )
     assert filter_tickers_by_strategies(signals, date(2026, 6, 14), selected) == []
+
+
+@pytest.mark.parametrize(
+    ("session", "strategies", "expected"),
+    [
+        (date(2026, 6, 15), ["A"], ["APP"]),
+        (date(2026, 6, 16), ["A"], ["APP", "NVDA"]),
+        (date(2026, 6, 15), ["B"], ["APP", "NVDA"]),
+    ],
+)
+def test_hidden_tickers_are_scoped_by_date_and_strategy_combination(
+    session, strategies, expected
+):
+    hidden = {hidden_ticker_context(date(2026, 6, 15), ["A"]): {"NVDA"}}
+    assert (
+        filter_hidden_tickers(["APP", "NVDA"], hidden, session, strategies) == expected
+    )
+    assert hidden_ticker_context(session, ["A", "B"]) == hidden_ticker_context(
+        session, ["B", "A"]
+    )
+
+
+def test_table_identity_is_stable_for_hide_and_changes_for_real_context():
+    session = date(2026, 6, 15)
+    context = ticker_table_context(3, session, ["B", "A"])
+    key = ticker_table_key(context)
+    hidden = {hidden_ticker_context(session, ["A", "B"]): {"NVDA"}}
+
+    assert filter_hidden_tickers(["APP", "NVDA"], hidden, session, ["A", "B"]) == [
+        "APP"
+    ]
+    assert ticker_table_key(ticker_table_context(3, session, ["A", "B"])) == key
+    assert ticker_table_context(3, date(2026, 6, 16), ["A", "B"]) != context
+    assert ticker_table_context(3, session, ["A"]) != context
+    assert ticker_table_context(4, session, ["A", "B"]) != context
+
+
+def test_hide_selection_is_cleared_before_next_visible_table():
+    session = date(2026, 6, 15)
+    context = hidden_ticker_context(session, ["A"])
+    hidden: dict[tuple[str, tuple[str, ...]], set[str]] = {}
+    table_context = ticker_table_context(3, session, ["A"])
+    pending_key = ticker_table_selection_clear_key(table_context)
+    state: dict[str, object] = {}
+
+    assert apply_hide_selection(hidden, context, ["A", "B", "C"], [1])
+    state[pending_key] = True
+    assert hidden == {context: {"B"}}
+    assert filter_hidden_tickers(["A", "B", "C"], hidden, session, ["A"]) == [
+        "A",
+        "C",
+    ]
+
+    cleared = consume_selection_clear_pending(state, pending_key)
+    assert cleared == cleared_table_selection() == {
+        "selection": {"rows": [], "columns": [], "cells": []}
+    }
+    assert pending_key not in state
+    assert not apply_hide_selection(
+        hidden,
+        context,
+        ["A", "C"],
+        cleared["selection"]["rows"],
+    )
+    assert hidden == {context: {"B"}}
+
+    state[pending_key] = True
+    repeated_clear = consume_selection_clear_pending(state, pending_key)
+    assert repeated_clear == {
+        "selection": {
+            "rows": [],
+            "columns": [],
+            "cells": [[0, SELECTION_CLEAR_MARKER_COLUMN]],
+        }
+    }
 
 
 def test_ticker_rps_table_joins_snapshot_and_retains_missing_values():
@@ -477,18 +586,30 @@ def test_market_cap_cache_files_change_after_local_release_replacement(
 
 
 def test_price_window_clipping_and_calendar_offsets():
+    requested = clip_price_window(date(2026, 10, 2), date(2024, 1, 1), date(2027, 1, 1))
+    assert (requested.viewport_start, requested.viewport_end) == (
+        date(2025, 10, 2),
+        date(2026, 10, 2),
+    )
+    short_history = clip_price_window(
+        date(2026, 10, 2), date(2026, 5, 20), date(2027, 1, 1)
+    )
+    assert (short_history.viewport_start, short_history.viewport_end) == (
+        date(2026, 5, 20),
+        date(2026, 10, 2),
+    )
     signal_date = date(2026, 6, 15)
     assert maximum_price_window(signal_date) == (date(2024, 6, 15), date(2027, 6, 15))
     window = clip_price_window(signal_date, date(2020, 1, 1), date(2026, 9, 4))
     assert (window.start, window.end) == (date(2024, 6, 15), date(2026, 9, 4))
     assert (window.viewport_start, window.viewport_end) == (
-        date(2026, 3, 15),
-        date(2026, 7, 15),
+        date(2025, 6, 15),
+        date(2026, 6, 15),
     )
     clipped = clip_price_window(signal_date, date(2026, 4, 1), date(2026, 6, 30))
     assert (clipped.viewport_start, clipped.viewport_end) == (
         date(2026, 4, 1),
-        date(2026, 6, 30),
+        date(2026, 6, 15),
     )
     assert not clipped.viewport_fallback
     assert maximum_price_window(date(2024, 2, 29)) == (
@@ -499,8 +620,8 @@ def test_price_window_clipping_and_calendar_offsets():
         date(2024, 3, 31), date(2020, 1, 1), date(2025, 12, 31)
     )
     assert (month_end.viewport_start, month_end.viewport_end) == (
-        date(2023, 12, 31),
-        date(2024, 4, 30),
+        date(2023, 3, 31),
+        date(2024, 3, 31),
     )
     assert clip_price_window(signal_date, date(2020, 1, 1), date(2023, 1, 1)) is None
     sparse = clip_price_window(signal_date, date(2025, 1, 1), date(2025, 2, 1))

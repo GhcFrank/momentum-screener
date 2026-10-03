@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import logging
+import tempfile
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass, replace
 from datetime import UTC, date, datetime
@@ -78,7 +79,15 @@ from momentum_screener.signal_store import (
     DEFAULT_SIGNAL_ROOT,
     SignalStoreError,
     export_signal_csv,
+    get_signal_calendar,
+    read_strategy_signals,
     replace_signal_range,
+)
+from momentum_screener.signal_streak import (
+    SignalIdentity,
+    SignalStreakContextUnavailable,
+    SignalStreakError,
+    refresh_signal_streak_range,
 )
 from momentum_screener.storage_manifest import ManifestError, load_manifest
 from momentum_screener.strategy_data import (
@@ -300,6 +309,28 @@ def _select_strategies(
     return tuple(registry[value] for value in dict.fromkeys(ids))
 
 
+def _strategy_config_json(item: HistoricalStrategy) -> str:
+    return json.dumps(
+        dict(item.config), sort_keys=True, separators=(",", ":"), allow_nan=False
+    )
+
+
+def get_strategy_identity(
+    strategy_id: str,
+    *,
+    trend_config: TrendReaccelerationConfig = DEFAULT_CONFIG,
+) -> SignalIdentity:
+    """Return the exact version/config identity used by historical replay."""
+
+    item = _select_strategies((strategy_id,), trend_config)[0]
+    config_json = _strategy_config_json(item)
+    return SignalIdentity(
+        strategy_id=item.strategy_id,
+        strategy_version=item.version,
+        config_hash=hashlib.sha256(config_json.encode()).hexdigest(),
+    )
+
+
 def _resolve_sessions(
     requested_start: date,
     requested_end: date | None,
@@ -337,6 +368,7 @@ def run_historical_screening(
     universe_path: Path = DEFAULT_UNIVERSE,
     rps_snapshots: pd.DataFrame | None = None,
     trend_config: TrendReaccelerationConfig = DEFAULT_CONFIG,
+    refresh_streaks: bool = True,
 ) -> HistoricalScreeningResult:
     """Replay any natural-date interval in one batch and safely replace matches.
 
@@ -504,9 +536,7 @@ def run_historical_screening(
             else templates[item.strategy_id].copy()
         )
         rows = rows.rename(columns={"date": "session"})
-        config_json = json.dumps(
-            dict(item.config), sort_keys=True, separators=(",", ":"), allow_nan=False
-        )
+        config_json = _strategy_config_json(item)
         metadata: dict[str, object] = {
             "strategy_id": item.strategy_id,
             "strategy_version": item.version,
@@ -549,6 +579,22 @@ def run_historical_screening(
     replace_signal_range(
         signals_by_strategy, pd.concat(coverage_frames, ignore_index=True), root=root
     )
+    if refresh_streaks:
+        refresh_signal_streak_range(
+            sessions[0],
+            sessions[-1],
+            strategies=tuple(item.strategy_id for item in selected),
+            signal_root=root,
+            context_recompute=partial(
+                recompute_signal_context,
+                prices_root=prices_root,
+                rps_root=rps_root,
+                market_cap_root=market_cap_root,
+                universe_path=universe_path,
+                rps_snapshots=rps_snapshots,
+                trend_config=trend_config,
+            ),
+        )
     return HistoricalScreeningResult(
         requested_start=requested_start,
         requested_end=requested_end,
@@ -563,6 +609,57 @@ def run_historical_screening(
         generated_at=generated_at,
         force=force,
     )
+
+
+def recompute_signal_context(
+    start_date: date,
+    end_date: date,
+    strategy_ids: Sequence[str],
+    *,
+    prices_root: Path = DEFAULT_OUTPUT_ROOT,
+    rps_root: Path | None = DEFAULT_RPS_ROOT,
+    market_cap_root: Path = DEFAULT_MARKET_CAP_ROOT,
+    universe_path: Path = DEFAULT_UNIVERSE,
+    rps_snapshots: pd.DataFrame | None = None,
+    trend_config: TrendReaccelerationConfig = DEFAULT_CONFIG,
+) -> tuple[Mapping[str, pd.DataFrame], pd.DataFrame]:
+    """Recompute current-definition context without mutating the real store."""
+
+    try:
+        with tempfile.TemporaryDirectory(prefix="signal-streak-context-") as temp:
+            root = Path(temp)
+            result = run_historical_screening(
+                start_date,
+                end_date,
+                strategies=strategy_ids,
+                output_store=root,
+                prices_root=prices_root,
+                rps_root=rps_root,
+                market_cap_root=market_cap_root,
+                universe_path=universe_path,
+                rps_snapshots=rps_snapshots,
+                trend_config=trend_config,
+                refresh_streaks=False,
+            )
+            coverage = get_signal_calendar(
+                result.actual_start, result.actual_end, root=root
+            )
+            signals = {
+                strategy_id: read_strategy_signals(
+                    strategy_id, result.actual_start, result.actual_end, root=root
+                )
+                for strategy_id in strategy_ids
+            }
+            return signals, coverage
+    except (
+        HistoricalScreeningError,
+        PriceBackfillError,
+        RpsError,
+        RpsStorageError,
+        StrategyDataError,
+        ManifestError,
+    ) as exc:
+        raise SignalStreakContextUnavailable(str(exc)) from exc
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -624,6 +721,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     except (
         HistoricalScreeningError,
         SignalStoreError,
+        SignalStreakError,
         PriceBackfillError,
         RpsError,
         RpsStorageError,

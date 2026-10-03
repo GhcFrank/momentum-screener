@@ -341,6 +341,9 @@ def export_signal_csv(
         read_strategy_signals(value, start_date, end_date, root=root) for value in ids
     ]
     rows = pd.concat(frames, ignore_index=True, sort=False) if frames else _empty()
+    from momentum_screener.signal_streak import enrich_signals_with_streak
+
+    rows = enrich_signals_with_streak(rows, signal_root=root)
     rows = rows.sort_values(["session", "strategy_id", "ticker"], ignore_index=True)
     destination.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(

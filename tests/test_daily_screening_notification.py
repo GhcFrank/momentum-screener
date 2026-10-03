@@ -19,12 +19,14 @@ def screen_rows(
     signal: bool = True,
     turnover: float = 0.0084,
     industry: object = pd.NA,
+    signal_streak: object = 3,
 ) -> pd.DataFrame:
     rows = pd.DataFrame(
         {
             "date": [date(2026, 9, 3)],
             "ticker": [ticker],
             "industry": [industry],
+            "signal_streak": pd.array([signal_streak], dtype="Int64"),
             "rps20": [94.0],
             "rps50": [95.0],
             "rps120": [96.0],
@@ -72,6 +74,7 @@ def test_email_renders_all_sections_turnover_and_explicit_empty_results() -> Non
         assert "daily_watch_3_core" not in body
         assert all(ticker in body for ticker in ("MONTHLY", "TREND", "BLUE", "WATCH"))
         assert "Industry" in body
+        assert body.count("Streak") == 4
         assert "Semiconductors" in body
         assert "N/A" in body
         # Four table headers plus the Daily Watch 3 proxy description.
@@ -296,6 +299,23 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
         watch.attrs["rps_candidate_count"] = len(watch)
         return watch
 
+    def resolve_streaks(
+        as_of_date: date,
+        rows_by_strategy: dict[str, pd.DataFrame],
+        identities: dict[str, object],
+        **kwargs: object,
+    ) -> dict[str, pd.DataFrame]:
+        events.append("streak")
+        assert as_of_date == session
+        assert set(rows_by_strategy) == {
+            "monthly_reversal",
+            "trend_reacceleration",
+            "blue_diamond_core",
+            "daily_watch_3_core",
+        }
+        assert set(identities) == set(rows_by_strategy)
+        return rows_by_strategy
+
     def load_turnover(
         as_of_date: date, tickers: tuple[str, ...], **kwargs: object
     ) -> pd.DataFrame:
@@ -340,6 +360,7 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
     monkeypatch.setattr(notification, "screen_trend_reacceleration", screen_trend)
     monkeypatch.setattr(notification, "screen_blue_diamond", screen_blue)
     monkeypatch.setattr(notification, "screen_daily_watch_3", screen_watch)
+    monkeypatch.setattr(notification, "resolve_current_signal_streaks", resolve_streaks)
     monkeypatch.setattr(notification, "load_session_turnover", load_turnover)
     monkeypatch.setattr(notification, "send_rps_email", send)
     if dry_run or prepare_only:
@@ -360,7 +381,16 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
         prepared_email_path=tmp_path / "prepared.json" if prepare_only else None,
     )
     assert events == (
-        ["caps", "prepare", "monthly", "trend", "blue", "watch", "turnover"]
+        [
+            "caps",
+            "prepare",
+            "monthly",
+            "trend",
+            "blue",
+            "watch",
+            "streak",
+            "turnover",
+        ]
         if dry_run
         else [
             "caps",
@@ -370,6 +400,7 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
             "trend",
             "blue",
             "watch",
+            "streak",
             "turnover",
         ]
         + ([] if prepare_only else ["send"])

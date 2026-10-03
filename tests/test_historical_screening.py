@@ -115,6 +115,9 @@ class HistoricalDataset:
             "rps_root": None,
             "rps_snapshots": self.rps,
             "output_store": self.output_store,
+            # Most tests isolate signal replay. A focused integration below
+            # exercises the default automatic derived-streak refresh.
+            "refresh_streaks": False,
         }
         options.update(kwargs)
         return engine.run_historical_screening(start, end, **options)
@@ -365,6 +368,21 @@ def test_one_price_load_one_rps_preparation_and_one_feature_history_per_ticker(
     assert rps_prepare.call_args.kwargs["lookbacks"] == (50, 120, 250)
     assert monthly.call_count == trend.call_count == len(dataset.universe)
     assert all(len(call.args[0]) >= 278 for call in monthly.call_args_list)
+
+
+def test_historical_refresh_automatically_refreshes_same_streak_range(
+    dataset: HistoricalDataset,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    refresh = Mock(return_value={"success": True, "streak_rows": 0})
+    monkeypatch.setattr(engine, "refresh_signal_streak_range", refresh)
+
+    result = dataset.run("2026-09-02", "2026-09-04", refresh_streaks=True)
+
+    assert refresh.call_count == 1
+    assert refresh.call_args.args == (result.actual_start, result.actual_end)
+    assert set(refresh.call_args.kwargs["strategies"]) == set(result.strategy_summaries)
+    assert refresh.call_args.kwargs["signal_root"] == dataset.output_store
 
 
 def test_missing_rps_fallback_reuses_preloaded_full_universe_prices(
