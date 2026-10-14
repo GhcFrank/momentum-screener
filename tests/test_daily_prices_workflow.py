@@ -117,3 +117,24 @@ def test_daily_workflow_wires_release_and_email_credentials(workflow: dict) -> N
     assert environment["RPS_SMTP_USERNAME"] == "${{ secrets.GMAIL_USER }}"
     assert environment["RPS_SMTP_PASSWORD"] == "${{ secrets.GMAIL_APP_PASSWORD }}"
     assert environment["RPS_EMAIL_TO"] == "${{ secrets.EMAIL_TO }}"
+
+
+def test_daily_workflow_preserves_failure_and_partial_download_diagnostics(
+    workflow: dict,
+) -> None:
+    upload = next(
+        step
+        for step in workflow["jobs"]["update-daily-prices"]["steps"]
+        if step.get("uses", "").startswith("actions/upload-artifact@")
+    )
+    assert upload["if"] == "always()"
+    assert upload["with"]["if-no-files-found"] == "ignore"
+    assert upload["with"]["include-hidden-files"] is True
+    paths = set(upload["with"]["path"].splitlines())
+    assert {
+        "data/processed/prices/update_report.json",
+        "data/processed/prices/download_failures.csv",
+        "data/processed/prices/update_missing_tickers.csv",
+        "data/processed/prices/ticker_coverage.csv",
+        "data/processed/prices/.update_diagnostics/**",
+    } <= paths

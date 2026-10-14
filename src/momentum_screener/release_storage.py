@@ -1509,14 +1509,17 @@ def _load_local_update_report(
         )
     if report.get("success") is not True:
         raise ReleaseStorageError("Local update report does not record success=true")
-    unresolved_failure_count = report.get("unresolved_failure_count")
-    if (
-        isinstance(unresolved_failure_count, bool)
-        or not isinstance(unresolved_failure_count, int)
-        or unresolved_failure_count != 0
-    ):
+    unresolved_failure_count = _report_nonnegative_integer(
+        report, "unresolved_failure_count"
+    )
+    if report.get("status", "updated") != "updated":
+        raise ReleaseStorageError("Local update report does not record status=updated")
+    expected_download_status = (
+        "partial_success" if unresolved_failure_count else "success"
+    )
+    if report.get("download_status", "success") != expected_download_status:
         raise ReleaseStorageError(
-            "Local update report has unresolved download failures"
+            "Local update report download_status differs from unresolved failures"
         )
     run_id = report.get("run_id")
     if not isinstance(run_id, str) or not run_id.strip():
@@ -1570,11 +1573,91 @@ def _load_local_update_report(
         "update_report.json",
         "manifest.json",
     ]
+    current_failures = _has_current_download_failures(report)
+    if current_failures:
+        expected_paths.insert(len(years) + 1, "download_failures.csv")
+        failures = _load_current_download_failures(prices_root, manifest)
+        if len(failures) != unresolved_failure_count:
+            raise ReleaseStorageError(
+                "Local update report unresolved_failure_count differs from failure asset"
+            )
+    elif unresolved_failure_count or "download_status" in report or "status" in report:
+        raise ReleaseStorageError(
+            "Local update report does not replace its current download failures"
+        )
     if report.get("changed_local_assets") != expected_paths:
         raise ReleaseStorageError(
             "Local update report changed_local_assets is inconsistent"
         )
+    expected_count = _report_nonnegative_integer(report, "expected_active_ticker_count")
+    if expected_count == 0:
+        raise ReleaseStorageError("Local update report has no expected active tickers")
+    target_count = _report_nonnegative_integer(report, "target_session_ticker_count")
+    missing_count = _report_nonnegative_integer(report, "missing_ticker_count")
+    target_ratio = _report_ratio(report, "target_session_coverage_ratio")
+    minimum_ratio = _report_ratio(report, "minimum_target_coverage_ratio")
+    if current_failures:
+        from momentum_screener.prices import DEFAULT_MINIMUM_TARGET_COVERAGE
+
+        minimum_ratio = max(minimum_ratio, DEFAULT_MINIMUM_TARGET_COVERAGE)
+    if target_count + missing_count != expected_count or not math.isclose(
+        target_ratio, target_count / expected_count, abs_tol=1e-12
+    ):
+        raise ReleaseStorageError("Local update report target coverage is inconsistent")
+    if target_ratio < minimum_ratio and (
+        current_failures or report.get("allow_partial_session") is not True
+    ):
+        raise ReleaseStorageError(
+            "Local update report target coverage is below the required minimum"
+        )
+    if expected_count > manifest["universe_ticker_count"]:
+        raise ReleaseStorageError(
+            "Local update report expected_active_ticker_count exceeds Universe"
+        )
     return report, years
+
+
+def _has_current_download_failures(report: Mapping[str, Any]) -> bool:
+    """Distinguish daily failure assets from inherited backfill diagnostics."""
+
+    paths = report.get("changed_local_assets")
+    return isinstance(paths, list) and "download_failures.csv" in paths
+
+
+def _load_current_download_failures(
+    prices_root: Path, manifest: Mapping[str, Any]
+) -> list[dict[str, str]]:
+    assets = manifest["assets"]
+    if "download_failures" not in assets:
+        raise ReleaseStorageError("Local manifest does not manage download failures")
+    asset = assets["download_failures"]
+    path = resolve_local_asset_path(prices_root, asset["local_path"])
+    validate_managed_asset(path, key="download_failures", asset=asset)
+    try:
+        with path.open(encoding="utf-8", newline="") as input_file:
+            rows = list(csv.DictReader(input_file))
+    except (OSError, UnicodeError, csv.Error) as exc:
+        raise ReleaseStorageError(
+            f"Unable to read download failures {path}: {exc}"
+        ) from exc
+    tickers = [row["ticker"] for row in rows]
+    if len(tickers) != len(set(tickers)):
+        raise ReleaseStorageError("Download failures contain duplicate tickers")
+    for row in rows:
+        try:
+            attempts = int(row["attempt_count"])
+        except ValueError as exc:
+            raise ReleaseStorageError(
+                "Download failure attempt_count is invalid"
+            ) from exc
+        if (
+            row["status"] != "failed"
+            or attempts <= 0
+            or not row["error_type"]
+            or not row["error_message"]
+        ):
+            raise ReleaseStorageError("Download failure row is incomplete")
+    return rows
 
 
 def _report_nonnegative_integer(report: Mapping[str, Any], key: str) -> int:
@@ -1705,6 +1788,7 @@ def validate_local_incremental_update_acceptance(
         ) from exc
     coverage_total = 0
     coverage_status_counts = {"success": 0, "no_data": 0, "failed": 0}
+    failed_coverage: dict[str, dict[str, str]] = {}
     for row in coverage_rows:
         ticker = str(row.get("ticker", ""))
         status = str(row.get("status", ""))
@@ -1713,6 +1797,8 @@ def validate_local_incremental_update_acceptance(
                 f"Ticker coverage status is invalid for {ticker}: {status!r}"
             )
         coverage_status_counts[status] += 1
+        if status == "failed":
+            failed_coverage[ticker] = row
         try:
             row_count = int(str(row.get("row_count", "")))
             attempt_count = int(str(row.get("attempt_count", "")))
@@ -1758,8 +1844,25 @@ def validate_local_incremental_update_acceptance(
         raise ReleaseStorageError(
             "Ticker coverage statuses do not match local manifest counts"
         )
-    if coverage_status_counts["failed"] != 0:
-        raise ReleaseStorageError("Ticker coverage contains failed tickers")
+    unresolved_count = _report_nonnegative_integer(report, "unresolved_failure_count")
+    if coverage_status_counts["failed"] != unresolved_count:
+        raise ReleaseStorageError(
+            "Ticker coverage failures differ from unresolved_failure_count"
+        )
+    if _has_current_download_failures(report):
+        failure_rows = _load_current_download_failures(prices_root, manifest)
+        if {row["ticker"] for row in failure_rows} != set(failed_coverage):
+            raise ReleaseStorageError(
+                "Download failure tickers differ from ticker coverage failures"
+            )
+        for row in failure_rows:
+            coverage_row = failed_coverage[row["ticker"]]
+            if row["error_message"] != coverage_row["last_error"] or int(
+                row["attempt_count"]
+            ) > int(coverage_row["attempt_count"]):
+                raise ReleaseStorageError(
+                    "Download failure details differ from ticker coverage"
+                )
 
     missing_path = prices_root / "update_missing_tickers.csv"
     try:
@@ -1786,9 +1889,9 @@ def validate_local_incremental_update_acceptance(
     )
     target_count = _report_nonnegative_integer(report, "target_session_ticker_count")
     missing_count = _report_nonnegative_integer(report, "missing_ticker_count")
-    if expected_active_count > len(tickers):
+    if expected_active_count == 0 or expected_active_count > len(tickers):
         raise ReleaseStorageError(
-            "Local update report expected_active_ticker_count exceeds Universe"
+            "Local update report expected_active_ticker_count is outside Universe bounds"
         )
     if missing_count != len(missing_tickers):
         raise ReleaseStorageError(
@@ -1804,14 +1907,15 @@ def validate_local_incremental_update_acceptance(
         )
     target_ratio = _report_ratio(report, "target_session_coverage_ratio")
     minimum_ratio = _report_ratio(report, "minimum_target_coverage_ratio")
-    calculated_ratio = (
-        target_count / expected_active_count if expected_active_count else 1.0
-    )
+    calculated_ratio = target_count / expected_active_count
     if not math.isclose(target_ratio, calculated_ratio, abs_tol=1e-12):
         raise ReleaseStorageError(
             "Local update report target coverage ratio is inconsistent"
         )
-    if target_ratio < minimum_ratio and report.get("allow_partial_session") is not True:
+    if target_ratio < minimum_ratio and (
+        _has_current_download_failures(report)
+        or report.get("allow_partial_session") is not True
+    ):
         raise ReleaseStorageError(
             "Local update report target coverage is below the required minimum"
         )
@@ -1829,7 +1933,7 @@ def validate_local_incremental_update_acceptance(
         "changed_partition_years": years,
         "validated_partition_row_counts": validated_counts,
         "total_row_count": manifest["total_row_count"],
-        "unresolved_failure_count": 0,
+        "unresolved_failure_count": unresolved_count,
         "success": True,
     }
 
@@ -1854,6 +1958,8 @@ def build_publish_plan(
         "update_missing_tickers",
         "update_report",
     ]
+    if _has_current_download_failures(report):
+        ordered_keys.insert(len(years) + 1, "download_failures")
     assets: list[dict[str, object]] = []
     for order, key in enumerate(ordered_keys, start=1):
         if key not in manifest_assets:
@@ -1933,6 +2039,7 @@ def _validate_unchanged_remote_metadata(
     local_manifest: Mapping[str, Any],
     remote_manifest: Mapping[str, Any],
     changed_partition_years: Collection[int],
+    current_download_failures: bool = False,
 ) -> None:
     """Anchor every inherited asset record to the authoritative Release."""
 
@@ -1942,6 +2049,8 @@ def _validate_unchanged_remote_metadata(
         "update_missing_tickers",
         "update_report",
     }
+    if current_download_failures:
+        changed_keys.add("download_failures")
     local_assets = local_manifest["assets"]
     remote_assets = remote_manifest["assets"]
     local_unchanged = set(local_assets) - changed_keys
@@ -2049,6 +2158,9 @@ def publish_update(
         local_manifest=local_manifest,
         remote_manifest=remote_manifest,
         changed_partition_years=plan["changed_partition_years"],
+        current_download_failures=any(
+            item["local_path"] == "download_failures.csv" for item in plan["assets"]
+        ),
     )
     uploaded_names: list[str] = []
     for item in plan["assets"]:

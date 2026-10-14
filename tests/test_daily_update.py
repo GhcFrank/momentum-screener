@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import date, datetime
 
 import pytest
 
@@ -126,6 +126,29 @@ def test_attempt_resolution_uses_scheduled_session_across_overnight_holidays_and
     )
     assert manual["target_session"] == "2026-09-08"
     assert not daily.should_notify_failure(manual, complete=False)
+
+
+def test_partial_download_success_keeps_validated_price_attempt_ready(monkeypatch):
+    target_session = date(2026, 10, 13)
+    report = {
+        "status": "updated",
+        "download_status": "partial_success",
+        "local_update_success": True,
+        "target_session_coverage_ratio": 0.98,
+        "expected_active_ticker_count": 100,
+        "missing_ticker_count": 2,
+        "unresolved_failure_count": 2,
+    }
+
+    def update(**kwargs):
+        assert kwargs["target_date"] == target_session
+        assert kwargs["minimum_coverage"] == 0.97
+        assert kwargs["allow_partial_session"] is False
+        return report
+
+    monkeypatch.setattr(daily.prices, "run_update", update)
+    result = daily.run_price_attempt(target_session)
+    assert result == {**report, "ready": True, "publish": True}
 
 
 def test_completion_skips_work_and_unconfirmed_send_never_resends(monkeypatch):

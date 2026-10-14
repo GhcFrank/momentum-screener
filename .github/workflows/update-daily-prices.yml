@@ -260,7 +260,9 @@ jobs:
           include-hidden-files: true
           path: |
             data/processed/prices/update_report.json
+            data/processed/prices/download_failures.csv
             data/processed/prices/update_missing_tickers.csv
+            data/processed/prices/ticker_coverage.csv
             data/processed/prices/release_publish_plan.json
             data/processed/prices/sync_report.json
             data/processed/prices/manifest.json

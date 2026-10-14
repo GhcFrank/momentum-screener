@@ -1180,6 +1180,58 @@ def rewrite_partial_update_report(
     write_json_atomically(manifest_path, manifest)
 
 
+def make_current_download_failure_fixture(
+    root: Path,
+) -> tuple[Path, Path, DatasetIdentity, dict[str, Any]]:
+    universe, prices_root, identity, remote_manifest = make_partial_incremental_fixture(
+        root
+    )
+    coverage_path = prices_root / "ticker_coverage.csv"
+    with coverage_path.open(encoding="utf-8", newline="") as input_file:
+        coverage_rows = list(csv.DictReader(input_file))
+    coverage_rows[0].update(status="failed", last_error="provider download failed")
+    write_csv(coverage_path, COVERAGE_COLUMNS, cast(Any, coverage_rows))
+    failures_path = prices_root / "download_failures.csv"
+    write_csv(
+        failures_path,
+        FAILURE_COLUMNS,
+        [
+            {
+                "ticker": "AAA",
+                "status": "failed",
+                "attempt_count": 1,
+                "error_type": "RemoteError",
+                "error_message": "provider download failed",
+            }
+        ],
+    )
+
+    def record_current_failure(
+        report: dict[str, Any], manifest: dict[str, Any]
+    ) -> None:
+        report.update(
+            status="updated",
+            download_status="partial_success",
+            unresolved_failure_count=1,
+            minimum_target_coverage_ratio=0.97,
+        )
+        report["changed_local_assets"].insert(3, "download_failures.csv")
+        manifest.update(successful_ticker_count=0, failed_ticker_count=1)
+        manifest["assets"]["ticker_coverage"] = build_asset_record(
+            coverage_path,
+            asset_name="prices-ticker-coverage.csv",
+            local_path="ticker_coverage.csv",
+        )
+        manifest["assets"]["download_failures"] = build_asset_record(
+            failures_path,
+            asset_name="prices-download-failures.csv",
+            local_path="download_failures.csv",
+        )
+
+    rewrite_partial_update_report(prices_root, record_current_failure)
+    return universe, prices_root, identity, remote_manifest
+
+
 def test_prepare_bootstrap_indexes_existing_data_without_network(
     tmp_path: Path,
 ) -> None:
@@ -1727,6 +1779,112 @@ def test_incremental_acceptance_allows_partial_daily_runner(tmp_path: Path) -> N
     assert result["total_row_count"] == 11
     for year in range(2016, 2025):
         assert not (prices_root / f"daily/year={year}/prices.parquet").exists()
+
+
+def test_partial_download_failure_is_accepted_and_published_with_current_asset(
+    tmp_path: Path,
+) -> None:
+    universe, prices_root, identity, remote_manifest = (
+        make_current_download_failure_fixture(tmp_path)
+    )
+    acceptance = validate_local_incremental_update_acceptance(
+        prices_root=prices_root,
+        universe_path=universe,
+        expected_universe_size=1,
+    )
+    assert acceptance["success"] is True
+    assert acceptance["unresolved_failure_count"] == 1
+    assert (prices_root / "update_missing_tickers.csv").read_text().splitlines() == [
+        ",".join(UPDATE_MISSING_COLUMNS)
+    ]
+
+    release, content = make_release_for_remote_manifest(remote_manifest)
+    client = FakeClient(release, content)
+    result = publish_update(
+        repository="owner/repo",
+        prices_root=prices_root,
+        client=cast(Any, client),
+        expected_identity=identity,
+    )
+    assert result["release_publish_success"] is True
+    assert client.uploaded == [
+        "prices-year-2025.parquet",
+        "prices-year-2026.parquet",
+        "prices-ticker-coverage.csv",
+        "prices-download-failures.csv",
+        "prices-update-missing-tickers.csv",
+        "prices-update-report.json",
+        "prices-manifest.json",
+    ]
+    assert (
+        client.content["prices-download-failures.csv"]
+        == (prices_root / "download_failures.csv").read_bytes()
+    )
+
+
+@pytest.mark.parametrize("case", ["failure_count", "empty_expected", "low_coverage"])
+def test_current_update_report_fails_closed(
+    tmp_path: Path,
+    case: str,
+) -> None:
+    universe, prices_root, _, _ = make_current_download_failure_fixture(tmp_path)
+
+    def invalidate_report(report: dict[str, Any], manifest: dict[str, Any]) -> None:
+        if case == "failure_count":
+            report["unresolved_failure_count"] = 2
+        elif case == "empty_expected":
+            report.update(expected_active_ticker_count=0, target_session_ticker_count=0)
+        else:
+            report.update(
+                expected_active_ticker_count=100,
+                target_session_ticker_count=96,
+                missing_ticker_count=4,
+                target_session_coverage_ratio=0.96,
+                minimum_target_coverage_ratio=0.95,
+                allow_partial_session=True,
+            )
+
+    rewrite_partial_update_report(prices_root, invalidate_report)
+    message = {
+        "failure_count": "unresolved_failure_count differs",
+        "empty_expected": "no expected active tickers",
+        "low_coverage": "coverage is below",
+    }[case]
+    with pytest.raises(ReleaseStorageError, match=message):
+        validate_local_incremental_update_acceptance(
+            prices_root=prices_root,
+            universe_path=universe,
+            expected_universe_size=1,
+        )
+    with pytest.raises(ReleaseStorageError, match=message):
+        build_publish_plan(prices_root, repository="owner/repo")
+
+
+def test_current_failure_asset_hash_and_coverage_details_remain_strict(
+    tmp_path: Path,
+) -> None:
+    universe, prices_root, _, _ = make_current_download_failure_fixture(tmp_path)
+    path = prices_root / "download_failures.csv"
+    path.write_bytes(
+        path.read_bytes().replace(b"provider download failed", b"other error")
+    )
+    with pytest.raises(ManifestError, match="size mismatch|SHA-256 mismatch"):
+        build_publish_plan(prices_root, repository="owner/repo")
+
+    def update_asset_hash(report: dict[str, Any], manifest: dict[str, Any]) -> None:
+        manifest["assets"]["download_failures"] = build_asset_record(
+            path,
+            asset_name="prices-download-failures.csv",
+            local_path="download_failures.csv",
+        )
+
+    rewrite_partial_update_report(prices_root, update_asset_hash)
+    with pytest.raises(ReleaseStorageError, match="failure details"):
+        validate_local_incremental_update_acceptance(
+            prices_root=prices_root,
+            universe_path=universe,
+            expected_universe_size=1,
+        )
 
 
 def test_full_acceptance_remains_strict_for_partial_daily_runner(

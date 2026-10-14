@@ -1332,16 +1332,23 @@ def test_v1_five_column_partition_is_rejected_as_v2(tmp_path: Path) -> None:
         read_affected_partitions(tmp_path, (2026,), tickers=("AAA",))
 
 
-def write_incremental_fixture(root: Path) -> tuple[Path, Path]:
+def write_incremental_fixture(
+    root: Path, tickers: Sequence[str] = ("AAA", "BBB")
+) -> tuple[Path, Path]:
     universe = root / "universe.csv"
     prices_root = root / "prices"
-    write_universe(universe, ("AAA", "BBB"))
+    write_universe(universe, tickers)
     rows = canonical_price_rows(
         [
-            (date(2025, 12, 31), "AAA", 10, 9, 100),
-            (date(2025, 12, 31), "BBB", 20, 19, 200),
-            (date(2026, 1, 2), "AAA", 11, 10, 101),
-            (date(2026, 1, 2), "BBB", 21, 20, 201),
+            (
+                session,
+                ticker,
+                10 * (index + 1) + offset,
+                10 * (index + 1) - 1 + offset,
+                100 * (index + 1) + offset,
+            )
+            for offset, session in enumerate((date(2025, 12, 31), date(2026, 1, 2)))
+            for index, ticker in enumerate(tickers)
         ]
     )
     counts: dict[str, int] = {}
@@ -1363,13 +1370,13 @@ def write_incremental_fixture(root: Path) -> tuple[Path, Path]:
                 "requested_start": "2016-01-01",
                 "actual_min_date": "2025-12-31",
                 "actual_max_date": "2026-01-02",
-                "universe_sha256": universe_sha256(("AAA", "BBB")),
-                "universe_ticker_count": 2,
-                "successful_ticker_count": 2,
+                "universe_sha256": universe_sha256(tickers),
+                "universe_ticker_count": len(tickers),
+                "successful_ticker_count": len(tickers),
                 "no_data_ticker_count": 0,
                 "failed_ticker_count": 0,
                 "partition_row_counts": counts,
-                "total_row_count": 4,
+                "total_row_count": 2 * len(tickers),
                 "completed": True,
             }
         ),
@@ -1380,7 +1387,7 @@ def write_incremental_fixture(root: Path) -> tuple[Path, Path]:
     ) as output_file:
         writer = csv.DictWriter(output_file, fieldnames=COVERAGE_COLUMNS)
         writer.writeheader()
-        for ticker in ("AAA", "BBB"):
+        for ticker in tickers:
             writer.writerow(
                 {
                     "ticker": ticker,
@@ -1399,6 +1406,9 @@ def test_run_update_writes_partitions_manifest_coverage_and_reports(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     universe, prices_root = write_incremental_fixture(tmp_path)
+    (prices_root / "download_failures.csv").write_text(
+        ",".join(FAILURE_COLUMNS) + "\nAAA,failed,1,TimeoutError,old failure\n"
+    )
     replacement_order: list[str] = []
     download_calls: list[dict[str, object]] = []
     real_replace = prices_module.replace_files_transactionally
@@ -1459,6 +1469,7 @@ def test_run_update_writes_partitions_manifest_coverage_and_reports(
         "2025",
         "2026",
         "ticker_coverage",
+        "download_failures",
         "update_missing_tickers",
         "update_report",
     }
@@ -1481,6 +1492,12 @@ def test_run_update_writes_partitions_manifest_coverage_and_reports(
     )
     assert report["target_session_coverage_ratio"] == 1.0
     assert report["local_update_success"] is True
+    assert report["status"] == "updated"
+    assert report["download_status"] == "success"
+    assert report["fallback_attempted_count"] == report["fallback_recovered_count"] == 0
+    assert report["unresolved_failure_count"] == 0
+    with (prices_root / "download_failures.csv").open() as failures_file:
+        assert list(csv.DictReader(failures_file)) == []
     with (prices_root / "ticker_coverage.csv").open(
         encoding="utf-8", newline=""
     ) as coverage_file:
@@ -1714,7 +1731,9 @@ def test_run_update_failure_keeps_existing_files(tmp_path: Path) -> None:
     def failing_download(**kwargs: object) -> pd.DataFrame:
         raise TimeoutError("offline")
 
-    with pytest.raises(PriceUpdateError, match="unresolved failures") as failure:
+    with pytest.raises(
+        prices_module.ProviderNotSettledError, match="coverage 0.0000"
+    ) as failure:
         run_update(
             universe_path=universe,
             prices_root=prices_root,
@@ -1726,7 +1745,10 @@ def test_run_update_failure_keeps_existing_files(tmp_path: Path) -> None:
             download_func=failing_download,
             sleep_func=lambda _: None,
         )
-    assert failure.value.report["status"] == "download_failure"
+    assert failure.value.report["status"] == "provider_not_settled"
+    assert failure.value.report["unresolved_failure_count"] == 2
+    assert failure.value.report["fallback_attempted_count"] == 2
+    assert failure.value.report["download_status"] == "failed"
     assert (prices_root / "manifest.json").read_bytes() == before
     assert not (prices_root / "update_report.json").exists()
     diagnostic_reports = list(
@@ -1735,18 +1757,317 @@ def test_run_update_failure_keeps_existing_files(tmp_path: Path) -> None:
     assert len(diagnostic_reports) == 1
     assert (
         json.loads(diagnostic_reports[0].read_text(encoding="utf-8"))["failure_reason"]
-        == "unresolved_download_failure"
+        == "insufficient_target_coverage"
     )
+
+
+@pytest.mark.parametrize("failure_count", [2, 4])
+def test_partial_downloads_commit_only_above_coverage_gate(
+    tmp_path: Path, failure_count: int, caplog: pytest.LogCaptureFixture
+) -> None:
+    tickers = tuple(f"T{index}" for index in range(100))
+    failed = set(tickers[-failure_count:])
+    universe, prices_root = write_incremental_fixture(tmp_path, tickers)
+    (prices_root / "download_failures.csv").write_text(
+        ",".join(FAILURE_COLUMNS) + "\nOLD,failed,1,TimeoutError,stale failure\n"
+    )
+    before = {
+        path: path.read_bytes() for path in prices_root.rglob("*") if path.is_file()
+    }
+    old_rows = read_affected_partitions(prices_root, (2025, 2026), tickers=tickers)
+    calls: list[dict[str, Any]] = []
+
+    def fake_download(**kwargs: Any) -> pd.DataFrame:
+        calls.append(kwargs)
+        good = [ticker for ticker in kwargs["tickers"] if ticker not in failed]
+        if not good:
+            raise TimeoutError("provider still unavailable")
+        return multi_frame(
+            {ticker: (30.0, 29.0, 300) for ticker in good}, dates=("2026-01-05",)
+        )
+
+    result = daily_update.run_price_attempt(
+        date(2026, 1, 5),
+        universe_path=universe,
+        prices_root=prices_root,
+        refresh_calendar_days=10,
+        max_retries=0,
+        pause_seconds=0,
+        download_func=fake_download,
+        now=datetime(2026, 1, 5, 23, 0, tzinfo=UTC),
+    )
+    assert result["expected_active_ticker_count"] == 100
+    assert result["target_session_coverage_ratio"] == (100 - failure_count) / 100
+    assert result["unresolved_failure_count"] == failure_count
+    assert result["fallback_attempted_count"] == failure_count
+    assert result["fallback_recovered_count"] == 0
+    assert result["download_status"] == "partial_success"
+    assert all(ticker in caplog.text for ticker in failed)
+    fallback_calls = [call for call in calls if call["repair"] is False]
+    assert sorted(call["tickers"][0] for call in fallback_calls) == sorted(failed)
+    assert all(len(call["tickers"]) == 1 for call in fallback_calls)
+    assert {call["start"] for call in calls} == {result["refresh_start"]}
+    assert {call["end"] for call in calls} == {"2026-01-06"}
+    if failure_count == 4:
+        assert result["status"] == "provider_not_settled"
+        assert (
+            result["ready"]
+            is result["publish"]
+            is result["local_update_success"]
+            is False
+        )
+        assert all(path.read_bytes() == content for path, content in before.items())
+        report_root = Path(result["diagnostics_path"])
+    else:
+        assert result["status"] == "updated"
+        assert (
+            result["ready"]
+            is result["publish"]
+            is result["local_update_success"]
+            is True
+        )
+        merged = read_affected_partitions(prices_root, (2025, 2026), tickers=tickers)
+        pd.testing.assert_frame_equal(
+            merged.loc[merged["ticker"].isin(failed)].reset_index(drop=True),
+            old_rows.loc[old_rows["ticker"].isin(failed)].reset_index(drop=True),
+        )
+        manifest = json.loads((prices_root / "manifest.json").read_text())
+        assert manifest["failed_ticker_count"] == 2
+        assert manifest["successful_ticker_count"] == 98
+        failures_asset = manifest["assets"]["download_failures"]
+        manifest_module.validate_managed_asset(
+            prices_root / "download_failures.csv",
+            key="download_failures",
+            asset=failures_asset,
+        )
+        acceptance = release_module.validate_local_incremental_update_acceptance(
+            prices_root=prices_root, universe_path=universe, expected_universe_size=100
+        )
+        assert acceptance["success"] is True
+        assert acceptance["unresolved_failure_count"] == 2
+        report_root = prices_root
+    report = json.loads((report_root / "update_report.json").read_text())
+    assert report["status"] == result["status"]
+    assert report["download_status"] == "partial_success"
+    assert report["downloaded_row_count"] == 100 - failure_count
+    with (report_root / "download_failures.csv").open() as source:
+        failures = list(csv.DictReader(source))
+    assert {row["ticker"] for row in failures} == failed
+    assert {row["attempt_count"] for row in failures} == {"3"}
+    assert {row["error_type"] for row in failures} == {"TimeoutError"}
+    assert {row["error_message"] for row in failures} == {"provider still unavailable"}
+    with (report_root / "update_missing_tickers.csv").open() as source:
+        assert {row["ticker"] for row in csv.DictReader(source)} == failed
+    if failure_count == 2:
+        with (prices_root / "ticker_coverage.csv").open() as source:
+            coverage = {row["ticker"]: row for row in csv.DictReader(source)}
+        assert all(
+            coverage[ticker]["status"] == "failed"
+            and coverage[ticker]["row_count"] == "2"
+            for ticker in failed
+        )
+
+
+@pytest.mark.parametrize("initial_error", ["exception", "no_data"])
+def test_repair_false_fallback_recovers_without_repeating_successes(
+    tmp_path: Path, initial_error: str
+) -> None:
+    universe, prices_root = write_incremental_fixture(tmp_path)
+    calls: list[dict[str, Any]] = []
+
+    def fake_download(**kwargs: Any) -> pd.DataFrame:
+        calls.append(kwargs)
+        requested = kwargs["tickers"]
+        if kwargs["repair"] is True and requested == ["BBB"]:
+            if initial_error == "exception":
+                raise RuntimeError("price-reconstruct failed")
+            return pd.DataFrame()
+        good = requested if kwargs["repair"] is False else ["AAA"]
+        return multi_frame(
+            {ticker: (30.0, 29.0, 300) for ticker in good}, dates=("2026-01-05",)
+        )
+
+    result = run_update(
+        universe_path=universe,
+        prices_root=prices_root,
+        refresh_calendar_days=10,
+        target_date=date(2026, 1, 5),
+        max_retries=0,
+        pause_seconds=0,
+        download_func=fake_download,
+    )
+    assert result["status"] == "updated"
+    assert result["download_status"] == "success"
+    assert result["unresolved_failure_count"] == 0
+    assert result["fallback_attempted_count"] == result["fallback_recovered_count"] == 1
+    assert [call["tickers"] for call in calls if call["repair"] is False] == [["BBB"]]
+    with (prices_root / "ticker_coverage.csv").open() as source:
+        coverage = {row["ticker"]: row for row in csv.DictReader(source)}
+    assert coverage["AAA"]["attempt_count"] == "2"
+    assert coverage["BBB"]["attempt_count"] == "4"
+    assert coverage["BBB"]["last_error"] == ""
+
+
+@pytest.mark.parametrize(
+    "failure_stage",
+    [
+        "schema",
+        "unknown_columns",
+        "wrong_ticker",
+        "conflict",
+        "fallback_schema",
+        "manifest",
+    ],
+)
+def test_update_integrity_errors_cannot_be_recovered_or_committed(
+    tmp_path: Path, failure_stage: str
+) -> None:
+    universe, prices_root = write_incremental_fixture(tmp_path)
+    if failure_stage == "manifest":
+        manifest = index_release_assets(
+            prices_root, json.loads((prices_root / "manifest.json").read_text())
+        )
+        manifest["assets"]["2026"]["sha256"] = "0" * 64
+        (prices_root / "manifest.json").write_text(json.dumps(manifest))
+    before = {
+        path: path.read_bytes() for path in prices_root.rglob("*") if path.is_file()
+    }
+    calls: list[dict[str, Any]] = []
+
+    def malformed_download(**kwargs: Any) -> pd.DataFrame:
+        calls.append(kwargs)
+        if failure_stage == "manifest":
+            pytest.fail("Manifest hash must fail before download")
+        if failure_stage == "fallback_schema" and kwargs["repair"]:
+            raise TimeoutError("offline")
+        frame = multi_frame(
+            {ticker: (30.0, 29.0, 300) for ticker in kwargs["tickers"]},
+            dates=("2026-01-05",),
+        )
+        if failure_stage == "conflict":
+            frame = pd.concat([frame, frame * 2])
+        elif failure_stage == "unknown_columns":
+            frame = pd.DataFrame({"unexpected": [1]}, index=frame.index)
+        elif failure_stage == "wrong_ticker":
+            frame = multi_frame({"OTHER": (30.0, 29.0, 300)}, dates=("2026-01-05",))
+        else:
+            frame = frame.drop(columns=[(kwargs["tickers"][0], "Adj Close")])
+        return frame
+
+    with pytest.raises((DataValidationError, manifest_module.ManifestError)):
+        run_update(
+            universe_path=universe,
+            prices_root=prices_root,
+            refresh_calendar_days=10,
+            target_date=date(2026, 1, 5),
+            max_retries=0,
+            pause_seconds=0,
+            download_func=malformed_download,
+        )
+    assert all(path.read_bytes() == content for path, content in before.items())
+    diagnostics = list((prices_root / ".update_diagnostics").glob("update-*"))
+    assert len(diagnostics) == 1
+    assert {path.name for path in diagnostics[0].iterdir()} == {
+        "update_report.json",
+        "download_failures.csv",
+        "update_missing_tickers.csv",
+    }
+    if failure_stage in {"schema", "unknown_columns", "wrong_ticker", "conflict"}:
+        assert len(calls) == 1
+    if failure_stage == "fallback_schema":
+        assert sum(call["repair"] is False for call in calls) == 1
+
+
+def test_empty_expected_active_set_fails_before_download(tmp_path: Path) -> None:
+    universe, prices_root = write_incremental_fixture(tmp_path)
+    before = (prices_root / "manifest.json").read_bytes()
+
+    def forbidden_download(**kwargs: Any) -> pd.DataFrame:
+        pytest.fail("An empty denominator must fail before downloading")
+
+    with pytest.raises(
+        PriceUpdateError, match="expected active tickers are empty"
+    ) as failure:
+        run_update(
+            universe_path=universe,
+            prices_root=prices_root,
+            refresh_calendar_days=10,
+            target_date=date(2026, 1, 26),
+            download_func=forbidden_download,
+        )
+    assert failure.value.report["target_session_coverage_ratio"] is None
+    assert failure.value.report["expected_active_ticker_count"] == 0
+    assert failure.value.report["local_update_success"] is False
+    assert (prices_root / "manifest.json").read_bytes() == before
+
+
+def test_no_data_fallback_only_retries_recently_active_tickers() -> None:
+    calls: list[dict[str, Any]] = []
+
+    def fake_download(**kwargs: Any) -> pd.DataFrame:
+        calls.append(kwargs)
+        if kwargs["repair"] is False:
+            assert kwargs["tickers"] == ["AAA"]
+            good = ["AAA"]
+        else:
+            good = [ticker for ticker in kwargs["tickers"] if ticker == "BBB"]
+        return (
+            multi_frame(
+                {ticker: (30.0, 29.0, 300) for ticker in good}, dates=("2026-01-05",)
+            )
+            if good
+            else pd.DataFrame()
+        )
+
+    active = expected_active_tickers(
+        canonical_price_rows(
+            [
+                (date(2026, 1, 2), "AAA", 10, 9, 100),
+                (date(2026, 1, 2), "BBB", 10, 9, 100),
+                (date(2025, 1, 2), "OLD", 10, 9, 100),
+            ]
+        ),
+        universe=("AAA", "BBB", "OLD"),
+        target_session=date(2026, 1, 5),
+    )
+    execution = prices_module.download_incremental_prices(
+        ("AAA", "BBB", "OLD"),
+        refresh_start=date(2025, 1, 1),
+        target_session=date(2026, 1, 5),
+        max_retries=0,
+        pause_seconds=0,
+        download_func=fake_download,
+    )
+    execution, attempted, recovered = prices_module._fallback_incremental_failures(
+        execution,
+        expected_active=active,
+        refresh_start=date(2025, 1, 1),
+        target_session=date(2026, 1, 5),
+        pause_seconds=0,
+        timeout=30,
+        download_func=fake_download,
+        sleep_func=lambda _: None,
+    )
+    assert attempted == recovered == 1
+    assert execution.statuses == {"AAA": "success", "BBB": "success", "OLD": "no_data"}
+    assert execution.attempt_counts == {"AAA": 3, "BBB": 1, "OLD": 2}
+    assert validate_target_coverage(
+        execution.rows, expected_active=active, target_session=date(2026, 1, 5)
+    ) == (1.0, ())
 
 
 def test_run_update_replacement_failure_rolls_back_every_formal_file(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     universe, prices_root = write_incremental_fixture(tmp_path)
+    (prices_root / "download_failures.csv").write_text(
+        ",".join(FAILURE_COLUMNS) + "\nAAA,failed,1,TimeoutError,old failure\n"
+    )
     tracked = (
         prices_root / "daily/year=2025/prices.parquet",
         prices_root / "daily/year=2026/prices.parquet",
         prices_root / "ticker_coverage.csv",
+        prices_root / "download_failures.csv",
         prices_root / "manifest.json",
     )
     before = {path: path.read_bytes() for path in tracked}
@@ -1759,16 +2080,16 @@ def test_run_update_replacement_failure_rolls_back_every_formal_file(
         relative_paths: Sequence[str],
         **kwargs: object,
     ) -> None:
-        def fail_on_staged_coverage(source: object, destination: object) -> None:
+        def fail_after_staged_failures(source: object, destination: object) -> None:
             source_path = Path(source)  # type: ignore[arg-type]
             if (
                 ".update_staging" in source_path.parts
-                and source_path.name == "ticker_coverage.csv"
+                and source_path.name == "update_missing_tickers.csv"
             ):
                 raise OSError("simulated local replacement failure")
             real_os_replace(source, destination)  # type: ignore[arg-type]
 
-        monkeypatch.setattr(manifest_module.os, "replace", fail_on_staged_coverage)
+        monkeypatch.setattr(manifest_module.os, "replace", fail_after_staged_failures)
         try:
             real_transaction(
                 root,

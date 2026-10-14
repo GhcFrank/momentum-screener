@@ -46,6 +46,7 @@ from momentum_screener.storage_manifest import (
     remove_owned_tree,
     replace_files_transactionally,
     validate_asset_mapping,
+    validate_asset_size_and_hash,
     validate_managed_asset,
     validate_manifest,
 )
@@ -660,6 +661,8 @@ def download_batch(
     start_date: date,
     end_exclusive: date,
     timeout: float = DEFAULT_TIMEOUT,
+    repair: bool = True,
+    validation_errors_fatal: bool = False,
     download_func: DownloadFunction | None = None,
 ) -> DownloadAttempt:
     """Download one batch exactly once with all required yfinance parameters."""
@@ -679,7 +682,7 @@ def download_batch(
                 group_by="ticker",
                 auto_adjust=False,
                 actions=False,
-                repair=True,
+                repair=repair,
                 keepna=False,
                 threads=True,
                 progress=False,
@@ -694,7 +697,21 @@ def download_batch(
             start_date=start_date,
             end_exclusive=end_exclusive,
         )
-    except Exception as exc:  # noqa: BLE001 - third-party downloader exceptions vary
+        if validation_errors_fatal:
+            if (
+                isinstance(response, pd.DataFrame)
+                and not response.empty
+                and not _resolve_download_columns(response, tickers)
+            ):
+                raise DataValidationError(
+                    "Nonempty Yahoo response has no recognizable requested ticker/price fields"
+                )
+            for ticker, error in normalized.failed_tickers.items():
+                if error.error_type == "MissingFields":
+                    raise DataValidationError(f"{ticker}: {error.message}")
+    except Exception as exc:  # Third-party downloader exceptions vary.
+        if validation_errors_fatal and isinstance(exc, DataValidationError):
+            raise
         summary = ErrorSummary(type(exc).__name__, _safe_error_message(exc))
         return DownloadAttempt(
             rows=_empty_price_frame(),
@@ -735,6 +752,7 @@ def execute_batch_with_retries(
     max_retries: int = DEFAULT_MAX_RETRIES,
     pause_seconds: float = DEFAULT_PAUSE_SECONDS,
     timeout: float = DEFAULT_TIMEOUT,
+    validation_errors_fatal: bool = False,
     existing_rows: pd.DataFrame | None = None,
     existing_statuses: Mapping[str, str] | None = None,
     existing_attempt_counts: Mapping[str, int] | None = None,
@@ -776,6 +794,7 @@ def execute_batch_with_retries(
             start_date=start_date,
             end_exclusive=end_exclusive,
             timeout=timeout,
+            validation_errors_fatal=validation_errors_fatal,
             download_func=download_func,
         )
         invalid_rows_removed += attempt.invalid_rows_removed
@@ -784,6 +803,8 @@ def execute_batch_with_retries(
             rows, removed = _merge_successful_rows(rows, attempt.rows)
             duplicate_rows_removed += removed
         except DataConflictError as exc:
+            if validation_errors_fatal:
+                raise
             summary = ErrorSummary(type(exc).__name__, _safe_error_message(exc))
             for ticker in request_tickers:
                 if statuses.get(ticker) != "success":
@@ -2392,6 +2413,7 @@ def download_incremental_prices(
             max_retries=max_retries,
             pause_seconds=pause_seconds,
             timeout=timeout,
+            validation_errors_fatal=True,
             download_func=download_func,
             sleep_func=sleep_func,
         )
@@ -2420,6 +2442,86 @@ def download_incremental_prices(
         errors=errors,
         invalid_rows_removed=invalid_removed,
         duplicate_rows_removed=duplicate_removed,
+    )
+
+
+def _fallback_incremental_failures(
+    execution: BatchExecution,
+    *,
+    expected_active: Collection[str],
+    refresh_start: date,
+    target_session: date,
+    pause_seconds: float,
+    timeout: float,
+    download_func: DownloadFunction | None,
+    sleep_func: SleepFunction,
+) -> tuple[BatchExecution, int, int]:
+    """Try repair=False once for failed requests and recently active no-data tickers."""
+
+    rows = execution.rows
+    statuses = dict(execution.statuses)
+    attempts = dict(execution.attempt_counts)
+    errors = dict(execution.errors)
+    invalid_removed = execution.invalid_rows_removed
+    duplicate_removed = execution.duplicate_rows_removed
+    candidates = sorted(
+        ticker
+        for ticker, status in statuses.items()
+        if (status == "failed" or (status == "no_data" and ticker in expected_active))
+        and (
+            ticker not in errors
+            or errors[ticker].error_type
+            not in {
+                "MissingFields",
+                "InvalidData",
+                "DataValidationError",
+                "DataConflictError",
+            }
+        )
+    )
+    recovered = 0
+    for ticker in candidates:
+        if pause_seconds:
+            sleep_func(pause_seconds)
+        attempts[ticker] = attempts.get(ticker, 0) + 1
+        attempt = download_batch(
+            (ticker,),
+            start_date=refresh_start,
+            end_exclusive=target_session + timedelta(days=1),
+            timeout=timeout,
+            repair=False,
+            validation_errors_fatal=True,
+            download_func=download_func,
+        )
+        invalid_removed += attempt.invalid_rows_removed
+        duplicate_removed += attempt.duplicate_rows_removed
+        if ticker in attempt.successful_tickers:
+            rows, removed = _merge_successful_rows(rows, attempt.rows)
+            duplicate_removed += removed
+            statuses[ticker] = "success"
+            errors.pop(ticker, None)
+            recovered += 1
+        else:
+            statuses[ticker] = "failed"
+            error = attempt.failed_tickers.get(ticker)
+            if error is None:
+                prior_error = errors.get(ticker)
+                message = "repair=False fallback returned no valid historical rows"
+                if prior_error is not None:
+                    message += f"; previous error: {prior_error.message}"
+                error = ErrorSummary("NoData", _safe_error_message(message))
+            errors[ticker] = error
+    return (
+        BatchExecution(
+            rows=rows,
+            statuses=statuses,
+            attempt_counts=attempts,
+            errors=errors,
+            invalid_rows_removed=invalid_removed,
+            duplicate_rows_removed=duplicate_removed,
+        ),
+        len(candidates),
+        recovered,
     )
 
 
@@ -2509,11 +2611,15 @@ def validate_target_coverage(
     if not 0 <= minimum_ratio <= 1:
         raise ValueError("minimum_ratio must be between zero and one")
     expected = set(expected_active)
+    if not expected:
+        raise PriceUpdateError(
+            "Cannot validate target coverage: expected active tickers are empty"
+        )
     present = set(
         merged_rows.loc[merged_rows["date"] == target_session, "ticker"].astype(str)
     ).intersection(expected)
     missing = tuple(sorted(expected - present))
-    ratio = len(present) / len(expected) if expected else 1.0
+    ratio = len(present) / len(expected)
     if ratio < minimum_ratio and not allow_partial_session:
         raise PriceUpdateError(
             f"Target session {target_session} coverage {ratio:.4f} is below "
@@ -2623,7 +2729,7 @@ def update_ticker_coverage(
         result.append(
             {
                 "ticker": ticker,
-                "status": "success" if row_count else execution_status,
+                "status": execution_status,
                 "first_date": first_date,
                 "last_date": last_date,
                 "row_count": row_count,
@@ -2752,6 +2858,11 @@ def _build_updated_manifest(
             TICKER_COVERAGE_ASSET_NAME,
         ),
         (
+            "download_failures",
+            "download_failures.csv",
+            DOWNLOAD_FAILURES_ASSET_NAME,
+        ),
+        (
             "update_missing_tickers",
             "update_missing_tickers.csv",
             UPDATE_MISSING_ASSET_NAME,
@@ -2765,11 +2876,6 @@ def _build_updated_manifest(
         assets[key] = build_asset_record(
             source, asset_name=asset_name, local_path=local_path
         )
-    if isinstance(existing_assets, Mapping) and "download_failures" in existing_assets:
-        assets["download_failures"] = validate_asset_mapping(
-            "download_failures", existing_assets["download_failures"]
-        )
-
     successful = sum(row["status"] == "success" for row in coverage)
     no_data = sum(row["status"] == "no_data" for row in coverage)
     failed = sum(row["status"] == "failed" for row in coverage)
@@ -2822,18 +2928,9 @@ def _validate_update_tree(
         raise PriceUpdateError("Committed manifest differs from the validated manifest")
 
 
-def _write_update_failure_diagnostics(
-    prices_root: Path,
-    *,
-    run_id: str,
-    report: Mapping[str, object],
-    execution: BatchExecution,
-    missing: Sequence[str] = (),
-) -> Path:
-    diagnostic_root = prices_root / ".update_diagnostics" / f"update-{run_id}"
-    diagnostic_root.mkdir(parents=True, exist_ok=False)
+def _build_update_failure_rows(execution: BatchExecution) -> list[dict[str, object]]:
     failures: list[dict[str, object]] = []
-    for ticker, status in execution.statuses.items():
+    for ticker, status in sorted(execution.statuses.items()):
         if status != "failed":
             continue
         error = execution.errors.get(ticker)
@@ -2845,14 +2942,27 @@ def _write_update_failure_diagnostics(
                 "error_type": error.error_type
                 if error is not None
                 else "DownloadError",
-                "error_message": error.message if error is not None else "unknown",
+                "error_message": error.message if error is not None else status,
             }
         )
+    return failures
+
+
+def _write_update_failure_diagnostics(
+    prices_root: Path,
+    *,
+    run_id: str,
+    report: Mapping[str, object],
+    execution: BatchExecution,
+    missing: Sequence[str] = (),
+) -> Path:
+    diagnostic_root = prices_root / ".update_diagnostics" / f"update-{run_id}"
+    diagnostic_root.mkdir(parents=True, exist_ok=False)
     _write_json_atomically(diagnostic_root / "update_report.json", report)
     _write_csv_atomically(
         diagnostic_root / "download_failures.csv",
         fieldnames=FAILURE_COLUMNS,
-        rows=failures,
+        rows=_build_update_failure_rows(execution),
     )
     _write_csv_atomically(
         diagnostic_root / "update_missing_tickers.csv",
@@ -2955,37 +3065,94 @@ def run_update(
         )
         return preview
 
-    old_rows = read_affected_partitions(prices_root, years, tickers=tickers)
-    expected_active = expected_active_tickers(
-        old_rows, universe=tickers, target_session=target_session
-    )
-    execution = download_incremental_prices(
-        tickers,
-        refresh_start=refresh_start,
-        target_session=target_session,
-        batch_size=batch_size,
-        max_retries=max_retries,
-        pause_seconds=pause_seconds,
-        timeout=timeout,
-        download_func=download_func,
-        sleep_func=sleep_func,
-    )
-    unresolved = sorted(
-        ticker for ticker, status in execution.statuses.items() if status == "failed"
-    )
-    if unresolved:
+    execution = BatchExecution(_empty_price_frame(), {}, {}, {}, 0, 0)
+    expected_active: frozenset[str] | None = None
+    coverage_ratio: float | None = None
+    missing: tuple[str, ...] | None = None
+    fallback_attempted: int | None = None
+    fallback_recovered: int | None = None
+    download_status = "not_attempted"
+
+    def record_validation_failure(exc: Exception, reason: str) -> None:
+        report = {
+            **preview,
+            "run_id": run_id,
+            "started_at_utc": update_started_at,
+            "finished_at_utc": _utc_now_iso(),
+            "expected_active_ticker_count": len(expected_active)
+            if expected_active is not None
+            else None,
+            "target_session_coverage_ratio": coverage_ratio,
+            "minimum_target_coverage_ratio": minimum_coverage,
+            "missing_ticker_count": len(missing) if missing is not None else None,
+            "unresolved_failure_count": sum(
+                status == "failed" for status in execution.statuses.values()
+            )
+            if execution.statuses
+            else None,
+            "fallback_attempted_count": fallback_attempted,
+            "fallback_recovered_count": fallback_recovered,
+            "downloaded_row_count": len(execution.rows) if execution.statuses else None,
+            "status": "validation_failure",
+            "download_status": download_status,
+            "failure_reason": reason,
+            "error_type": type(exc).__name__,
+            "error_message": _safe_error_message(exc),
+            "local_update_success": False,
+            "success": False,
+        }
+        diagnostic = _write_update_failure_diagnostics(
+            prices_root,
+            run_id=run_id,
+            report=report,
+            execution=execution,
+            missing=missing or (),
+        )
+        if isinstance(exc, PriceUpdateError):
+            exc.report = {**report, "diagnostics_path": str(diagnostic)}
+
+    try:
+        if not 0 <= minimum_coverage <= 1:
+            raise ValueError("minimum_coverage must be between zero and one")
+        minimum_coverage = max(DEFAULT_MINIMUM_TARGET_COVERAGE, minimum_coverage)
+        if "assets" in existing_manifest:
+            existing_manifest = validate_manifest(
+                existing_manifest, require_assets=True
+            )
+            for key in [*(str(year) for year in years), "ticker_coverage"]:
+                asset = existing_manifest["assets"].get(key)
+                if asset is None:
+                    raise PriceUpdateError(
+                        f"Existing manifest is missing required asset {key}"
+                    )
+                validate_asset_size_and_hash(
+                    prices_root / str(asset["local_path"]), asset
+                )
+        old_rows = read_affected_partitions(prices_root, years, tickers=tickers)
+        expected_active = expected_active_tickers(
+            old_rows, universe=tickers, target_session=target_session
+        )
+    except Exception as exc:
+        record_validation_failure(exc, "invalid_existing_dataset")
+        raise
+    if not expected_active:
         report = {
             "run_id": run_id,
             "started_at_utc": update_started_at,
             "finished_at_utc": _utc_now_iso(),
             "target_session": target_session.isoformat(),
             "refresh_start": refresh_start.isoformat(),
-            "expected_active_ticker_count": len(expected_active),
+            "expected_active_ticker_count": 0,
+            "target_session_coverage_ratio": None,
             "minimum_target_coverage_ratio": minimum_coverage,
-            "unresolved_failure_count": len(unresolved),
-            "status": "download_failure",
-            "download_status": "failed",
-            "failure_reason": "unresolved_download_failure",
+            "missing_ticker_count": 0,
+            "unresolved_failure_count": 0,
+            "fallback_attempted_count": 0,
+            "fallback_recovered_count": 0,
+            "downloaded_row_count": 0,
+            "status": "validation_failure",
+            "download_status": "not_attempted",
+            "failure_reason": "empty_expected_active_tickers",
             "local_update_success": False,
             "success": False,
         }
@@ -2996,24 +3163,75 @@ def run_update(
             execution=execution,
         )
         raise PriceUpdateError(
-            f"Incremental download has {len(unresolved)} unresolved failures; "
-            f"first ticker: {unresolved[0]}; diagnostics: {diagnostic}",
+            f"Cannot validate target coverage: expected active tickers are empty; diagnostics: {diagnostic}",
             report={**report, "diagnostics_path": str(diagnostic)},
         )
-    merged = upsert_refresh_window(
-        old_rows,
-        execution.rows,
-        refresh_start=refresh_start,
-        target_session=target_session,
-        tickers=tickers,
+    try:
+        execution = download_incremental_prices(
+            tickers,
+            refresh_start=refresh_start,
+            target_session=target_session,
+            batch_size=batch_size,
+            max_retries=max_retries,
+            pause_seconds=pause_seconds,
+            timeout=timeout,
+            download_func=download_func,
+            sleep_func=sleep_func,
+        )
+        execution, fallback_attempted, fallback_recovered = (
+            _fallback_incremental_failures(
+                execution,
+                expected_active=expected_active,
+                refresh_start=refresh_start,
+                target_session=target_session,
+                pause_seconds=pause_seconds,
+                timeout=timeout,
+                download_func=download_func,
+                sleep_func=sleep_func,
+            )
+        )
+    except DataValidationError as exc:
+        download_status = "failed"
+        record_validation_failure(exc, "invalid_download_data")
+        raise
+    unresolved = sorted(
+        ticker for ticker, status in execution.statuses.items() if status == "failed"
     )
+    download_status = (
+        ("partial_success" if not execution.rows.empty else "failed")
+        if unresolved
+        else "success"
+    )
+    if fallback_attempted:
+        LOGGER.info(
+            "repair=False fallback recovered %d/%d tickers",
+            fallback_recovered,
+            fallback_attempted,
+        )
+    if unresolved:
+        LOGGER.warning(
+            "Incremental download has %d unresolved tickers: %s; validating merged target coverage",
+            len(unresolved),
+            ", ".join(unresolved),
+        )
+    try:
+        merged = upsert_refresh_window(
+            old_rows,
+            execution.rows,
+            refresh_start=refresh_start,
+            target_session=target_session,
+            tickers=tickers,
+        )
+    except DataValidationError as exc:
+        record_validation_failure(exc, "invalid_merged_data")
+        raise
     try:
         coverage_ratio, missing = validate_target_coverage(
             merged,
             expected_active=expected_active,
             target_session=target_session,
             minimum_ratio=minimum_coverage,
-            allow_partial_session=allow_partial_session,
+            allow_partial_session=False,
         )
     except PriceUpdateError:
         coverage_ratio, missing = validate_target_coverage(
@@ -3033,9 +3251,12 @@ def run_update(
             "target_session_coverage_ratio": coverage_ratio,
             "minimum_target_coverage_ratio": minimum_coverage,
             "missing_ticker_count": len(missing),
-            "unresolved_failure_count": 0,
+            "unresolved_failure_count": len(unresolved),
+            "fallback_attempted_count": fallback_attempted,
+            "fallback_recovered_count": fallback_recovered,
+            "downloaded_row_count": len(execution.rows),
             "status": "provider_not_settled",
-            "download_status": "success",
+            "download_status": download_status,
             "failure_reason": "insufficient_target_coverage",
             "local_update_success": False,
             "success": False,
@@ -3052,15 +3273,6 @@ def run_update(
             f"required {minimum_coverage:.4f}; diagnostics: {diagnostic}",
             report={**report, "diagnostics_path": str(diagnostic)},
         ) from None
-    existing_coverage = _load_coverage_rows(prices_root / "ticker_coverage.csv")
-    coverage = update_ticker_coverage(
-        tickers,
-        existing_coverage=existing_coverage,
-        old_affected_rows=old_rows,
-        merged_affected_rows=merged,
-        execution=execution,
-    )
-
     run_timestamp = _utc_now_iso()
     staging_parent = prices_root / ".update_staging"
     backup_parent = prices_root / ".update_backup"
@@ -3069,6 +3281,14 @@ def run_update(
     staging_root.mkdir(parents=True, exist_ok=False)
     staged_relative_paths: set[str] = set()
     try:
+        existing_coverage = _load_coverage_rows(prices_root / "ticker_coverage.csv")
+        coverage = update_ticker_coverage(
+            tickers,
+            existing_coverage=existing_coverage,
+            old_affected_rows=old_rows,
+            merged_affected_rows=merged,
+            execution=execution,
+        )
         partition_counts = _write_staged_partitions(
             merged, years=years, staging_root=staging_root
         )
@@ -3078,6 +3298,12 @@ def run_update(
         coverage_path = staging_root / "ticker_coverage.csv"
         _write_csv_atomically(coverage_path, fieldnames=COVERAGE_COLUMNS, rows=coverage)
         staged_relative_paths.add("ticker_coverage.csv")
+        _write_csv_atomically(
+            staging_root / "download_failures.csv",
+            fieldnames=FAILURE_COLUMNS,
+            rows=_build_update_failure_rows(execution),
+        )
+        staged_relative_paths.add("download_failures.csv")
         missing_rows = _build_update_missing_rows(missing, execution)
         _write_csv_atomically(
             staging_root / "update_missing_tickers.csv",
@@ -3098,6 +3324,7 @@ def run_update(
             "changed_local_assets": [
                 *(f"daily/year={year}/prices.parquet" for year in years),
                 "ticker_coverage.csv",
+                "download_failures.csv",
                 "update_missing_tickers.csv",
                 "update_report.json",
                 "manifest.json",
@@ -3108,7 +3335,11 @@ def run_update(
             "target_session_coverage_ratio": coverage_ratio,
             "minimum_target_coverage_ratio": minimum_coverage,
             "missing_ticker_count": len(missing),
-            "unresolved_failure_count": 0,
+            "unresolved_failure_count": len(unresolved),
+            "fallback_attempted_count": fallback_attempted,
+            "fallback_recovered_count": fallback_recovered,
+            "status": "updated",
+            "download_status": download_status,
             "downloaded_row_count": len(execution.rows),
             "invalid_rows_removed": execution.invalid_rows_removed,
             "duplicate_rows_removed": execution.duplicate_rows_removed,
@@ -3140,6 +3371,7 @@ def run_update(
         validation_keys = [
             *(str(year) for year in years),
             "ticker_coverage",
+            "download_failures",
             "update_missing_tickers",
             "update_report",
         ]
@@ -3147,6 +3379,7 @@ def run_update(
         replacement_order = [
             *(f"daily/year={year}/prices.parquet" for year in years),
             "ticker_coverage.csv",
+            "download_failures.csv",
             "update_missing_tickers.csv",
             "update_report.json",
             "manifest.json",
@@ -3170,8 +3403,10 @@ def run_update(
                 "target_session_coverage_ratio": coverage_ratio,
                 "minimum_target_coverage_ratio": minimum_coverage,
                 "expected_active_ticker_count": len(expected_active),
-                "unresolved_failure_count": 0,
-                "download_status": "success",
+                "unresolved_failure_count": len(unresolved),
+                "fallback_attempted_count": fallback_attempted,
+                "fallback_recovered_count": fallback_recovered,
+                "download_status": download_status,
                 "missing_ticker_count": len(missing),
                 "downloaded_row_count": len(execution.rows),
                 "run_id": run_id,
@@ -3186,6 +3421,9 @@ def run_update(
             coverage_ratio,
         )
         return preview
+    except Exception as exc:
+        record_validation_failure(exc, "validation_or_commit_failure")
+        raise
     finally:
         if staging_root.exists():
             remove_owned_tree(staging_root, parent=staging_parent, prefix="update-")

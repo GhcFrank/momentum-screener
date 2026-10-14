@@ -219,6 +219,8 @@ def run_price_attempt(target_session: date, **kwargs: Any) -> dict[str, Any]:
                 missing_ticker_count=len(missing),
                 unresolved_failure_count=0,
             )
+        # Updated results have already passed canonical coverage validation.
+        # Partial download warnings do not independently block downstream work.
         ready = result["local_update_success"] is True and result["status"] in {
             "updated",
             "no_op",
