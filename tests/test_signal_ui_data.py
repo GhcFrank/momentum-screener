@@ -629,7 +629,9 @@ def test_price_window_clipping_and_calendar_offsets():
     assert (sparse.viewport_start, sparse.viewport_end) == (sparse.start, sparse.end)
 
 
-def test_local_manifest_prices_use_adjusted_close_and_exact_bounds(tmp_path):
+def test_local_manifest_prices_use_adjusted_close_and_exact_bounds(
+    tmp_path, monkeypatch
+):
     # Full real storage schema, including deliberately different raw Close.
     dates = [
         date(2024, 6, 14),
@@ -647,11 +649,12 @@ def test_local_manifest_prices_use_adjusted_close_and_exact_bounds(tmp_path):
             "low": 90.0,
             "close": 100.0,
             "adj_close": 50.0 + index,
-            "volume": 100,
+            "volume": index * 100,
         }
         for index, day in enumerate(dates)
         for ticker in ("AAPL", "MSFT")
     ]
+    records.reverse()
     table = pa.Table.from_pylist(records, schema=PRICE_SCHEMA)
     assets, counts = {}, {}
     for year in (2024, 2026, 2027):
@@ -695,13 +698,79 @@ def test_local_manifest_prices_use_adjusted_close_and_exact_bounds(tmp_path):
     )
     signal_date = date(2026, 6, 15)
     files = local_price_files(signal_date, tmp_path)
+    reads = []
+    original_read_table = pq.read_table
+
+    def read_table(path, *, columns, filters):
+        reads.append((columns, filters))
+        return original_read_table(path, columns=columns, filters=filters)
+
+    monkeypatch.setattr(pq, "read_table", read_table)
     result = read_local_prices("AAPL", signal_date, files)
+    assert result.columns.tolist() == ["date", "adjusted_close", "volume"]
     assert result["date"].dt.date.tolist() == [
         date(2024, 6, 15),
         signal_date,
         date(2027, 6, 15),
     ]
     assert result["adjusted_close"].tolist() == [51.0, 52.0, 53.0]
-    assert read_local_prices("UNKNOWN", signal_date, files).empty
-    assert read_local_prices("AAPL", signal_date, ()).empty
+    assert result["volume"].tolist() == [100.0, 200.0, 300.0]
+    assert reads == [
+        (
+            ["date", "ticker", "adj_close", "volume"],
+            [
+                ("ticker", "in", ["AAPL"]),
+                ("date", ">=", date(2024, 6, 15)),
+                ("date", "<=", date(2027, 6, 15)),
+            ],
+        )
+    ] * len(files)
+    for empty in (
+        read_local_prices("UNKNOWN", signal_date, files),
+        read_local_prices("AAPL", signal_date, ()),
+    ):
+        assert empty.empty
+        assert empty.columns.tolist() == ["date", "adjusted_close", "volume"]
     assert local_price_files(date(2032, 1, 1), tmp_path) == ()
+    with open(files[0].path, "ab") as changed:
+        changed.write(b"changed")
+    with pytest.raises(ValueError, match="changed while loading"):
+        read_local_prices("AAPL", signal_date, files)
+
+
+def test_local_prices_keep_zero_and_missing_volume_without_losing_prices(monkeypatch):
+    rows = pd.DataFrame(
+        {
+            "date": pd.date_range("2026-06-10", periods=5)[::-1],
+            "ticker": ["AAPL"] * 5,
+            "adj_close": [50.0, 51.0, 52.0, 53.0, 54.0],
+            "volume": [None, -1, float("inf"), 0, 2500],
+        }
+    )
+    monkeypatch.setattr(
+        signal_ui_data, "read_local_price_rows", lambda *args, **kwargs: rows.copy()
+    )
+
+    result = read_local_prices("AAPL", date(2026, 6, 15), ())
+
+    assert result["date"].is_monotonic_increasing
+    assert result["adjusted_close"].tolist() == [54.0, 53.0, 52.0, 51.0, 50.0]
+    assert result["volume"].iloc[:2].tolist() == [2500.0, 0.0]
+    assert result["volume"].iloc[2:].isna().all()
+
+
+def test_local_prices_still_reject_duplicate_dates(monkeypatch):
+    rows = pd.DataFrame(
+        {
+            "date": [date(2026, 6, 15)] * 2,
+            "ticker": ["AAPL"] * 2,
+            "adj_close": [50.0, 51.0],
+            "volume": [None, 0],
+        }
+    )
+    monkeypatch.setattr(
+        signal_ui_data, "read_local_price_rows", lambda *args, **kwargs: rows
+    )
+
+    with pytest.raises(ValueError, match="duplicate ticker dates"):
+        read_local_prices("AAPL", date(2026, 6, 15), ())

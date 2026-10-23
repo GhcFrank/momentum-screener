@@ -10,7 +10,15 @@ import sys
 import threading
 import time
 import webbrowser
+from datetime import date
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import pandas as pd
+    import plotly.graph_objects as go
+
+    from momentum_screener.signal_ui_data import PriceWindow
 
 HOST = "127.0.0.1"
 PORT = 8000
@@ -26,9 +34,94 @@ STRATEGY_DISPLAY_NAMES = {
 }
 
 
+def build_price_volume_figure(
+    prices: pd.DataFrame, signal_date: date, window: PriceWindow
+) -> go.Figure:
+    """Plot local prices and raw volume against one matched date range."""
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+
+    fig = make_subplots(
+        rows=2,
+        cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.04,
+        row_heights=[0.72, 0.28],
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=prices["date"],
+            y=prices["adjusted_close"],
+            mode="lines",
+            name="Adjusted Close",
+            line={"color": "red"},
+            hovertemplate="%{x|%Y-%m-%d}<br>Adjusted Close: %{y:.2f}<extra></extra>",
+        ),
+        row=1,
+        col=1,
+    )
+    fig.add_trace(
+        go.Bar(
+            x=prices["date"],
+            y=prices["volume"],
+            name="Volume",
+            marker_color="#6e8898",
+            opacity=0.65,
+            hovertemplate="%{x|%Y-%m-%d}<br>Volume: %{y:,.0f}<extra></extra>",
+        ),
+        row=2,
+        col=1,
+    )
+    for row in (1, 2):
+        # Domain-height shapes mark the exact calendar day without taking part
+        # in either Y axis's data range, including days without a price row.
+        fig.add_vline(
+            x=signal_date.isoformat(),
+            line_color="blue",
+            line_dash="dash",
+            line_width=2,
+            row=row,
+            col=1,
+        )
+
+    axis = {"type": "date"}
+    if window.start < window.end:
+        axis.update(
+            range=[window.viewport_start, window.viewport_end],
+            minallowed=window.start,
+            maxallowed=window.end,
+        )
+    fig.update_xaxes(**axis, rangeslider_visible=False)
+    # make_subplots matches xaxis to x2. Keep x2 as the shared range's owner,
+    # with the sole slider below both panels; matching propagates either panel's
+    # zoom/pan, slider changes and autorange to the other date axis.
+    fig.update_xaxes(showticklabels=False, row=1, col=1)
+    fig.update_xaxes(
+        title_text="Date",
+        showticklabels=True,
+        rangeslider={
+            "visible": True,
+            "range": [window.start, window.end],
+            "thickness": 0.12,
+        },
+        row=2,
+        col=1,
+    )
+    fig.update_yaxes(title_text="Adjusted Close", row=1, col=1)
+    fig.update_yaxes(
+        title_text="Volume", rangemode="tozero", exponentformat="B", row=2, col=1
+    )
+    fig.update_layout(
+        height=680,
+        dragmode="zoom",
+        margin={"l": 20, "r": 20, "t": 30, "b": 20},
+        showlegend=False,
+    )
+    return fig
+
+
 def render_app() -> None:
     import pandas as pd
-    import plotly.graph_objects as go
     import pyarrow as pa
     import streamlit as st
 
@@ -76,7 +169,7 @@ def render_app() -> None:
 
     st.set_page_config(page_title="Signal Research", layout="wide")
     st.title("Historical Signal Research")
-    st.caption("Local CSV signals and local marketData · Adjusted Close")
+    st.caption("Local CSV signals and local marketData · Adjusted Close & Volume")
     # All cache arguments participate in hashing, including path and nanosecond
     # file timestamps. Widget reruns keep the loaded signal frame in the session.
     cached_csv = st.cache_data(read_signal_csv, show_spinner=False, max_entries=32)
@@ -574,43 +667,7 @@ def render_app() -> None:
         st.caption(
             "No price span inside the default viewport; showing the available window."
         )
-    fig = go.Figure(
-        go.Scatter(
-            x=prices["date"],
-            y=prices["adjusted_close"],
-            mode="lines",
-            name="Adjusted Close",
-            line={"color": "red"},
-            hovertemplate="%{x|%Y-%m-%d}<br>Adjusted Close: %{y:.2f}<extra></extra>",
-        )
-    )
-    # A paper-height shape marks the exact calendar date even without a price
-    # row that day, and remains attached to the date axis through zoom/pan.
-    fig.add_vline(
-        x=signal_date.isoformat(),
-        line_color="blue",
-        line_dash="dash",
-        line_width=2,
-    )
-    axis = {
-        "type": "date",
-        "title": "Date",
-        "rangeslider": {"visible": True, "range": [window.start, window.end]},
-    }
-    if window.start < window.end:
-        axis.update(
-            range=[window.viewport_start, window.viewport_end],
-            minallowed=window.start,
-            maxallowed=window.end,
-        )
-    fig.update_layout(
-        xaxis=axis,
-        yaxis_title="Adjusted Close",
-        height=560,
-        dragmode="zoom",
-        margin={"l": 20, "r": 20, "t": 30, "b": 20},
-        showlegend=False,
-    )
+    fig = build_price_volume_figure(prices, signal_date, window)
     st.plotly_chart(
         fig,
         width="stretch",

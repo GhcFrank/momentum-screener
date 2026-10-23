@@ -631,20 +631,23 @@ def local_price_files(
 def read_local_prices(
     ticker: str, signal_date: date, files: tuple[LocalFile, ...]
 ) -> pd.DataFrame:
-    """Read persisted adj_close once, with ticker/date predicate pushdown.
+    """Read persisted adj_close and volume with ticker/date predicate pushdown.
 
     The project's adjusted OHLC helper preserves this same adj_close field.
     Do not use raw close or apply the adjustment factor a second time.
+    Unavailable or invalid volume stays missing without dropping valid prices.
     """
 
     start, end = maximum_price_window(signal_date)
     prices = (
-        read_local_price_rows((ticker,), start, end, files, columns=("adj_close",))
+        read_local_price_rows(
+            (ticker,), start, end, files, columns=("adj_close", "volume")
+        )
         .drop(columns="ticker")
         .rename(columns={"adj_close": "adjusted_close"})
     )
     if prices.empty:
-        return pd.DataFrame(columns=["date", "adjusted_close"])
+        return pd.DataFrame(columns=["date", "adjusted_close", "volume"])
     prices["date"] = pd.to_datetime(prices["date"], errors="raise")
     values = pd.to_numeric(prices["adjusted_close"], errors="raise").astype("float64")
     if prices["date"].isna().any() or not (np.isfinite(values) & values.gt(0)).all():
@@ -652,4 +655,6 @@ def read_local_prices(
     if prices["date"].duplicated().any():
         raise ValueError("Local prices contain conflicting/duplicate ticker dates.")
     prices["adjusted_close"] = values
+    volume = pd.to_numeric(prices["volume"], errors="coerce").astype("float64")
+    prices["volume"] = volume.where(np.isfinite(volume) & volume.ge(0))
     return prices.sort_values("date", ignore_index=True)
