@@ -2,12 +2,16 @@ from __future__ import annotations
 
 from datetime import date
 from pathlib import Path
+from unittest.mock import Mock
 
 import numpy as np
 import pandas as pd  # type: ignore[import-untyped]
+import pyarrow as pa
+import pyarrow.parquet as pq
 import pytest
 
 import momentum_screener.strategy_data as data
+from momentum_screener import local_price_data
 from momentum_screener.rps import calculate_rps_snapshots
 from momentum_screener.rps_storage import (
     RPS_DATA_COLUMNS,
@@ -185,3 +189,129 @@ def test_sessions_count_is_inclusive_and_rejects_invalid_counts() -> None:
     for count in (0, -1, True):
         with pytest.raises(ValueError, match="positive integer"):
             data.resolve_strategy_sessions(date(2026, 9, 3), count)
+
+
+def test_signal_volumes_use_prior_sessions_and_preserve_selection() -> None:
+    sessions = data.resolve_strategy_sessions(date(2026, 9, 8), 23)
+    volumes = np.arange(23, dtype="float64")
+    volumes[5] = 0  # A valid zero belongs in both historical averages.
+    volumes[-1] = 50_000_000  # Signal-day volume must not enter its own average.
+    prices = pd.DataFrame({"date": sessions, "ticker": "AAA", "volume": volumes})
+    prices = pd.concat(
+        [
+            prices,
+            pd.DataFrame(
+                {
+                    "date": [date(2026, 9, 7), date(2026, 9, 9)],
+                    "ticker": "AAA",
+                    "volume": 99_000_000_000,
+                }
+            ),
+        ],
+        ignore_index=True,
+    )  # Labor Day and future observations are excluded by the trading calendar.
+    signals = pd.DataFrame(
+        {
+            "date": [pd.Timestamp(sessions[-1]), pd.Timestamp(sessions[-2])] * 2,
+            "ticker": ["aaa", "AAA"] * 2,
+            "strategy": ["monthly", "trend", "blue", "watch"],
+            "signal": [True, True, False, True],
+            "volume": -100,
+        },
+        index=[8, 3, 8, 5],
+    )
+    signals.attrs["strategy_version"] = "unchanged"
+    original = signals.copy()
+    result = data.load_signal_volumes(signals, price_rows=prices)
+    assert len(result) == 2
+    by_day = result.set_index("date")
+    assert by_day.loc[sessions[-1], "volume"] == 50_000_000
+    assert by_day.loc[sessions[-1], "avg_volume_20"] == pytest.approx(
+        volumes[2:22].mean()
+    )
+    assert by_day.loc[sessions[-2], "volume"] == volumes[-2]
+    assert by_day.loc[sessions[-2], "avg_volume_20"] == pytest.approx(
+        volumes[1:21].mean()
+    )
+    enriched = data.enrich_signal_volume(signals, result)
+    pd.testing.assert_frame_equal(
+        enriched.loc[:, original.columns.drop("volume")],
+        original.drop(columns="volume"),
+    )
+    pd.testing.assert_frame_equal(signals, original)
+    assert enriched.attrs == original.attrs
+    assert enriched["volume"].tolist() == [50_000_000, volumes[-2]] * 2
+    assert enriched["avg_volume_20"].iloc[0] == enriched["avg_volume_20"].iloc[2]
+    missing_signal = data.load_signal_volumes(
+        signals.iloc[:1], price_rows=prices.loc[prices["date"].ne(sessions[-1])]
+    )
+    assert pd.isna(missing_signal["volume"].item())
+    assert missing_signal["avg_volume_20"].item() == pytest.approx(volumes[2:22].mean())
+
+
+@pytest.mark.parametrize(
+    "unavailable", ["short", "missing_day", "nan", "negative", "inf"]
+)
+def test_signal_volume_window_never_skips_missing_or_invalid_history(
+    unavailable: str,
+) -> None:
+    sessions = data.resolve_strategy_sessions(date(2026, 9, 8), 22)
+    prices = pd.DataFrame({"date": sessions, "ticker": "AAA", "volume": 100.0})
+    if unavailable == "short":
+        prices = prices.iloc[2:].copy()  # Nineteen historical sessions plus signal.
+    elif unavailable == "missing_day":
+        prices = prices.drop(index=10)  # An older valid day cannot replace this day.
+    else:
+        prices.loc[10, "volume"] = {
+            "nan": np.nan,
+            "negative": -1,
+            "inf": np.inf,
+        }[unavailable]
+    prices.loc[prices["date"].eq(sessions[-1]), "volume"] = 0
+    keys = pd.DataFrame({"date": [sessions[-1]], "ticker": ["AAA"]})
+    result = data.load_signal_volumes(keys, price_rows=prices)
+    assert result["volume"].item() == 0
+    assert pd.isna(result["avg_volume_20"].item())
+
+
+def test_signal_volume_reads_one_projected_batch_for_selected_tickers_only(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    sessions = data.resolve_strategy_sessions(date(2026, 9, 8), 21)
+    prices = pd.DataFrame(
+        [
+            {"date": day, "ticker": ticker, "volume": 200, "adj_close": 9.0}
+            for day in (*sessions, date(2026, 9, 9))
+            for ticker in ("AAA", "BBB", "UNSELECTED")
+        ]
+    )
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text("{}", encoding="utf-8")
+    path = tmp_path / "prices.parquet"
+    pq.write_table(pa.Table.from_pandas(prices, preserve_index=False), path)
+    sources = tuple(local_price_data.LocalFile.inspect(p) for p in (manifest, path))
+    files = Mock(return_value=sources)
+    read = Mock(wraps=local_price_data.pq.read_table)
+    monkeypatch.setattr(data, "price_files_in_range", files)
+    monkeypatch.setattr(local_price_data.pq, "read_table", read)
+    keys = pd.DataFrame({"date": sessions[-1], "ticker": ["AAA", "BBB", "aaa", "BBB"]})
+    result = data.load_signal_volumes(keys, prices_root=tmp_path)
+    assert result["ticker"].tolist() == ["AAA", "BBB"]
+    assert result["volume"].tolist() == [200, 200]
+    assert result["avg_volume_20"].tolist() == [200, 200]
+    files.assert_called_once_with(sessions[0], sessions[-1], prices_root=tmp_path)
+    assert read.call_count == 1
+    assert read.call_args.kwargs == {
+        "columns": ["date", "ticker", "volume"],
+        "filters": [
+            ("ticker", "in", ["AAA", "BBB"]),
+            ("date", ">=", sessions[0]),
+            ("date", "<=", sessions[-1]),
+        ],
+    }
+    files.reset_mock()
+    read.reset_mock()
+    empty = data.load_signal_volumes(keys.iloc[:0], prices_root=tmp_path)
+    assert empty.columns.tolist() == ["date", "ticker", "volume", "avg_volume_20"]
+    files.assert_not_called()
+    read.assert_not_called()

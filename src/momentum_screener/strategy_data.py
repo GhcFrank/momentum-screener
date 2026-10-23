@@ -15,6 +15,11 @@ import numpy as np
 import pandas as pd  # type: ignore[import-untyped]
 import pyarrow as pa
 
+from momentum_screener.local_price_data import (
+    price_files_in_range,
+    read_local_price_rows,
+    require_unchanged_files,
+)
 from momentum_screener.market_cap_storage import (
     DEFAULT_MARKET_CAP_ROOT,
     MarketCapStorageError,
@@ -208,6 +213,114 @@ def enrich_signal_turnover(
         pd.Series(values.to_numpy(), index=result.index), errors="coerce"
     ).astype("float64")
     result.attrs = original_attrs
+    return result
+
+
+def _signal_volume_keys(rows: pd.DataFrame) -> pd.DataFrame:
+    missing = sorted({"date", "ticker"}.difference(rows.columns))
+    if missing:
+        raise ValueError(f"Signal volume rows are missing columns: {missing}")
+    keys = rows.loc[:, ["date", "ticker"]].copy()
+    keys["date"] = normalize_date_values(keys["date"])
+    keys["ticker"] = keys["ticker"].map(normalize_ticker)
+    if keys["ticker"].isna().any():
+        raise ValueError("Signal volume rows contain an invalid ticker")
+    return keys
+
+
+def load_signal_volumes(
+    signal_keys: pd.DataFrame,
+    *,
+    prices_root: Path = DEFAULT_OUTPUT_ROOT,
+    price_rows: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """Load exact signal volume and the preceding 20 XNYS sessions for email.
+
+    Duplicate strategy occurrences share one calculation. Each signal-date batch
+    projects only volume for its selected tickers and 21-session date range.
+    Missing sessions or invalid volumes make the fixed historical window
+    unavailable; older observations never substitute for those sessions.
+    """
+
+    keys = _signal_volume_keys(signal_keys).drop_duplicates()
+    columns = ["date", "ticker", "volume", "avg_volume_20"]
+    if keys.empty:
+        return pd.DataFrame(columns=columns).astype(
+            {"volume": "float64", "avg_volume_20": "float64"}
+        )
+
+    results: list[dict[str, object]] = []
+    for signal_date, daily_keys in keys.groupby("date", sort=True):
+        sessions = resolve_strategy_sessions(signal_date, 21)
+        tickers = tuple(daily_keys["ticker"])
+        if price_rows is None:
+            sources = price_files_in_range(
+                sessions[0], signal_date, prices_root=prices_root
+            )
+            require_unchanged_files(sources)
+            source = read_local_price_rows(
+                tickers,
+                sessions[0],
+                signal_date,
+                sources[1:],
+                columns=("volume",),
+            )
+            require_unchanged_files(sources)
+        else:
+            source = price_rows
+        if "volume" not in source:
+            raise ValueError("Signal volume price rows are missing columns: ['volume']")
+        prices = _signal_volume_keys(source)
+        prices["volume"] = pd.to_numeric(source["volume"], errors="coerce").astype(
+            "float64"
+        )
+        prices = prices.loc[
+            prices["ticker"].isin(tickers) & prices["date"].isin(sessions)
+        ].copy()
+        if prices.duplicated(["date", "ticker"]).any():
+            raise ValueError("Signal volume prices contain duplicate ticker dates")
+        prices["volume"] = prices["volume"].where(
+            np.isfinite(prices["volume"]) & prices["volume"].ge(0)
+        )
+        lookup = prices.set_index(["ticker", "date"])["volume"]
+        for ticker in tickers:
+            volumes = lookup.reindex(pd.MultiIndex.from_product([[ticker], sessions]))
+            history = volumes.iloc[:-1]
+            average = float("nan")
+            if len(history) == 20 and history.notna().all():
+                average = float(history.mean())
+            results.append(
+                {
+                    "date": signal_date,
+                    "ticker": ticker,
+                    "volume": float(volumes.iloc[-1]),
+                    "avg_volume_20": average if np.isfinite(average) else np.nan,
+                }
+            )
+    return pd.DataFrame(results, columns=columns)
+
+
+def enrich_signal_volume(rows: pd.DataFrame, volume_rows: pd.DataFrame) -> pd.DataFrame:
+    """Add canonical email volume values without changing signal rows or attrs."""
+
+    keys = _signal_volume_keys(rows)
+    lookup = _signal_volume_keys(volume_rows)
+    columns = ["volume", "avg_volume_20"]
+    missing = sorted(set(columns).difference(volume_rows.columns))
+    if missing:
+        raise ValueError(f"Signal volume rows are missing columns: {missing}")
+    if lookup.duplicated(["date", "ticker"]).any():
+        raise ValueError("Signal volume rows contain duplicate date/ticker keys")
+    for column in columns:
+        values = pd.to_numeric(volume_rows[column], errors="coerce").astype("float64")
+        lookup[column] = values.where(np.isfinite(values) & values.ge(0))
+    values = lookup.set_index(["date", "ticker"])[columns].reindex(
+        pd.MultiIndex.from_frame(keys)
+    )
+    result = rows.copy()
+    for column in columns:
+        result[column] = values[column].to_numpy()
+    result.attrs = rows.attrs.copy()
     return result
 
 

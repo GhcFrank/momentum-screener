@@ -49,6 +49,7 @@ from momentum_screener.monthly_reversal_notification import (
     _format_number,
     _format_percentage,
     _format_streak,
+    _format_volume,
     render_monthly_reversal_email,
 )
 from momentum_screener.prices import DEFAULT_OUTPUT_ROOT, DEFAULT_UNIVERSE
@@ -67,8 +68,10 @@ from momentum_screener.storage_manifest import write_json_atomically
 from momentum_screener.strategy_data import (
     coerce_session_date,
     enrich_signal_turnover,
+    enrich_signal_volume,
     load_or_calculate_rps,
     load_session_turnover,
+    load_signal_volumes,
     load_strategy_market_cap,
     resolve_strategy_sessions,
 )
@@ -129,8 +132,15 @@ def _render_strategy_section(
 ) -> tuple[list[str], str]:
     """Render one already-selected strategy without changing its signal mask."""
 
+    columns = (
+        *columns,
+        ("volume", "Volume", 10),
+        ("avg_volume_20", "AvgVol20", 10),
+    )
     required = {"ticker", "signal"} | {
-        key for key, _, _ in columns if key not in {"adj_close", "turnover"}
+        key
+        for key, _, _ in columns
+        if key not in {"adj_close", "turnover", "volume", "avg_volume_20"}
     }
     missing = sorted(required.difference(rows.columns))
     if missing:
@@ -170,11 +180,12 @@ def _render_strategy_section(
         ]
         for key, _, _ in columns:
             value = row.get(key)
-            values.append(
-                _format_percentage(value)
-                if key in {"turnover", "turnover_market_cap_proxy"}
-                else _format_number(value)
-            )
+            if key in {"volume", "avg_volume_20"}:
+                values.append(_format_volume(value))
+            elif key in {"turnover", "turnover_market_cap_proxy"}:
+                values.append(_format_percentage(value))
+            else:
+                values.append(_format_number(value))
         text_lines.append(
             " ".join(
                 f"{value:<{width}}" if index < 2 else f"{value:>{width}}"
@@ -454,6 +465,20 @@ def run_daily_screening_notification(
     monthly_email_rows = enrich_signal_turnover(monthly, turnover_rows)
     trend_email_rows = enrich_signal_turnover(trend, turnover_rows)
     blue_diamond_email_rows = enrich_signal_turnover(blue_diamond, turnover_rows)
+    volume_keys = pd.concat(
+        [
+            rows.loc[
+                rows["signal"].fillna(False).astype("bool"), ["date", "ticker"]
+            ]
+            for rows in (monthly, trend, blue_diamond, daily_watch_3)
+        ],
+        ignore_index=True,
+    ).drop_duplicates()
+    volume_rows = load_signal_volumes(volume_keys, prices_root=prices_root)
+    monthly_email_rows = enrich_signal_volume(monthly_email_rows, volume_rows)
+    trend_email_rows = enrich_signal_volume(trend_email_rows, volume_rows)
+    blue_diamond_email_rows = enrich_signal_volume(blue_diamond_email_rows, volume_rows)
+    daily_watch_3_email_rows = enrich_signal_volume(daily_watch_3, volume_rows)
     try:
         company_metadata = load_company_metadata(metadata_path)
     except (OSError, UnicodeError, ValueError) as exc:
@@ -464,7 +489,9 @@ def run_daily_screening_notification(
     blue_diamond_email_rows = enrich_company_metadata(
         blue_diamond_email_rows, company_metadata
     )
-    daily_watch_3_email_rows = enrich_company_metadata(daily_watch_3, company_metadata)
+    daily_watch_3_email_rows = enrich_company_metadata(
+        daily_watch_3_email_rows, company_metadata
+    )
     rendered = render_daily_screening_email(
         as_of_date=session,
         monthly_reversal_rows=monthly_email_rows,

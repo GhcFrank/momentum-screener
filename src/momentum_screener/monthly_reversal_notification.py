@@ -35,6 +35,7 @@ from momentum_screener.rps_storage import (
 )
 from momentum_screener.signal_store import DEFAULT_SIGNAL_ROOT
 from momentum_screener.signal_streak import resolve_current_signal_streaks
+from momentum_screener.strategy_data import enrich_signal_volume, load_signal_volumes
 
 LOGGER = logging.getLogger(__name__)
 
@@ -83,6 +84,19 @@ def _format_percentage(value: Any) -> str:
     except (TypeError, ValueError):
         return "N/A"
     return f"{parsed:.2%}" if math.isfinite(parsed) else "N/A"
+
+
+def _format_volume(value: Any) -> str:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return "N/A"
+    if not math.isfinite(parsed) or parsed < 0:
+        return "N/A"
+    for threshold, suffix in ((1e9, "B"), (1e6, "M"), (1e3, "K")):
+        if parsed >= threshold:
+            return f"{parsed / threshold:.1f}".rstrip("0").rstrip(".") + suffix
+    return f"{parsed:.1f}".rstrip("0").rstrip(".")
 
 
 def _format_streak(value: Any) -> str:
@@ -145,6 +159,7 @@ def render_monthly_reversal_email(
         )
         if include_turnover:
             header += f" {'Turnover':>10}"
+        header += f" {'Volume':>10} {'AvgVol20':>10}"
         text_lines.append(header)
         for _, row in signals.iterrows():
             line = (
@@ -157,6 +172,10 @@ def render_monthly_reversal_email(
             )
             if include_turnover:
                 line += f" {_format_percentage(row['turnover']):>10}"
+            line += (
+                f" {_format_volume(row.get('volume')):>10}"
+                f" {_format_volume(row.get('avg_volume_20')):>10}"
+            )
             text_lines.append(line)
         html_rows = "".join(
             "<tr>"
@@ -171,6 +190,8 @@ def render_monthly_reversal_email(
                 if include_turnover
                 else ""
             )
+            + f"<td>{_format_volume(row.get('volume'))}</td>"
+            + f"<td>{_format_volume(row.get('avg_volume_20'))}</td>"
             + "</tr>"
             for _, row in signals.iterrows()
         )
@@ -178,7 +199,8 @@ def render_monthly_reversal_email(
         html_content = (
             '<table style="border-collapse:collapse">'
             "<thead><tr><th>Ticker</th><th>Industry</th><th>Streak</th><th>RPS50</th><th>RPS120</th>"
-            f"<th>Adj Close</th>{turnover_header}</tr></thead>"
+            f"<th>Adj Close</th>{turnover_header}"
+            "<th>Volume</th><th>AvgVol20</th></tr></thead>"
             f"<tbody>{html_rows}</tbody></table>"
         )
     html_body = (
@@ -266,9 +288,15 @@ def run_daily_monthly_reversal_notification(
             universe_path=universe_path,
         ),
     )[identity.strategy_id]
+    email_rows = _signal_rows(screen).assign(date=session)
+    if not email_rows.empty:
+        volumes = load_signal_volumes(
+            email_rows[["date", "ticker"]], prices_root=prices_root
+        )
+        email_rows = enrich_signal_volume(email_rows, volumes)
     rendered = render_monthly_reversal_email(
         as_of_date=session,
-        screen_rows=screen,
+        screen_rows=email_rows,
     )
     candidate_tickers = tuple(str(value) for value in screen["ticker"])
     result = MonthlyReversalNotificationResult(

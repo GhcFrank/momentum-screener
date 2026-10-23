@@ -53,13 +53,13 @@ def test_email_renders_all_sections_turnover_and_explicit_empty_results() -> Non
         as_of_date=date(2026, 9, 3),
         monthly_reversal_rows=screen_rows(
             "MONTHLY", turnover=0.0084, industry="Consumer Electronics"
-        ),
+        ).assign(volume=850_000, avg_volume_20=3_600_000),
         trend_reacceleration_rows=screen_rows(
             "TREND", turnover=0.0127, industry="Software - Infrastructure"
-        ),
+        ).assign(volume=1_200_000_000, avg_volume_20=0),
         blue_diamond_rows=screen_rows(
             "BLUE", turnover=0.1234, industry="Semiconductors"
-        ),
+        ).assign(volume=850_000, avg_volume_20=3_600_000),
         daily_watch_3_rows=screen_rows("WATCH", turnover=0.0567),
     )
     assert result.subject == "Momentum Screener — 2026-09-03"
@@ -75,6 +75,9 @@ def test_email_renders_all_sections_turnover_and_explicit_empty_results() -> Non
         assert all(ticker in body for ticker in ("MONTHLY", "TREND", "BLUE", "WATCH"))
         assert "Industry" in body
         assert body.count("Streak") == 4
+        assert body.count("Volume") == body.count("AvgVol20") == 4
+        assert body.count("850K") == body.count("3.6M") == 2
+        assert "1.2B" in body
         assert "Semiconductors" in body
         assert "N/A" in body
         # Four table headers plus the Daily Watch 3 proxy description.
@@ -84,6 +87,8 @@ def test_email_renders_all_sections_turnover_and_explicit_empty_results() -> Non
         assert "RPS250 >" not in body
     assert result.html_body.count("<html>") == 1
     assert result.html_body.count("<body>") == 1
+    assert "<td>1.2B</td><td>0</td>" in result.html_body
+    assert "<td>N/A</td><td>N/A</td>" in result.html_body
 
     empty = notification.render_daily_screening_email(
         as_of_date=date(2026, 9, 3),
@@ -118,6 +123,8 @@ def test_html_escapes_tickers() -> None:
     )
     assert "&lt;unsafe&gt;" in result.html_body
     assert "<unsafe>" not in result.html_body
+    # Older caller fixtures omit both fields and still render N/A in each table.
+    assert result.html_body.count("<td>N/A</td><td>N/A</td>") == 2
 
 
 def test_turnover_enrichment_uses_exact_raw_close_and_retains_missing_cap(
@@ -213,7 +220,11 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
     monthly = screen_rows("AAA")
     trend = screen_rows("BBB", turnover=0.0127)
     blue = screen_rows("CCC", turnover=0.1234)
-    watch = screen_rows("DDD", turnover=0.0567)
+    # AAA appears in two sections, but its volume is read/calculated only once.
+    watch = pd.concat(
+        [screen_rows("AAA", turnover=0.0567), screen_rows("DDD", turnover=0.0567)],
+        ignore_index=True,
+    )
     if empty_strategy in {"monthly", "all"}:
         monthly = monthly.iloc[:0].copy()
     if empty_strategy in {"trend", "all"}:
@@ -333,6 +344,34 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
             }
         )
 
+    def load_volumes(keys: pd.DataFrame, **kwargs: object) -> pd.DataFrame:
+        events.append("volume")
+        assert kwargs["prices_root"] == tmp_path / "prices"
+        assert not keys.duplicated(["date", "ticker"]).any()
+        tickers = [] if empty_strategy == "all" else ["AAA", "BBB", "CCC", "DDD"]
+        assert keys["ticker"].tolist() == tickers
+        assert keys["date"].tolist() == [session] * len(tickers)
+        return keys.assign(volume=850_000.0, avg_volume_20=3_600_000.0)
+
+    original_render = notification.render_daily_screening_email
+
+    def render(**kwargs: object) -> RenderedRpsEmail:
+        for key in (
+            "monthly_reversal_rows",
+            "trend_reacceleration_rows",
+            "blue_diamond_rows",
+            "daily_watch_3_rows",
+        ):
+            enriched = kwargs[key]
+            assert enriched["volume"].eq(850_000).all()
+            assert enriched["avg_volume_20"].eq(3_600_000).all()
+        if empty_strategy != "all":
+            monthly_volume = kwargs["monthly_reversal_rows"].iloc[0]
+            watch_volume = kwargs["daily_watch_3_rows"].query("ticker == 'AAA'").iloc[0]
+            assert monthly_volume["volume"] == watch_volume["volume"]
+            assert monthly_volume["avg_volume_20"] == watch_volume["avg_volume_20"]
+        return original_render(**kwargs)
+
     def send(rendered: RenderedRpsEmail, config: SmtpEmailConfig) -> None:
         assert not dry_run
         events.append("send")
@@ -362,6 +401,8 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
     monkeypatch.setattr(notification, "screen_daily_watch_3", screen_watch)
     monkeypatch.setattr(notification, "resolve_current_signal_streaks", resolve_streaks)
     monkeypatch.setattr(notification, "load_session_turnover", load_turnover)
+    monkeypatch.setattr(notification, "load_signal_volumes", load_volumes)
+    monkeypatch.setattr(notification, "render_daily_screening_email", render)
     monkeypatch.setattr(notification, "send_rps_email", send)
     if dry_run or prepare_only:
 
@@ -390,6 +431,7 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
             "watch",
             "streak",
             "turnover",
+            "volume",
         ]
         if dry_run
         else [
@@ -402,12 +444,14 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
             "watch",
             "streak",
             "turnover",
+            "volume",
         ]
         + ([] if prepare_only else ["send"])
     )
     assert result.rps_row_count == 2
     assert result.rps_rows_persisted == (0 if dry_run else 2)
     assert result.signal_count == len(monthly)
+    assert result.candidate_tickers == tuple(monthly["ticker"])
     assert result.trend_signal_count == len(trend)
     assert result.blue_diamond_signal_count == len(blue)
     assert result.daily_watch_3_signal_count == len(watch)
@@ -417,6 +461,8 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
     assert (
         result.as_dict()["daily_watch_3_candidate_tickers"] == watch["ticker"].tolist()
     )
+    for original in (monthly, trend, blue, watch):
+        assert "volume" not in original and "avg_volume_20" not in original
     if dry_run:
         assert "顺向火车2" in preview.getvalue()
         assert "Blue Diamond / 蓝色钻石" in preview.getvalue()

@@ -83,11 +83,44 @@ def test_email_contains_only_signal_true_not_yxfz_or_high_rps_only() -> None:
     assert "4" in rendered.text_body
     assert "Consumer Electronics" in rendered.text_body
     assert "Consumer Electronics" in rendered.html_body
+    assert "Volume" in rendered.text_body
+    assert "AvgVol20" in rendered.text_body
+    assert "<th>Volume</th><th>AvgVol20</th>" in rendered.html_body
+    assert "<td>N/A</td><td>N/A</td>" in rendered.html_body
     assert "MSFT" not in rendered.text_body
     assert "NVDA" not in rendered.text_body
     assert "RPS250" not in rendered.text_body
     assert "RPS120 >" not in rendered.text_body
     assert "RPS250 >" not in rendered.text_body
+    assert "MSFT" not in rendered.html_body
+    assert "NVDA" not in rendered.html_body
+
+
+def test_volume_format_and_monthly_render_preserve_existing_columns() -> None:
+    for value, expected in (
+        (0, "0"),
+        (850_000, "850K"),
+        (3_600_000, "3.6M"),
+        (1_200_000_000, "1.2B"),
+        (None, "N/A"),
+        (float("nan"), "N/A"),
+        (float("inf"), "N/A"),
+        (-1, "N/A"),
+    ):
+        assert notification._format_volume(value) == expected
+
+    rows = _screen_rows().assign(
+        volume=850_000, avg_volume_20=3_600_000, turnover=0.0123
+    )
+    rendered = render_monthly_reversal_email(
+        as_of_date=date(2026, 9, 3), screen_rows=rows
+    )
+    for body in (rendered.text_body, rendered.html_body):
+        assert "850K" in body
+        assert "3.6M" in body
+        assert "Turnover" in body
+        assert "1.23%" in body
+        assert "230.50" in body
     assert "MSFT" not in rendered.html_body
     assert "NVDA" not in rendered.html_body
 
@@ -129,7 +162,15 @@ def test_daily_orchestration_calculates_once_persists_before_screen_and_sends(
         return screen
 
     def fake_send(rendered: RenderedRpsEmail, config: SmtpEmailConfig) -> None:
+        assert "850K" in rendered.text_body
+        assert "3.6M" in rendered.html_body
         events.append(("send", rendered, config))
+
+    def fake_load_volumes(keys: pd.DataFrame, **kwargs: object) -> pd.DataFrame:
+        events.append(("volumes", keys))
+        assert keys.to_dict("records") == [{"date": date(2026, 9, 3), "ticker": "AAPL"}]
+        assert kwargs["prices_root"] == tmp_path / "prices"
+        return keys.assign(volume=850_000, avg_volume_20=3_600_000)
 
     monkeypatch.setattr(notification, "calculate_rps_snapshot", fake_calculate)
     monkeypatch.setattr(notification, "persist_rps_snapshot", fake_persist)
@@ -140,6 +181,7 @@ def test_daily_orchestration_calculates_once_persists_before_screen_and_sends(
         lambda session, rows, identities, **kwargs: rows,
     )
     monkeypatch.setattr(notification, "send_rps_email", fake_send)
+    monkeypatch.setattr(notification, "load_signal_volumes", fake_load_volumes)
 
     result = run_daily_monthly_reversal_notification(
         as_of_date=date(2026, 9, 3),
@@ -149,13 +191,21 @@ def test_daily_orchestration_calculates_once_persists_before_screen_and_sends(
         environ=_email_environment(),
     )
 
-    assert [event[0] for event in events] == ["calculate", "persist", "screen", "send"]
+    assert [event[0] for event in events] == [
+        "calculate",
+        "persist",
+        "screen",
+        "volumes",
+        "send",
+    ]
     assert events[0][2] == (20, 50, 120, 250)
     assert events[2][2] is snapshot
     assert result.rps_row_count == 2
     assert result.rps_rows_persisted == 2
     assert result.signal_count == 1
     assert result.candidate_tickers == ("AAPL",)
+    assert "volume" not in screen
+    assert "avg_volume_20" not in screen
 
 
 def test_persistence_failure_stops_before_screen_or_email(
@@ -235,6 +285,11 @@ def test_dry_run_calculates_and_renders_without_persisting_or_smtp(
 
     monkeypatch.setattr(notification, "persist_rps_snapshot", unexpected)
     monkeypatch.setattr(notification, "send_rps_email", unexpected)
+    monkeypatch.setattr(
+        notification,
+        "load_signal_volumes",
+        lambda keys, **kwargs: keys.assign(volume=0, avg_volume_20=float("nan")),
+    )
 
     result = run_daily_monthly_reversal_notification(
         as_of_date=date(2026, 9, 3),
@@ -283,6 +338,11 @@ def test_zero_signal_live_run_still_sends_one_email(
         "send_rps_email",
         lambda rendered, config: sent.append(rendered),
     )
+
+    def unexpected_volume_read(*args: object, **kwargs: object) -> pd.DataFrame:
+        raise AssertionError("empty signal section must not read volume history")
+
+    monkeypatch.setattr(notification, "load_signal_volumes", unexpected_volume_read)
 
     result = run_daily_monthly_reversal_notification(
         as_of_date=date(2026, 9, 3),
