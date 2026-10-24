@@ -228,30 +228,70 @@ def _signal_volume_keys(rows: pd.DataFrame) -> pd.DataFrame:
     return keys
 
 
+def compute_volume_averages(
+    volumes: pd.Series, *, windows: tuple[int, ...] = (20, 50)
+) -> pd.DataFrame:
+    """Average strictly preceding XNYS volumes without skipping missing sessions.
+
+    The input describes one ticker, indexed by date. Results keep that index and
+    order; non-session dates have unavailable averages. A complete calendar grid
+    keeps absent observations in every rolling window as NaN.
+    """
+
+    if any(
+        isinstance(window, bool) or not isinstance(window, int) or window <= 0
+        for window in windows
+    ):
+        raise ValueError("Volume average windows must be positive integers")
+    windows = tuple(dict.fromkeys(windows))
+    result = pd.DataFrame(
+        index=volumes.index,
+        columns=[f"avg_volume_{window}" for window in windows],
+        dtype="float64",
+    )
+    if volumes.empty or not windows:
+        return result
+    dates = pd.Index(normalize_date_values(pd.Series(volumes.index)))
+    if dates.has_duplicates:
+        raise ValueError("Volume averages contain duplicate dates")
+    calendar = xcals.get_calendar(RPS_CALENDAR_NAME)
+    sessions = calendar.sessions_in_range(
+        pd.Timestamp(min(dates)), pd.Timestamp(max(dates))
+    )
+    session_dates = pd.Index([session.date() for session in sessions])
+    values = pd.to_numeric(volumes, errors="coerce").astype("float64")
+    values = values.where(np.isfinite(values) & values.ge(0))
+    prior = pd.Series(values.to_numpy(), index=dates).reindex(session_dates).shift(1)
+    for window in windows:
+        average = prior.rolling(window=window, min_periods=window).mean()
+        result[f"avg_volume_{window}"] = average.reindex(dates).to_numpy()
+    return result
+
+
 def load_signal_volumes(
     signal_keys: pd.DataFrame,
     *,
     prices_root: Path = DEFAULT_OUTPUT_ROOT,
     price_rows: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
-    """Load exact signal volume and the preceding 20 XNYS sessions for email.
+    """Load exact signal volume and preceding 20/50-session averages for email.
 
     Duplicate strategy occurrences share one calculation. Each signal-date batch
-    projects only volume for its selected tickers and 21-session date range.
+    projects only volume for its selected tickers and 51-session date range.
     Missing sessions or invalid volumes make the fixed historical window
     unavailable; older observations never substitute for those sessions.
     """
 
     keys = _signal_volume_keys(signal_keys).drop_duplicates()
-    columns = ["date", "ticker", "volume", "avg_volume_20"]
+    columns = ["date", "ticker", "volume", "avg_volume_20", "avg_volume_50"]
     if keys.empty:
         return pd.DataFrame(columns=columns).astype(
-            {"volume": "float64", "avg_volume_20": "float64"}
+            {column: "float64" for column in columns[2:]}
         )
 
     results: list[dict[str, object]] = []
     for signal_date, daily_keys in keys.groupby("date", sort=True):
-        sessions = resolve_strategy_sessions(signal_date, 21)
+        sessions = resolve_strategy_sessions(signal_date, 51)
         tickers = tuple(daily_keys["ticker"])
         if price_rows is None:
             sources = price_files_in_range(
@@ -284,17 +324,19 @@ def load_signal_volumes(
         )
         lookup = prices.set_index(["ticker", "date"])["volume"]
         for ticker in tickers:
-            volumes = lookup.reindex(pd.MultiIndex.from_product([[ticker], sessions]))
-            history = volumes.iloc[:-1]
-            average = float("nan")
-            if len(history) == 20 and history.notna().all():
-                average = float(history.mean())
+            volumes = pd.Series(
+                lookup.reindex(
+                    pd.MultiIndex.from_product([[ticker], sessions])
+                ).to_numpy(),
+                index=pd.Index(sessions, name="date"),
+            )
+            averages = compute_volume_averages(volumes).iloc[-1]
             results.append(
                 {
                     "date": signal_date,
                     "ticker": ticker,
                     "volume": float(volumes.iloc[-1]),
-                    "avg_volume_20": average if np.isfinite(average) else np.nan,
+                    **averages.to_dict(),
                 }
             )
     return pd.DataFrame(results, columns=columns)
@@ -305,7 +347,7 @@ def enrich_signal_volume(rows: pd.DataFrame, volume_rows: pd.DataFrame) -> pd.Da
 
     keys = _signal_volume_keys(rows)
     lookup = _signal_volume_keys(volume_rows)
-    columns = ["volume", "avg_volume_20"]
+    columns = ["volume", "avg_volume_20", "avg_volume_50"]
     missing = sorted(set(columns).difference(volume_rows.columns))
     if missing:
         raise ValueError(f"Signal volume rows are missing columns: {missing}")

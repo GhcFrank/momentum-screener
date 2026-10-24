@@ -13,6 +13,7 @@ from datetime import date
 from pathlib import Path
 from stat import S_ISDIR, S_ISREG
 
+import exchange_calendars as xcals
 import numpy as np
 import pandas as pd
 
@@ -35,7 +36,7 @@ from momentum_screener.market_cap_storage import (
     read_market_cap,
 )
 from momentum_screener.prices import DEFAULT_OUTPUT_ROOT
-from momentum_screener.rps import RPS_LOOKBACKS
+from momentum_screener.rps import RPS_CALENDAR_NAME, RPS_LOOKBACKS
 from momentum_screener.rps_storage import (
     DEFAULT_RPS_ROOT,
     RPS_MANIFEST_NAME,
@@ -44,7 +45,11 @@ from momentum_screener.rps_storage import (
     read_rps_snapshot,
 )
 from momentum_screener.storage_manifest import resolve_local_asset_path
-from momentum_screener.strategy_data import calculate_turnover_columns
+from momentum_screener.strategy_data import (
+    calculate_turnover_columns,
+    compute_volume_averages,
+    resolve_strategy_sessions,
+)
 from momentum_screener.universe import normalize_ticker
 
 SIGNAL_KEY = ["session", "strategy_id", "ticker"]
@@ -586,6 +591,20 @@ def maximum_price_window(signal_date: date) -> tuple[date, date]:
     )
 
 
+def _price_history_window(signal_date: date) -> tuple[date, date]:
+    """Warm up price MAs and fifty prior XNYS volumes before display bounds."""
+
+    start, end = maximum_price_window(signal_date)
+    ma_start = (pd.Timestamp(start) - pd.Timedelta(weeks=16)).date()
+    calendar = xcals.get_calendar(RPS_CALENDAR_NAME)
+    # Preserve empty-file lookups beyond the installed calendar's date bounds.
+    if not calendar.first_session <= pd.Timestamp(start) <= calendar.last_session:
+        return ma_start, end
+    first_session = calendar.date_to_session(pd.Timestamp(start), direction="next")
+    volume_start = resolve_strategy_sessions(first_session.date(), 51)[0]
+    return min(ma_start, volume_start), end
+
+
 @dataclass(frozen=True)
 class PriceWindow:
     start: date
@@ -622,23 +641,61 @@ def clip_price_window(
 def local_price_files(
     signal_date: date, prices_root: Path = DEFAULT_OUTPUT_ROOT
 ) -> tuple[LocalFile, ...]:
-    """Resolve only relevant local assets through the existing manifest helpers."""
+    """Fingerprint display and MA warm-up assets through the manifest helpers."""
 
-    start, end = maximum_price_window(signal_date)
+    start, end = _price_history_window(signal_date)
     return price_files_in_range(start, end, prices_root=prices_root)[1:]
+
+
+def compute_moving_averages(prices: pd.DataFrame) -> pd.DataFrame:
+    """Return sorted daily MAs and an as-of-date, forming ten-week average.
+
+    Weekly history uses each completed week's last actual close. Every daily
+    row supplies its own provisional close for the current Monday-Friday week;
+    a later close in that week can therefore never leak into an earlier row.
+    Missing calendar weeks invalidate the ten-week window instead of being
+    skipped to obtain ten older samples.
+    """
+
+    result = prices.copy()
+    if result.empty:
+        for column in ("ma10", "ma20", "ma50", "ma10w"):
+            result[column] = pd.Series(dtype="float64")
+        return result
+    result["date"] = pd.to_datetime(result["date"], errors="raise")
+    values = pd.to_numeric(result["adjusted_close"], errors="raise").astype("float64")
+    if result["date"].isna().any() or not (np.isfinite(values) & values.gt(0)).all():
+        raise ValueError("Local prices contain invalid dates or adjusted close values.")
+    if result["date"].duplicated().any():
+        raise ValueError("Local prices contain conflicting/duplicate ticker dates.")
+    result["adjusted_close"] = values
+    result = result.sort_values("date", ignore_index=True)
+    for days in (10, 20, 50):
+        result[f"ma{days}"] = (
+            result["adjusted_close"].rolling(window=days, min_periods=days).mean()
+        )
+
+    weeks = result["date"].dt.to_period("W-FRI")
+    weekly_closes = result.groupby(weeks, sort=True)["adjusted_close"].last()
+    weekly_closes = weekly_closes.reindex(
+        pd.period_range(weeks.min(), weeks.max(), freq="W-FRI")
+    )
+    previous_nine = weekly_closes.shift(1).rolling(window=9, min_periods=9).sum()
+    result["ma10w"] = (weeks.map(previous_nine) + result["adjusted_close"]) / 10
+    return result
 
 
 def read_local_prices(
     ticker: str, signal_date: date, files: tuple[LocalFile, ...]
 ) -> pd.DataFrame:
-    """Read persisted adj_close and volume with ticker/date predicate pushdown.
+    """Read one ticker's MA history, then return only the original display range.
 
     The project's adjusted OHLC helper preserves this same adj_close field.
     Do not use raw close or apply the adjustment factor a second time.
     Unavailable or invalid volume stays missing without dropping valid prices.
     """
 
-    start, end = maximum_price_window(signal_date)
+    start, end = _price_history_window(signal_date)
     prices = (
         read_local_price_rows(
             (ticker,), start, end, files, columns=("adj_close", "volume")
@@ -646,15 +703,15 @@ def read_local_prices(
         .drop(columns="ticker")
         .rename(columns={"adj_close": "adjusted_close"})
     )
-    if prices.empty:
-        return pd.DataFrame(columns=["date", "adjusted_close", "volume"])
-    prices["date"] = pd.to_datetime(prices["date"], errors="raise")
-    values = pd.to_numeric(prices["adjusted_close"], errors="raise").astype("float64")
-    if prices["date"].isna().any() or not (np.isfinite(values) & values.gt(0)).all():
-        raise ValueError("Local prices contain invalid dates or adjusted close values.")
-    if prices["date"].duplicated().any():
-        raise ValueError("Local prices contain conflicting/duplicate ticker dates.")
-    prices["adjusted_close"] = values
     volume = pd.to_numeric(prices["volume"], errors="coerce").astype("float64")
     prices["volume"] = volume.where(np.isfinite(volume) & volume.ge(0))
-    return prices.sort_values("date", ignore_index=True)
+    prices = compute_moving_averages(prices)
+    volume_averages = compute_volume_averages(
+        pd.Series(prices["volume"].to_numpy(), index=pd.DatetimeIndex(prices["date"])),
+        windows=(50,),
+    )
+    prices["avg_volume_50"] = volume_averages["avg_volume_50"].to_numpy()
+    display_start, display_end = maximum_price_window(signal_date)
+    return prices.loc[
+        prices["date"].between(pd.Timestamp(display_start), pd.Timestamp(display_end))
+    ].reset_index(drop=True)

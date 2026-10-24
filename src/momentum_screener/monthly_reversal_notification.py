@@ -159,7 +159,7 @@ def render_monthly_reversal_email(
         )
         if include_turnover:
             header += f" {'Turnover':>10}"
-        header += f" {'Volume':>10} {'AvgVol20':>10}"
+        header += f" {'Volume':>10} {'AvgVol20':>10} {'AvgVol50':>10}"
         text_lines.append(header)
         for _, row in signals.iterrows():
             line = (
@@ -175,6 +175,7 @@ def render_monthly_reversal_email(
             line += (
                 f" {_format_volume(row.get('volume')):>10}"
                 f" {_format_volume(row.get('avg_volume_20')):>10}"
+                f" {_format_volume(row.get('avg_volume_50')):>10}"
             )
             text_lines.append(line)
         html_rows = "".join(
@@ -192,6 +193,7 @@ def render_monthly_reversal_email(
             )
             + f"<td>{_format_volume(row.get('volume'))}</td>"
             + f"<td>{_format_volume(row.get('avg_volume_20'))}</td>"
+            + f"<td>{_format_volume(row.get('avg_volume_50'))}</td>"
             + "</tr>"
             for _, row in signals.iterrows()
         )
@@ -200,7 +202,7 @@ def render_monthly_reversal_email(
             '<table style="border-collapse:collapse">'
             "<thead><tr><th>Ticker</th><th>Industry</th><th>Streak</th><th>RPS50</th><th>RPS120</th>"
             f"<th>Adj Close</th>{turnover_header}"
-            "<th>Volume</th><th>AvgVol20</th></tr></thead>"
+            "<th>Volume</th><th>AvgVol20</th><th>AvgVol50</th></tr></thead>"
             f"<tbody>{html_rows}</tbody></table>"
         )
     html_body = (

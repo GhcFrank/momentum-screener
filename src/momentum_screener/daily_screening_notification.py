@@ -136,11 +136,13 @@ def _render_strategy_section(
         *columns,
         ("volume", "Volume", 10),
         ("avg_volume_20", "AvgVol20", 10),
+        ("avg_volume_50", "AvgVol50", 10),
     )
     required = {"ticker", "signal"} | {
         key
         for key, _, _ in columns
-        if key not in {"adj_close", "turnover", "volume", "avg_volume_20"}
+        if key
+        not in {"adj_close", "turnover", "volume", "avg_volume_20", "avg_volume_50"}
     }
     missing = sorted(required.difference(rows.columns))
     if missing:
@@ -180,7 +182,7 @@ def _render_strategy_section(
         ]
         for key, _, _ in columns:
             value = row.get(key)
-            if key in {"volume", "avg_volume_20"}:
+            if key in {"volume", "avg_volume_20", "avg_volume_50"}:
                 values.append(_format_volume(value))
             elif key in {"turnover", "turnover_market_cap_proxy"}:
                 values.append(_format_percentage(value))

@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from momentum_screener.signal_ui import build_price_volume_figure
-from momentum_screener.signal_ui_data import clip_price_window
+from momentum_screener.signal_ui_data import clip_price_window, compute_moving_averages
 
 
 def test_price_volume_chart_has_matched_dates_and_one_bottom_slider():
@@ -20,11 +20,13 @@ def test_price_volume_chart_has_matched_dates_and_one_bottom_slider():
             "volume": [0.0, np.nan, 1_234_567.0],
         }
     )
+    prices = compute_moving_averages(prices)
+    prices["avg_volume_50"] = [np.nan, 500_000.25, 600_000.5]
     window = clip_price_window(
         signal_date, prices["date"].min().date(), prices["date"].max().date()
     )
     fig = build_price_volume_figure(prices, signal_date, window)
-    price, volume = fig.data
+    price, *averages, volume, avg_volume = fig.data
 
     assert (price.type, price.xaxis, price.yaxis) == ("scatter", "x", "y")
     assert (price.name, price.mode, price.line.color) == (
@@ -35,6 +37,27 @@ def test_price_volume_chart_has_matched_dates_and_one_bottom_slider():
     assert price.hovertemplate == (
         "%{x|%Y-%m-%d}<br>Adjusted Close: %{y:.2f}<extra></extra>"
     )
+    assert fig.layout.showlegend is True
+    assert [(trace.name, trace.line.color, trace.visible) for trace in averages] == [
+        ("MA10", "#D4A017", True),
+        ("MA20", "#16A34A", True),
+        ("MA50", "#9333EA", True),
+        ("MA10W", "#EA580C", "legendonly"),
+    ]
+    assert len({trace.name for trace in fig.data}) == 7
+    for trace in averages:
+        assert (trace.type, trace.mode, trace.xaxis, trace.yaxis) == (
+            "scatter",
+            "lines",
+            "x",
+            "y",
+        )
+        assert not trace.legendgroup  # Native legend toggles each line separately.
+        np.testing.assert_array_equal(trace.x, prices["date"])
+        np.testing.assert_allclose(trace.y, prices[trace.name.lower()], equal_nan=True)
+        assert trace.hovertemplate == (
+            f"%{{x|%Y-%m-%d}}<br>{trace.name}: %{{y:.2f}}<extra></extra>"
+        )
     assert (volume.type, volume.xaxis, volume.yaxis, volume.name) == (
         "bar",
         "x2",
@@ -45,6 +68,21 @@ def test_price_volume_chart_has_matched_dates_and_one_bottom_slider():
     np.testing.assert_allclose(price.y, prices["adjusted_close"])
     np.testing.assert_allclose(volume.y, [0.0, np.nan, 1_234_567.0], equal_nan=True)
     assert "%{y:,.0f}" in volume.hovertemplate
+    assert volume.showlegend is False
+    assert (avg_volume.type, avg_volume.name, avg_volume.mode) == (
+        "scatter",
+        "AvgVol50",
+        "lines",
+    )
+    assert (avg_volume.xaxis, avg_volume.yaxis) == ("x2", "y2")
+    assert (avg_volume.line.color, avg_volume.line.width) == ("#F59E0B", 2)
+    assert avg_volume.visible is True and avg_volume.showlegend is True
+    assert not avg_volume.legendgroup
+    np.testing.assert_array_equal(avg_volume.x, volume.x)
+    np.testing.assert_allclose(avg_volume.y, prices["avg_volume_50"], equal_nan=True)
+    assert avg_volume.hovertemplate == (
+        "%{x|%Y-%m-%d}<br>AvgVol50: %{y:,.2f}<extra></extra>"
+    )
     assert fig.layout.yaxis2.rangemode == "tozero"
     assert fig.layout.yaxis.matches is None
     assert fig.layout.yaxis2.matches is None
@@ -89,6 +127,8 @@ def test_price_volume_chart_preserves_fallback_with_all_volume_missing(dates):
     prices = pd.DataFrame(
         {"date": pd.to_datetime(dates), "adjusted_close": 10.0, "volume": np.nan}
     )
+    prices = compute_moving_averages(prices)
+    prices["avg_volume_50"] = np.nan
     signal_date = date(2026, 6, 15)
     window = clip_price_window(
         signal_date, prices["date"].min().date(), prices["date"].max().date()
@@ -98,7 +138,8 @@ def test_price_volume_chart_preserves_fallback_with_all_volume_missing(dates):
     fig = build_price_volume_figure(prices, signal_date, window)
 
     assert len(fig.data[0].x) == len(dates)
-    assert np.isnan(fig.data[1].y).all()
+    assert np.isnan(fig.data[-1].y).all()
+    assert np.isnan(fig.data[-2].y).all()
     assert len(fig.layout.shapes) == 2
     assert fig.layout.xaxis2.rangeslider.range == (window.start, window.end)
     expected_range = (window.start, window.end) if len(dates) > 1 else None

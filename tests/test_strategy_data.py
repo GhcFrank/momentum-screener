@@ -233,6 +233,7 @@ def test_signal_volumes_use_prior_sessions_and_preserve_selection() -> None:
     assert by_day.loc[sessions[-2], "avg_volume_20"] == pytest.approx(
         volumes[1:21].mean()
     )
+    assert result["avg_volume_50"].isna().all()
     enriched = data.enrich_signal_volume(signals, result)
     pd.testing.assert_frame_equal(
         enriched.loc[:, original.columns.drop("volume")],
@@ -242,6 +243,7 @@ def test_signal_volumes_use_prior_sessions_and_preserve_selection() -> None:
     assert enriched.attrs == original.attrs
     assert enriched["volume"].tolist() == [50_000_000, volumes[-2]] * 2
     assert enriched["avg_volume_20"].iloc[0] == enriched["avg_volume_20"].iloc[2]
+    assert enriched["avg_volume_50"].isna().all()
     missing_signal = data.load_signal_volumes(
         signals.iloc[:1], price_rows=prices.loc[prices["date"].ne(sessions[-1])]
     )
@@ -255,14 +257,14 @@ def test_signal_volumes_use_prior_sessions_and_preserve_selection() -> None:
 def test_signal_volume_window_never_skips_missing_or_invalid_history(
     unavailable: str,
 ) -> None:
-    sessions = data.resolve_strategy_sessions(date(2026, 9, 8), 22)
+    sessions = data.resolve_strategy_sessions(date(2026, 9, 8), 52)
     prices = pd.DataFrame({"date": sessions, "ticker": "AAA", "volume": 100.0})
     if unavailable == "short":
-        prices = prices.iloc[2:].copy()  # Nineteen historical sessions plus signal.
+        prices = prices.iloc[32:].copy()  # Nineteen historical sessions plus signal.
     elif unavailable == "missing_day":
-        prices = prices.drop(index=10)  # An older valid day cannot replace this day.
+        prices = prices.drop(index=40)  # An older valid day cannot replace this day.
     else:
-        prices.loc[10, "volume"] = {
+        prices.loc[40, "volume"] = {
             "nan": np.nan,
             "negative": -1,
             "inf": np.inf,
@@ -272,12 +274,59 @@ def test_signal_volume_window_never_skips_missing_or_invalid_history(
     result = data.load_signal_volumes(keys, price_rows=prices)
     assert result["volume"].item() == 0
     assert pd.isna(result["avg_volume_20"].item())
+    assert pd.isna(result["avg_volume_50"].item())
+
+
+def test_volume_averages_share_calendar_and_exclude_current_day() -> None:
+    sessions = data.resolve_strategy_sessions(date(2026, 9, 9), 52)
+    volumes = pd.Series(np.arange(52, dtype="float64"), index=pd.Index(sessions))
+    volumes.iloc[10] = 0
+    volumes.iloc[50:] = [50_000_000, 90_000_000]
+    signal_date = sessions[50]
+    # Reversed input and the holiday preserve their positions in the output;
+    # neither observation order nor an off-calendar row changes the window.
+    volumes.loc[date(2026, 9, 7)] = 999_000_000
+    volumes = volumes.iloc[::-1]
+    result = data.compute_volume_averages(volumes)
+    assert result.index.equals(volumes.index)
+    assert result.loc[date(2026, 9, 7)].isna().all()
+    assert pd.isna(
+        result.loc[sessions[49], "avg_volume_50"]
+    )  # Forty-nine historical sessions are insufficient.
+    assert result.loc[signal_date, "avg_volume_50"] == pytest.approx(
+        volumes.reindex(sessions[:50]).mean()
+    )
+    assert result.loc[signal_date, "avg_volume_20"] == pytest.approx(
+        volumes.reindex(sessions[30:50]).mean()
+    )
+    keys = pd.DataFrame({"date": [signal_date], "ticker": ["AAA"]})
+    prices = (
+        volumes.rename("volume").rename_axis("date").reset_index().assign(ticker="AAA")
+    )
+    email = data.load_signal_volumes(keys, price_rows=prices)
+    assert email["volume"].item() == 50_000_000
+    for column in ("avg_volume_20", "avg_volume_50"):
+        assert email[column].item() == result.loc[signal_date, column]
+    missing_older_day = data.compute_volume_averages(volumes.drop(index=sessions[10]))
+    assert pd.isna(missing_older_day.loc[signal_date, "avg_volume_50"])
+    assert (
+        missing_older_day.loc[signal_date, "avg_volume_20"]
+        == result.loc[signal_date, "avg_volume_20"]
+    )
+    without_signal = data.load_signal_volumes(
+        keys, price_rows=prices.loc[prices["date"].ne(signal_date)]
+    )
+    assert pd.isna(without_signal["volume"].item())
+    assert (
+        without_signal["avg_volume_50"].item()
+        == result.loc[signal_date, "avg_volume_50"]
+    )
 
 
 def test_signal_volume_reads_one_projected_batch_for_selected_tickers_only(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    sessions = data.resolve_strategy_sessions(date(2026, 9, 8), 21)
+    sessions = data.resolve_strategy_sessions(date(2026, 9, 8), 51)
     prices = pd.DataFrame(
         [
             {"date": day, "ticker": ticker, "volume": 200, "adj_close": 9.0}
@@ -299,6 +348,7 @@ def test_signal_volume_reads_one_projected_batch_for_selected_tickers_only(
     assert result["ticker"].tolist() == ["AAA", "BBB"]
     assert result["volume"].tolist() == [200, 200]
     assert result["avg_volume_20"].tolist() == [200, 200]
+    assert result["avg_volume_50"].tolist() == [200, 200]
     files.assert_called_once_with(sessions[0], sessions[-1], prices_root=tmp_path)
     assert read.call_count == 1
     assert read.call_args.kwargs == {
@@ -312,6 +362,12 @@ def test_signal_volume_reads_one_projected_batch_for_selected_tickers_only(
     files.reset_mock()
     read.reset_mock()
     empty = data.load_signal_volumes(keys.iloc[:0], prices_root=tmp_path)
-    assert empty.columns.tolist() == ["date", "ticker", "volume", "avg_volume_20"]
+    assert empty.columns.tolist() == [
+        "date",
+        "ticker",
+        "volume",
+        "avg_volume_20",
+        "avg_volume_50",
+    ]
     files.assert_not_called()
     read.assert_not_called()

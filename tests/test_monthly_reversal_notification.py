@@ -85,8 +85,9 @@ def test_email_contains_only_signal_true_not_yxfz_or_high_rps_only() -> None:
     assert "Consumer Electronics" in rendered.html_body
     assert "Volume" in rendered.text_body
     assert "AvgVol20" in rendered.text_body
-    assert "<th>Volume</th><th>AvgVol20</th>" in rendered.html_body
-    assert "<td>N/A</td><td>N/A</td>" in rendered.html_body
+    assert "AvgVol50" in rendered.text_body
+    assert "<th>Volume</th><th>AvgVol20</th><th>AvgVol50</th>" in rendered.html_body
+    assert "<td>N/A</td><td>N/A</td><td>N/A</td>" in rendered.html_body
     assert "MSFT" not in rendered.text_body
     assert "NVDA" not in rendered.text_body
     assert "RPS250" not in rendered.text_body
@@ -110,7 +111,10 @@ def test_volume_format_and_monthly_render_preserve_existing_columns() -> None:
         assert notification._format_volume(value) == expected
 
     rows = _screen_rows().assign(
-        volume=850_000, avg_volume_20=3_600_000, turnover=0.0123
+        volume=850_000,
+        avg_volume_20=3_600_000,
+        avg_volume_50=1_200_000_000,
+        turnover=0.0123,
     )
     rendered = render_monthly_reversal_email(
         as_of_date=date(2026, 9, 3), screen_rows=rows
@@ -118,6 +122,7 @@ def test_volume_format_and_monthly_render_preserve_existing_columns() -> None:
     for body in (rendered.text_body, rendered.html_body):
         assert "850K" in body
         assert "3.6M" in body
+        assert "1.2B" in body
         assert "Turnover" in body
         assert "1.23%" in body
         assert "230.50" in body
@@ -164,13 +169,16 @@ def test_daily_orchestration_calculates_once_persists_before_screen_and_sends(
     def fake_send(rendered: RenderedRpsEmail, config: SmtpEmailConfig) -> None:
         assert "850K" in rendered.text_body
         assert "3.6M" in rendered.html_body
+        assert "12.5M" in rendered.text_body
         events.append(("send", rendered, config))
 
     def fake_load_volumes(keys: pd.DataFrame, **kwargs: object) -> pd.DataFrame:
         events.append(("volumes", keys))
         assert keys.to_dict("records") == [{"date": date(2026, 9, 3), "ticker": "AAPL"}]
         assert kwargs["prices_root"] == tmp_path / "prices"
-        return keys.assign(volume=850_000, avg_volume_20=3_600_000)
+        return keys.assign(
+            volume=850_000, avg_volume_20=3_600_000, avg_volume_50=12_500_000
+        )
 
     monkeypatch.setattr(notification, "calculate_rps_snapshot", fake_calculate)
     monkeypatch.setattr(notification, "persist_rps_snapshot", fake_persist)
@@ -206,6 +214,7 @@ def test_daily_orchestration_calculates_once_persists_before_screen_and_sends(
     assert result.candidate_tickers == ("AAPL",)
     assert "volume" not in screen
     assert "avg_volume_20" not in screen
+    assert "avg_volume_50" not in screen
 
 
 def test_persistence_failure_stops_before_screen_or_email(
@@ -288,7 +297,9 @@ def test_dry_run_calculates_and_renders_without_persisting_or_smtp(
     monkeypatch.setattr(
         notification,
         "load_signal_volumes",
-        lambda keys, **kwargs: keys.assign(volume=0, avg_volume_20=float("nan")),
+        lambda keys, **kwargs: keys.assign(
+            volume=0, avg_volume_20=float("nan"), avg_volume_50=float("nan")
+        ),
     )
 
     result = run_daily_monthly_reversal_notification(

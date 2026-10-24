@@ -20,6 +20,7 @@ from momentum_screener.signal_ui_data import (
     cleared_table_selection,
     clip_price_window,
     combine_signals,
+    compute_moving_averages,
     consume_selection_clear_pending,
     discover_signal_csvs,
     enrich_ticker_table_with_metadata,
@@ -45,6 +46,7 @@ from momentum_screener.storage_manifest import (
     SCHEMA_VERSION,
     build_asset_record,
 )
+from momentum_screener.strategy_data import load_signal_volumes, sessions_in_range
 
 
 def test_discover_single_csv_path(tmp_path):
@@ -632,13 +634,12 @@ def test_price_window_clipping_and_calendar_offsets():
 def test_local_manifest_prices_use_adjusted_close_and_exact_bounds(
     tmp_path, monkeypatch
 ):
-    # Full real storage schema, including deliberately different raw Close.
+    # Warm-up crosses a yearly partition; raw Close deliberately differs.
     dates = [
-        date(2024, 6, 14),
-        date(2024, 6, 15),
-        date(2026, 6, 15),
-        date(2027, 6, 15),
-        date(2027, 6, 16),
+        *sessions_in_range(date(2023, 9, 11), date(2024, 1, 3)),
+        date(2026, 1, 2),
+        date(2027, 1, 2),
+        date(2027, 1, 3),
     ]
     records = [
         {
@@ -657,7 +658,7 @@ def test_local_manifest_prices_use_adjusted_close_and_exact_bounds(
     records.reverse()
     table = pa.Table.from_pylist(records, schema=PRICE_SCHEMA)
     assets, counts = {}, {}
-    for year in (2024, 2026, 2027):
+    for year in (2023, 2024, 2026, 2027):
         path = tmp_path / "daily" / f"year={year}" / "prices.parquet"
         path.parent.mkdir(parents=True)
         partition = table.filter(
@@ -685,19 +686,20 @@ def test_local_manifest_prices_use_adjusted_close_and_exact_bounds(
                 "source": "yahoo_finance_via_yfinance",
                 "universe_sha256": "a" * 64,
                 "universe_ticker_count": 2,
-                "requested_start": "2024-01-01",
-                "latest_session": "2027-06-16",
-                "actual_min_date": "2024-06-14",
-                "actual_max_date": "2027-06-16",
-                "last_successful_update_utc": "2027-06-17T00:00:00+00:00",
+                "requested_start": "2023-01-01",
+                "latest_session": "2027-01-03",
+                "actual_min_date": "2023-09-11",
+                "actual_max_date": "2027-01-03",
+                "last_successful_update_utc": "2027-01-04T00:00:00+00:00",
                 "total_row_count": len(records),
                 "partition_row_counts": counts,
                 "assets": assets,
             }
         )
     )
-    signal_date = date(2026, 6, 15)
+    signal_date = date(2026, 1, 2)
     files = local_price_files(signal_date, tmp_path)
+    assert "year=2023" in files[0].path
     reads = []
     original_read_table = pq.read_table
 
@@ -707,30 +709,65 @@ def test_local_manifest_prices_use_adjusted_close_and_exact_bounds(
 
     monkeypatch.setattr(pq, "read_table", read_table)
     result = read_local_prices("AAPL", signal_date, files)
-    assert result.columns.tolist() == ["date", "adjusted_close", "volume"]
-    assert result["date"].dt.date.tolist() == [
-        date(2024, 6, 15),
-        signal_date,
-        date(2027, 6, 15),
+    expected_columns = [
+        "date",
+        "adjusted_close",
+        "volume",
+        "ma10",
+        "ma20",
+        "ma50",
+        "ma10w",
+        "avg_volume_50",
     ]
-    assert result["adjusted_close"].tolist() == [51.0, 52.0, 53.0]
-    assert result["volume"].tolist() == [100.0, 200.0, 300.0]
+    assert result.columns.tolist() == expected_columns
+    assert result["date"].dt.date.tolist() == [
+        date(2024, 1, 2),
+        date(2024, 1, 3),
+        signal_date,
+        date(2027, 1, 2),
+    ]
+    displayed_indices = [dates.index(day) for day in result["date"].dt.date]
+    assert result["adjusted_close"].tolist() == [50.0 + i for i in displayed_indices]
+    assert result["volume"].tolist() == [100.0 * i for i in displayed_indices]
+    first = displayed_indices[0]
+    assert result.loc[0, "ma50"] == pytest.approx(
+        sum(50.0 + i for i in range(first - 49, first + 1)) / 50
+    )
+    assert result.loc[0, ["ma10", "ma20", "ma50", "ma10w"]].notna().all()
+    assert result.loc[0, "avg_volume_50"] == pytest.approx(
+        sum(100.0 * i for i in range(first - 50, first)) / 50
+    )
+    window = clip_price_window(
+        signal_date, result["date"].min().date(), result["date"].max().date()
+    )
+    assert (window.start, window.end) == (date(2024, 1, 2), date(2027, 1, 2))
+    assert (window.viewport_start, window.viewport_end) == (
+        date(2025, 1, 2),
+        signal_date,
+    )
     assert reads == [
         (
             ["date", "ticker", "adj_close", "volume"],
             [
                 ("ticker", "in", ["AAPL"]),
-                ("date", ">=", date(2024, 6, 15)),
-                ("date", "<=", date(2027, 6, 15)),
+                ("date", ">=", date(2023, 9, 12)),
+                ("date", "<=", date(2027, 1, 2)),
             ],
         )
     ] * len(files)
+    # UI's first displayed day uses the same prior 50 sessions as email,
+    # including values from the previous year's warm-up partition.
+    mail = load_signal_volumes(
+        pd.DataFrame({"date": [result.loc[0, "date"]], "ticker": ["AAPL"]}),
+        prices_root=tmp_path,
+    )
+    assert mail["avg_volume_50"].item() == result.loc[0, "avg_volume_50"]
     for empty in (
         read_local_prices("UNKNOWN", signal_date, files),
         read_local_prices("AAPL", signal_date, ()),
     ):
         assert empty.empty
-        assert empty.columns.tolist() == ["date", "adjusted_close", "volume"]
+        assert empty.columns.tolist() == expected_columns
     assert local_price_files(date(2032, 1, 1), tmp_path) == ()
     with open(files[0].path, "ab") as changed:
         changed.write(b"changed")
@@ -774,3 +811,64 @@ def test_local_prices_still_reject_duplicate_dates(monkeypatch):
 
     with pytest.raises(ValueError, match="duplicate ticker dates"):
         read_local_prices("AAPL", date(2026, 6, 15), ())
+
+
+def test_daily_moving_averages_sort_copy_and_require_full_windows():
+    prices = pd.DataFrame(
+        {
+            "date": pd.bdate_range("2026-01-05", periods=55),
+            "adjusted_close": range(1, 56),
+            "volume": [0] * 55,
+        }
+    ).iloc[::-1]
+    original = prices.copy()
+
+    result = compute_moving_averages(prices)
+
+    pd.testing.assert_frame_equal(prices, original)
+    assert result["date"].is_monotonic_increasing
+    assert result["adjusted_close"].tolist() == list(range(1, 56))
+    assert result["volume"].eq(0).all()
+    for days in (10, 20, 50):
+        assert result[f"ma{days}"].iloc[: days - 1].isna().all()
+        assert result.loc[days - 1, f"ma{days}"] == (days + 1) / 2
+        assert result.loc[54, f"ma{days}"] == 55 - (days - 1) / 2
+    short = compute_moving_averages(prices.tail(9))
+    assert short[["ma10", "ma20", "ma50", "ma10w"]].isna().all().all()
+    with pytest.raises(ValueError, match="adjusted close"):
+        compute_moving_averages(prices.assign(adjusted_close=float("nan")))
+
+
+def test_weekly_moving_average_is_dynamic_without_future_leakage_or_week_skipping():
+    # The tenth week has Good Friday off: Thursday is its actual weekly close.
+    dates = pd.bdate_range("2026-01-26", "2026-04-10").difference(
+        pd.DatetimeIndex(["2026-04-03"])
+    )
+    weeks = (dates - dates[0]).days // 7
+    prices = pd.DataFrame(
+        {
+            "date": dates,
+            "adjusted_close": 100.0 + 10 * weeks + dates.dayofweek,
+            "volume": 1000,
+        }
+    )
+    result = compute_moving_averages(prices).set_index("date")
+    assert result.loc[:"2026-03-27", "ma10w"].isna().all()
+    previous_nine = sum(100 + 10 * week + 4 for week in range(1, 9)) + 193
+    for day, current_close in (
+        ("2026-04-06", 200),
+        ("2026-04-08", 202),
+        ("2026-04-10", 204),
+    ):
+        assert result.loc[day, "ma10w"] == (previous_nine + current_close) / 10
+    assert result.loc["2026-04-10", "ma10w"] != result.loc["2026-04-10", "ma50"]
+
+    cutoff = pd.Timestamp("2026-04-08")
+    changed = prices.copy()
+    changed.loc[changed["date"] > cutoff, "adjusted_close"] = 1_000_000
+    for history in (prices.loc[prices["date"] <= cutoff], changed):
+        as_of = compute_moving_averages(history).set_index("date")
+        pd.testing.assert_frame_equal(as_of.loc[:cutoff], result.loc[:cutoff])
+
+    missing_week = prices.loc[~prices["date"].between("2026-02-09", "2026-02-13")]
+    assert compute_moving_averages(missing_week)["ma10w"].isna().all()

@@ -53,10 +53,10 @@ def test_email_renders_all_sections_turnover_and_explicit_empty_results() -> Non
         as_of_date=date(2026, 9, 3),
         monthly_reversal_rows=screen_rows(
             "MONTHLY", turnover=0.0084, industry="Consumer Electronics"
-        ).assign(volume=850_000, avg_volume_20=3_600_000),
+        ).assign(volume=850_000, avg_volume_20=3_600_000, avg_volume_50=12_500_000),
         trend_reacceleration_rows=screen_rows(
             "TREND", turnover=0.0127, industry="Software - Infrastructure"
-        ).assign(volume=1_200_000_000, avg_volume_20=0),
+        ).assign(volume=1_200_000_000, avg_volume_20=0, avg_volume_50=12_500_000),
         blue_diamond_rows=screen_rows(
             "BLUE", turnover=0.1234, industry="Semiconductors"
         ).assign(volume=850_000, avg_volume_20=3_600_000),
@@ -75,8 +75,14 @@ def test_email_renders_all_sections_turnover_and_explicit_empty_results() -> Non
         assert all(ticker in body for ticker in ("MONTHLY", "TREND", "BLUE", "WATCH"))
         assert "Industry" in body
         assert body.count("Streak") == 4
-        assert body.count("Volume") == body.count("AvgVol20") == 4
+        assert (
+            body.count("Volume")
+            == body.count("AvgVol20")
+            == body.count("AvgVol50")
+            == 4
+        )
         assert body.count("850K") == body.count("3.6M") == 2
+        assert body.count("12.5M") == 2
         assert "1.2B" in body
         assert "Semiconductors" in body
         assert "N/A" in body
@@ -87,8 +93,18 @@ def test_email_renders_all_sections_turnover_and_explicit_empty_results() -> Non
         assert "RPS250 >" not in body
     assert result.html_body.count("<html>") == 1
     assert result.html_body.count("<body>") == 1
-    assert "<td>1.2B</td><td>0</td>" in result.html_body
-    assert "<td>N/A</td><td>N/A</td>" in result.html_body
+    assert (
+        result.html_body.count("<th>Volume</th><th>AvgVol20</th><th>AvgVol50</th>") == 4
+    )
+    text_headers = [line for line in result.text_body.splitlines() if "Ticker" in line]
+    assert len(text_headers) == 4
+    for header in text_headers:
+        assert (
+            header.index("Volume") < header.index("AvgVol20") < header.index("AvgVol50")
+        )
+    assert "<td>1.2B</td><td>0</td><td>12.5M</td>" in result.html_body
+    assert "<td>850K</td><td>3.6M</td><td>N/A</td>" in result.html_body
+    assert "<td>N/A</td><td>N/A</td><td>N/A</td>" in result.html_body
 
     empty = notification.render_daily_screening_email(
         as_of_date=date(2026, 9, 3),
@@ -123,8 +139,8 @@ def test_html_escapes_tickers() -> None:
     )
     assert "&lt;unsafe&gt;" in result.html_body
     assert "<unsafe>" not in result.html_body
-    # Older caller fixtures omit both fields and still render N/A in each table.
-    assert result.html_body.count("<td>N/A</td><td>N/A</td>") == 2
+    # Older caller fixtures omit all volume fields and still render N/A.
+    assert result.html_body.count("<td>N/A</td><td>N/A</td><td>N/A</td>") == 2
 
 
 def test_turnover_enrichment_uses_exact_raw_close_and_retains_missing_cap(
@@ -351,7 +367,9 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
         tickers = [] if empty_strategy == "all" else ["AAA", "BBB", "CCC", "DDD"]
         assert keys["ticker"].tolist() == tickers
         assert keys["date"].tolist() == [session] * len(tickers)
-        return keys.assign(volume=850_000.0, avg_volume_20=3_600_000.0)
+        return keys.assign(
+            volume=850_000.0, avg_volume_20=3_600_000.0, avg_volume_50=12_500_000.0
+        )
 
     original_render = notification.render_daily_screening_email
 
@@ -365,11 +383,13 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
             enriched = kwargs[key]
             assert enriched["volume"].eq(850_000).all()
             assert enriched["avg_volume_20"].eq(3_600_000).all()
+            assert enriched["avg_volume_50"].eq(12_500_000).all()
         if empty_strategy != "all":
             monthly_volume = kwargs["monthly_reversal_rows"].iloc[0]
             watch_volume = kwargs["daily_watch_3_rows"].query("ticker == 'AAA'").iloc[0]
             assert monthly_volume["volume"] == watch_volume["volume"]
             assert monthly_volume["avg_volume_20"] == watch_volume["avg_volume_20"]
+            assert monthly_volume["avg_volume_50"] == watch_volume["avg_volume_50"]
         return original_render(**kwargs)
 
     def send(rendered: RenderedRpsEmail, config: SmtpEmailConfig) -> None:
@@ -462,7 +482,10 @@ def test_orchestration_shares_rps_once_persists_once_and_sends_once(
         result.as_dict()["daily_watch_3_candidate_tickers"] == watch["ticker"].tolist()
     )
     for original in (monthly, trend, blue, watch):
-        assert "volume" not in original and "avg_volume_20" not in original
+        assert all(
+            column not in original
+            for column in ("volume", "avg_volume_20", "avg_volume_50")
+        )
     if dry_run:
         assert "顺向火车2" in preview.getvalue()
         assert "Blue Diamond / 蓝色钻石" in preview.getvalue()

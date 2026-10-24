@@ -37,7 +37,7 @@ STRATEGY_DISPLAY_NAMES = {
 def build_price_volume_figure(
     prices: pd.DataFrame, signal_date: date, window: PriceWindow
 ) -> go.Figure:
-    """Plot local prices and raw volume against one matched date range."""
+    """Plot local prices, precomputed averages and volume on matched date axes."""
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
 
@@ -60,6 +60,27 @@ def build_price_volume_figure(
         row=1,
         col=1,
     )
+    for column, name, color, visible in (
+        ("ma10", "MA10", "#D4A017", True),
+        ("ma20", "MA20", "#16A34A", True),
+        ("ma50", "MA50", "#9333EA", True),
+        ("ma10w", "MA10W", "#EA580C", "legendonly"),
+    ):
+        fig.add_trace(
+            go.Scatter(
+                x=prices["date"],
+                y=prices[column],
+                mode="lines",
+                name=name,
+                line={"color": color, "width": 1.75},
+                visible=visible,
+                hovertemplate=(
+                    f"%{{x|%Y-%m-%d}}<br>{name}: %{{y:.2f}}<extra></extra>"
+                ),
+            ),
+            row=1,
+            col=1,
+        )
     fig.add_trace(
         go.Bar(
             x=prices["date"],
@@ -67,7 +88,22 @@ def build_price_volume_figure(
             name="Volume",
             marker_color="#6e8898",
             opacity=0.65,
+            showlegend=False,
             hovertemplate="%{x|%Y-%m-%d}<br>Volume: %{y:,.0f}<extra></extra>",
+        ),
+        row=2,
+        col=1,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=prices["date"],
+            y=prices["avg_volume_50"],
+            mode="lines",
+            name="AvgVol50",
+            line={"color": "#F59E0B", "width": 2},
+            visible=True,
+            showlegend=True,
+            hovertemplate="%{x|%Y-%m-%d}<br>AvgVol50: %{y:,.2f}<extra></extra>",
         ),
         row=2,
         col=1,
@@ -114,8 +150,9 @@ def build_price_volume_figure(
     fig.update_layout(
         height=680,
         dragmode="zoom",
-        margin={"l": 20, "r": 20, "t": 30, "b": 20},
-        showlegend=False,
+        margin={"l": 20, "r": 20, "t": 50, "b": 20},
+        showlegend=True,
+        legend={"orientation": "h", "x": 0, "y": 1.02, "yanchor": "bottom"},
     )
     return fig
 
